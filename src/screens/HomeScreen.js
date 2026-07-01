@@ -1,178 +1,23 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import WaxPattern from '../components/WaxPattern';
 import HomeHeroBackground from '../components/HomeHeroBackground';
+import PressScale from '../components/PressScale';
 import { colors, fontFamily, radius, spacing, type, motion } from '../theme';
-
-const EASE_OUT_BACK = Easing.bezier(0.175, 0.885, 0.32, 1.275);
-
-// ── Reusable ambient-animation hooks (map 1:1 to the CSS @keyframes they mirror) ──
-
-// `ha-float` / `act-float`: translateY 0 -> -distance -> 0, ease-in-out, infinite, staggered.
-function useFloatLoop(delay, distance = 4, halfDuration = 1500) {
-  const val = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(val, { toValue: -distance, duration: halfDuration, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(val, { toValue: 0, duration: halfDuration, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [val, delay, distance, halfDuration]);
-  return val;
-}
-
-// `dot-blink`: opacity 1 -> .3 -> 1, .8s, infinite.
-function useBlink(periodMs = 800) {
-  const val = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(val, { toValue: 0.3, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(val, { toValue: 1, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [val, periodMs]);
-  return val;
-}
-
-// `badge-bounce` / `score-star`: scale 1 -> 1.15 -> 1, periodMs, infinite.
-function useScalePulse(periodMs = 1500, peak = 1.15) {
-  const val = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(val, { toValue: peak, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(val, { toValue: 1, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [val, periodMs, peak]);
-  return val;
-}
-
-// `mboolo-pulse`: border-color oscillates between two alpha values, 3s, infinite.
-function useColorPulse(from, to, periodMs = 3000) {
-  const val = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(val, { toValue: 1, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
-        Animated.timing(val, { toValue: 0, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [val, periodMs]);
-  return val.interpolate({ inputRange: [0, 1], outputRange: [from, to] });
-}
-
-// `rect-glow`: box-shadow none -> visible green glow -> none, 4s, infinite.
-function useGlowPulse(periodMs = 4000, peakOpacity = 0.5) {
-  const val = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(val, { toValue: peakOpacity, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
-        Animated.timing(val, { toValue: 0, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [val, periodMs, peakOpacity]);
-  return val;
-}
-
-// `bar-d`: scaleY 1 -> .3 -> 1, .5s, infinite, staggered per bar.
-function useBarLoop(delay) {
-  const val = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(val, { toValue: 0.3, duration: 250, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(val, { toValue: 1, duration: 250, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [val, delay]);
-  return val;
-}
-
-// `cover-spin`: holds still, then flicks a full 360 spin near the end of each 8s cycle.
-function useSpinFlick(cycleMs = 8000, spinMs = 800) {
-  const val = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    let cancelled = false;
-    const run = () => {
-      val.setValue(0);
-      Animated.sequence([
-        Animated.delay(cycleMs - spinMs),
-        Animated.timing(val, { toValue: 360, duration: spinMs, easing: Easing.linear, useNativeDriver: true }),
-      ]).start(({ finished }) => {
-        if (finished && !cancelled) run();
-      });
-    };
-    run();
-    return () => {
-      cancelled = true;
-      val.stopAnimation();
-    };
-  }, [val, cycleMs, spinMs]);
-  return val.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] });
-}
-
-// One-shot entrance: fade + translateY, matching `amount-count-up` / `fade-up`.
-function useEntrance(delay = 0, duration = 1000, distance = 12) {
-  const val = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(val, { toValue: 1, duration, delay, easing: Easing.out(Easing.ease), useNativeDriver: true }).start();
-  }, [val, delay, duration]);
-  return {
-    opacity: val,
-    transform: [{ translateY: val.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] }) }],
-  };
-}
-
-// One-shot pop-in: scale + opacity with back-out easing, matching `score-pop`.
-function usePopIn(delay = 0, duration = 1000, fromScale = 0.7) {
-  const val = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(val, { toValue: 1, duration, delay, easing: EASE_OUT_BACK, useNativeDriver: true }).start();
-  }, [val, delay, duration]);
-  return {
-    opacity: val.interpolate({ inputRange: [0, 1], outputRange: [0, 1], extrapolate: 'clamp' }),
-    transform: [{ scale: val.interpolate({ inputRange: [0, 1], outputRange: [fromScale, 1] }) }],
-  };
-}
-
-// One-shot fill: width 0 -> targetPct, matching `bar-fill` / `wf`.
-function useFillIn(targetPct, delay = 0, duration = 1200) {
-  const val = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(val, { toValue: targetPct, duration, delay, easing: Easing.out(Easing.ease), useNativeDriver: false }).start();
-  }, [val, targetPct, delay, duration]);
-  return val.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
-}
-
-function PressScale({ children, style, onPress, scaleTo = 0.9 }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const pressIn = () => Animated.timing(scale, { toValue: scaleTo, duration: 100, useNativeDriver: true }).start();
-  const pressOut = () => Animated.timing(scale, { toValue: 1, duration: 150, useNativeDriver: true }).start();
-  return (
-    <Pressable onPress={onPress} onPressIn={pressIn} onPressOut={pressOut}>
-      <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>
-    </Pressable>
-  );
-}
+import {
+  useFloatLoop,
+  useBlink,
+  useScalePulse,
+  useColorPulse,
+  useGlowPulse,
+  useBarLoop,
+  useSpinFlick,
+  useEntrance,
+  usePopIn,
+  useFillIn,
+} from '../hooks/animations';
 
 const ACTIONS = [
   { icon: '💸', label: 'Yónnee', bg: colors.greenA12, border: colors.greenA20 },
