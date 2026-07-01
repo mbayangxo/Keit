@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K21 — Remaining Flows</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ink:#050805;
+  --G:#1af060; --Gd:#0fbc48; --Gp:rgba(26,240,96,.08);
+  --Y:#f7b731; --SY:#fad836; --Yd:#e8920a; --Yp:rgba(250,216,54,.09);
+  --SR:#e8192c; --Rp:rgba(232,25,44,.08);
+  --O:#ff6422; --Op:rgba(255,100,34,.09);
+  --terra:#e85c1a; --terrap:rgba(232,92,26,.09);
+  --w:#fff;
+  --w04:rgba(255,255,255,.04); --w06:rgba(255,255,255,.06);
+  --w08:rgba(255,255,255,.08); --w12:rgba(255,255,255,.12);
+  --w20:rgba(255,255,255,.20); --w30:rgba(255,255,255,.30);
+  --w40:rgba(255,255,255,.40); --w55:rgba(255,255,255,.55);
+  --w70:rgba(255,255,255,.70); --w85:rgba(255,255,255,.85);
+}
+html,body{
+  background:#020302;font-family:'Outfit',sans-serif;color:var(--w);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:32px 16px 80px;
+}
+.page-h{font-family:'Unbounded',sans-serif;font-size:8px;font-weight:700;letter-spacing:4px;color:rgba(255,255,255,.18);text-transform:uppercase;margin-bottom:6px;text-align:center;}
+.page-sub{font-size:11px;color:rgba(255,255,255,.2);margin-bottom:10px;text-align:center;}
+.flag{display:flex;height:3px;border-radius:2px;overflow:hidden;width:120px;margin:0 auto 36px;}
+.fg{flex:1;background:var(--G);} .fy{flex:1;background:var(--SY);} .fr{flex:1;background:var(--SR);}
+.sec-t{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:900;letter-spacing:3px;color:rgba(255,255,255,.25);text-transform:uppercase;margin-bottom:5px;text-align:center;}
+.sec-s{font-size:11px;color:rgba(255,255,255,.18);margin-bottom:20px;text-align:center;}
+.row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-start;margin-bottom:56px;}
+.col{display:flex;flex-direction:column;align-items:center;gap:7px;}
+.cl{font-size:9px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.2);text-transform:uppercase;text-align:center;}
+.arr{color:rgba(255,255,255,.1);font-size:18px;padding-top:48px;align-self:flex-start;flex-shrink:0;}
+
+/* PHONE */
+.phone{width:320px;height:680px;background:var(--ink);border-radius:38px;overflow:hidden;position:relative;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 40px 80px rgba(0,0,0,.85);}
+.phone.tall{height:730px;}
+.sb{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:relative;z-index:20;}
+.sbt{font-size:11px;font-weight:700;letter-spacing:-.3px;color:rgba(255,255,255,.8);}
+.sbr{font-size:10px;color:var(--w30);}
+.sc{position:absolute;top:44px;left:0;right:0;bottom:0;overflow-y:auto;scrollbar-width:none;z-index:10;}
+.sc::-webkit-scrollbar{display:none;}
+
+/* Wax pattern */
+.wax{position:absolute;inset:0;pointer-events:none;z-index:1;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.025) 0px,rgba(255,255,255,.025) 1px,transparent 1px,transparent 18px),repeating-linear-gradient(-45deg,rgba(255,255,255,.025) 0px,rgba(255,255,255,.025) 1px,transparent 1px,transparent 18px);background-size:18px 18px;animation:wax-d 25s linear infinite;}
+@keyframes wax-d{from{background-position:0 0;}to{background-position:36px 36px;}}
+
+/* Shared components */
+.back-btn{width:36px;height:36px;border-radius:12px;background:var(--w08);border:1px solid var(--w12);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;flex-shrink:0;}
+.lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:6px;}
+.btn-g{width:100%;height:52px;border-radius:14px;border:none;background:var(--G);color:var(--ink);font-family:'Unbounded',sans-serif;font-size:11px;font-weight:900;letter-spacing:.5px;cursor:pointer;box-shadow:0 4px 20px rgba(26,240,96,.3);animation:btn-pulse 2.5s ease-in-out infinite;}
+@keyframes btn-pulse{0%,100%{box-shadow:0 4px 20px rgba(26,240,96,.3);}50%{box-shadow:0 4px 32px rgba(26,240,96,.55),0 0 0 8px rgba(26,240,96,.05);}}
+.chip{height:34px;padding:0 13px;border-radius:100px;background:var(--w06);border:1.5px solid var(--w10);font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;transition:all .15s;}
+.chip.on{background:rgba(26,240,96,.1);border-color:rgba(26,240,96,.3);color:var(--G);}
+
+/* ═══════════════════════════════════
+   FLOW 1 — HOME DASHBOARD
+═══════════════════════════════════ */
+
+/* Balance hero — dark with Senegal radial energy */
+.home-hero{
+  position:relative;overflow:hidden;padding:20px 18px 22px;
+}
+.hh-bg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse at 25% 20%,rgba(26,240,96,.14) 0%,transparent 50%),
+    radial-gradient(ellipse at 75% 80%,rgba(250,216,54,.1) 0%,transparent 50%),
+    radial-gradient(ellipse at 50% 50%,rgba(232,25,44,.06) 0%,transparent 60%),
+    linear-gradient(160deg,#0d1f0f 0%,#050805 100%);
+  animation:hh-breathe 7s ease-in-out infinite;
+}
+@keyframes hh-breathe{
+  0%,100%{background:radial-gradient(ellipse at 25% 20%,rgba(26,240,96,.14) 0%,transparent 50%),radial-gradient(ellipse at 75% 80%,rgba(250,216,54,.1) 0%,transparent 50%),radial-gradient(ellipse at 50% 50%,rgba(232,25,44,.06) 0%,transparent 60%),linear-gradient(160deg,#0d1f0f 0%,#050805 100%);}
+  50%{background:radial-gradient(ellipse at 30% 30%,rgba(26,240,96,.2) 0%,transparent 55%),radial-gradient(ellipse at 70% 70%,rgba(250,216,54,.14) 0%,transparent 55%),radial-gradient(ellipse at 50% 50%,rgba(232,25,44,.08) 0%,transparent 60%),linear-gradient(160deg,#0d1f0f 0%,#050805 100%);}
+}
+.hh-wax{position:absolute;inset:0;z-index:1;background-image:repeating-linear-gradient(45deg,rgba(26,240,96,.04) 0px,rgba(26,240,96,.04) 1px,transparent 1px,transparent 18px),repeating-linear-gradient(-45deg,rgba(26,240,96,.04) 0px,rgba(26,240,96,.04) 1px,transparent 1px,transparent 18px);background-size:18px 18px;}
+.hh-content{position:relative;z-index:2;}
+.hh-toprow{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.hh-greeting{font-size:11px;color:var(--w40);}
+.hh-greeting b{color:var(--w70);}
+.hh-notif{width:36px;height:36px;border-radius:12px;background:var(--w08);border:1px solid var(--w12);display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;}
+.hh-dot{position:absolute;top:8px;right:9px;width:6px;height:6px;border-radius:50%;background:var(--SR);border:1.5px solid var(--ink);animation:dot-blink .8s ease-in-out infinite;}
+@keyframes dot-blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* Balance display */
+.balance-display{text-align:center;margin-bottom:20px;}
+.bd-eye{font-size:11px;color:var(--w30);margin-bottom:6px;cursor:pointer;}
+.bd-amount{font-family:'Unbounded',sans-serif;font-size:44px;font-weight:900;color:var(--G);letter-spacing:-3px;line-height:1;animation:amount-count-up 1s ease-out both;text-shadow:0 0 40px rgba(26,240,96,.25);}
+@keyframes amount-count-up{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.bd-curr{font-size:16px;font-weight:400;color:rgba(26,240,96,.5);}
+.bd-zero-fees{display:inline-flex;align-items:center;gap:5px;margin-top:8px;background:rgba(26,240,96,.08);border:1px solid rgba(26,240,96,.18);border-radius:100px;padding:4px 12px;font-size:10px;font-weight:700;color:rgba(26,240,96,.8);}
+
+/* Action buttons */
+.home-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:0;}
+.ha-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;}
+.ha-btn{
+  width:52px;height:52px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  animation:ha-float 3s ease-in-out infinite;
+  transition:transform .15s;
+}
+.ha-btn:active{transform:scale(.9);}
+.ha-item:nth-child(1) .ha-btn{animation-delay:0s;}
+.ha-item:nth-child(2) .ha-btn{animation-delay:.3s;}
+.ha-item:nth-child(3) .ha-btn{animation-delay:.6s;}
+.ha-item:nth-child(4) .ha-btn{animation-delay:.9s;}
+@keyframes ha-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+.ha-label{font-size:9px;font-weight:700;color:var(--w40);text-align:center;}
+
+/* Flag stripe divider */
+.flag-div{display:flex;height:2px;margin:16px 0;}
+.fd-g{flex:1;background:var(--G);}
+.fd-y{flex:1;background:var(--SY);}
+.fd-r{flex:1;background:var(--SR);}
+
+/* Cards */
+.home-cards{padding:0 16px 16px;}
+
+/* Rect Sound card */
+.rect-card{
+  background:linear-gradient(135deg,#0a1a0c,#061008);
+  border:1.5px solid rgba(26,240,96,.2);
+  border-radius:18px;padding:14px;margin-bottom:10px;cursor:pointer;
+  animation:rect-glow 4s ease-in-out infinite;
+}
+@keyframes rect-glow{0%,100%{box-shadow:none;}50%{box-shadow:0 0 24px rgba(26,240,96,.1);}}
+.rc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.rc-tag{font-size:8px;font-weight:700;letter-spacing:1px;color:rgba(26,240,96,.6);text-transform:uppercase;}
+.rc-live{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:var(--SR);}
+.rc-dot{width:5px;height:5px;border-radius:50%;background:var(--SR);animation:dot-blink .8s ease-in-out infinite;}
+.rc-song{display:flex;align-items:center;gap:10px;}
+.rc-cover{width:44px;height:44px;border-radius:12px;background:linear-gradient(145deg,#1a5e30,#0a2a14);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;animation:cover-spin 8s linear infinite;}
+@keyframes cover-spin{0%,90%,100%{transform:rotate(0);}95%{transform:rotate(360deg);}}
+.rc-info{flex:1;min-width:0;}
+.rc-title{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rc-artist{font-size:11px;color:var(--w40);}
+.rc-chart{font-size:9px;font-weight:700;color:var(--G);margin-top:2px;}
+.rc-bars{display:flex;gap:2px;align-items:flex-end;height:20px;}
+.rc-bar{width:3px;border-radius:2px;background:var(--G);}
+.rc-bar:nth-child(1){height:8px;animation:bar-d .5s infinite;}
+.rc-bar:nth-child(2){height:16px;animation:bar-d .5s .08s infinite;}
+.rc-bar:nth-child(3){height:10px;animation:bar-d .5s .16s infinite;}
+.rc-bar:nth-child(4){height:18px;animation:bar-d .5s .24s infinite;}
+@keyframes bar-d{0%,100%{transform:scaleY(1);}50%{transform:scaleY(.3);}}
+
+/* Wakhna card */
+.wakhna-mini{
+  background:linear-gradient(135deg,rgba(26,240,96,.07),rgba(26,240,96,.02));
+  border:1px solid rgba(26,240,96,.15);
+  border-radius:16px;padding:12px 14px;margin-bottom:10px;
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+}
+.wm-score{font-family:'Unbounded',sans-serif;font-size:28px;font-weight:900;color:var(--G);letter-spacing:-1px;animation:score-pop 1s .3s cubic-bezier(.175,.885,.32,1.275) both;}
+@keyframes score-pop{from{opacity:0;transform:scale(.7);}to{opacity:1;transform:scale(1);}}
+.wm-body{flex:1;}
+.wm-label{font-size:9px;font-weight:700;letter-spacing:1px;color:rgba(26,240,96,.6);text-transform:uppercase;margin-bottom:3px;}
+.wm-rank{font-size:11px;color:var(--w40);}
+.wm-rank b{color:var(--G);}
+.wm-bar{height:4px;background:var(--w08);border-radius:2px;overflow:hidden;margin-top:6px;}
+.wm-fill{height:100%;background:linear-gradient(to right,var(--G),var(--SY));border-radius:2px;width:72%;animation:bar-fill 1.2s .5s ease-out both;}
+@keyframes bar-fill{from{width:0;}to{width:72%;}}
+
+/* Mboolo pulse */
+.mboolo-mini{
+  background:linear-gradient(135deg,rgba(232,92,26,.1),rgba(232,92,26,.03));
+  border:1px solid rgba(232,92,26,.2);
+  border-radius:16px;padding:11px 14px;
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+  animation:mboolo-pulse 3s ease-in-out infinite;
+}
+@keyframes mboolo-pulse{0%,100%{border-color:rgba(232,92,26,.2);}50%{border-color:rgba(232,92,26,.45);}}
+.mm-ava-stack{display:flex;}
+.mm-a{width:28px;height:28px;border-radius:50%;background:var(--w08);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:13px;margin-left:-8px;}
+.mm-a:first-child{margin-left:0;}
+.mm-body{flex:1;}
+.mm-title{font-size:12px;font-weight:700;color:rgba(255,180,100,.9);}
+.mm-sub{font-size:10px;color:var(--w30);}
+.mm-badge{min-width:20px;height:20px;border-radius:10px;background:var(--terra);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;padding:0 5px;animation:badge-bounce 1.5s ease-in-out infinite;}
+@keyframes badge-bounce{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
+
+/* Bottom nav */
+.bottom-nav{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(5,8,5,.95);backdrop-filter:blur(16px);
+  border-top:1px solid var(--w08);
+  display:flex;padding:10px 0 16px;z-index:30;
+}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
+.bn-ico{font-size:20px;transition:transform .2s;}
+.bn-item.on .bn-ico{animation:nav-bounce .4s cubic-bezier(.175,.885,.32,1.275);}
+@keyframes nav-bounce{0%{transform:scale(1);}50%{transform:scale(1.3);}100%{transform:scale(1);}}
+.bn-label{font-size:8px;font-weight:700;color:var(--w30);}
+.bn-item.on .bn-label{color:var(--G);}
+.bn-dot{width:4px;height:4px;border-radius:50%;background:var(--G);display:none;}
+.bn-item.on .bn-dot{display:block;}
+
+/* ═══════════════════════════════════
+   FLOW 2 — SEND MONEY
+═══════════════════════════════════ */
+.send-hero{
+  background:linear-gradient(160deg,rgba(26,240,96,.16) 0%,transparent 60%);
+  border-bottom:1px solid rgba(26,240,96,.12);
+  padding:14px 18px 18px;position:relative;overflow:hidden;
+}
+.sh-wax{position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,rgba(26,240,96,.04) 0px,rgba(26,240,96,.04) 1px,transparent 1px,transparent 18px),repeating-linear-gradient(-45deg,rgba(26,240,96,.04) 0px,rgba(26,240,96,.04) 1px,transparent 1px,transparent 18px);background-size:18px 18px;}
+.sh-top{display:flex;align-items:center;gap:12px;margin-bottom:20px;position:relative;z-index:2;}
+.sh-title{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;}
+/* Amount keypad display */
+.amount-hero{text-align:center;position:relative;z-index:2;}
+.ah-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;color:rgba(26,240,96,.6);text-transform:uppercase;margin-bottom:10px;}
+.ah-num{
+  font-family:'Unbounded',sans-serif;font-size:52px;font-weight:900;
+  color:var(--G);letter-spacing:-3px;line-height:1;
+  text-shadow:0 0 40px rgba(26,240,96,.2);
+  animation:num-appear .4s cubic-bezier(.175,.885,.32,1.275) both;
+}
+@keyframes num-appear{from{opacity:0;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
+.ah-curr{font-size:16px;font-weight:400;color:rgba(26,240,96,.4);}
+.ah-cursor{display:inline-block;width:2px;height:40px;background:var(--G);margin-left:4px;animation:cur-blink 1s ease-in-out infinite;vertical-align:middle;}
+@keyframes cur-blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+/* Quick amounts */
+.quick-row{display:flex;gap:7px;justify-content:center;margin:12px 0 0;position:relative;z-index:2;}
+
+/* Recipient section */
+.recipient-section{padding:14px 18px;}
+.rec-card{
+  background:var(--w06);border:1.5px solid var(--w12);
+  border-radius:16px;padding:13px;
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+  transition:all .2s;
+}
+.rec-card:hover{background:var(--w08);border-color:rgba(26,240,96,.3);}
+.rec-ava{width:44px;height:44px;border-radius:50%;background:linear-gradient(145deg,rgba(26,240,96,.15),rgba(26,240,96,.05));border:2px solid rgba(26,240,96,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.rec-body{flex:1;}
+.rec-name{font-size:14px;font-weight:700;}
+.rec-handle{font-size:11px;color:var(--G);}
+.rec-arr{font-size:11px;color:var(--w40);}
+
+/* Reason field */
+.reason-wrap{padding:0 18px 14px;}
+.reason-field{
+  width:100%;height:48px;border-radius:13px;
+  background:var(--w06);border:1.5px solid var(--w12);
+  padding:0 16px;font-family:'Outfit',sans-serif;font-size:13px;color:var(--w);outline:none;
+}
+.reason-field::placeholder{color:var(--w30);}
+
+/* Confirm send */
+.confirm-send{position:absolute;top:44px;left:0;right:0;bottom:0;display:flex;flex-direction:column;z-index:10;}
+.cs-hero{
+  padding:24px 20px 20px;
+  background:linear-gradient(160deg,rgba(26,240,96,.16) 0%,rgba(26,240,96,.04) 60%,transparent 100%);
+  border-bottom:1px solid rgba(26,240,96,.12);
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  position:relative;overflow:hidden;
+}
+.csh-wax{position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,rgba(26,240,96,.03) 0px,rgba(26,240,96,.03) 1px,transparent 1px,transparent 18px),repeating-linear-gradient(-45deg,rgba(26,240,96,.03) 0px,rgba(26,240,96,.03) 1px,transparent 1px,transparent 18px);background-size:18px 18px;}
+.cs-ava{width:68px;height:68px;border-radius:50%;border:3px solid rgba(26,240,96,.3);background:var(--w08);display:flex;align-items:center;justify-content:center;font-size:28px;position:relative;z-index:2;margin-bottom:10px;}
+.cs-name{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:900;position:relative;z-index:2;}
+.cs-handle{font-size:11px;color:var(--G);position:relative;z-index:2;margin-bottom:4px;}
+.cs-arr{font-size:11px;color:var(--w35);position:relative;z-index:2;}
+.cs-amount{font-family:'Unbounded',sans-serif;font-size:54px;font-weight:900;color:var(--G);letter-spacing:-3px;line-height:1;margin:14px 0 4px;text-shadow:0 0 40px rgba(26,240,96,.3);position:relative;z-index:2;}
+.cs-free{display:inline-flex;align-items:center;gap:5px;background:rgba(26,240,96,.08);border:1px solid rgba(26,240,96,.2);border-radius:100px;padding:4px 12px;font-size:10px;font-weight:700;color:rgba(26,240,96,.8);margin-top:6px;position:relative;z-index:2;}
+.cs-confirm-photo{display:flex;align-items:center;gap:8px;background:rgba(26,240,96,.06);border:1px solid rgba(26,240,96,.15);border-radius:12px;padding:10px 13px;margin:14px 18px 0;position:relative;z-index:2;width:calc(100% - 36px);}
+.csp-text{font-size:11px;color:var(--w55);line-height:1.5;}
+.csp-text b{color:var(--w85);}
+.cs-body{padding:14px 18px;display:flex;flex-direction:column;gap:0;}
+.cs-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--w06);}
+.cs-row:last-child{border-bottom:none;}
+.csr-l{font-size:11px;color:var(--w35);}
+.csr-r{font-size:12px;font-weight:700;}
+.cs-actions{padding:12px 18px 20px;display:flex;flex-direction:column;gap:8px;margin-top:auto;}
+.cs-yes{font-size:10px;color:var(--G);font-weight:700;cursor:pointer;}
+.cs-no{font-size:10px;color:var(--w30);font-weight:600;cursor:pointer;}
+
+/* Success */
+.send-success{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;}
+.ss-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(26,240,96,.12) 0%,transparent 60%),#050805;}
+.ss-c{position:relative;z-index:2;text-align:center;width:100%;}
+.ss-ring{width:90px;height:90px;border-radius:50%;background:rgba(26,240,96,.08);border:3px solid var(--G);display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 18px;box-shadow:0 0 50px rgba(26,240,96,.2);animation:ss-pop .5s cubic-bezier(.175,.885,.32,1.275) both;}
+@keyframes ss-pop{from{transform:scale(.3);opacity:0;}to{transform:scale(1);opacity:1;}}
+.ss-title{font-family:'Unbounded',sans-serif;font-size:24px;font-weight:900;letter-spacing:-.8px;margin-bottom:6px;animation:fade-up .5s .2s both;}
+.ss-sub{font-size:12px;color:var(--w40);margin-bottom:22px;line-height:1.7;animation:fade-up .5s .3s both;}
+@keyframes fade-up{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.ss-receipt{width:100%;background:var(--w06);border:1px solid var(--w10);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;margin-bottom:20px;animation:fade-up .5s .4s both;}
+.ssr-row{display:flex;justify-content:space-between;}
+.ssr-l{font-size:11px;color:var(--w30);}
+.ssr-r{font-size:12px;font-weight:700;}
+.ssr-r.g{color:var(--G);}
+.wakhna-bonus{background:rgba(26,240,96,.05);border:1px solid rgba(26,240,96,.15);border-radius:11px;padding:9px 12px;display:flex;align-items:center;gap:8px;margin-bottom:14px;animation:fade-up .5s .5s both;}
+.wb-text{font-size:11px;color:var(--w40);}
+.wb-text b{color:var(--G);}
+
+/* ═══════════════════════════════════
+   FLOW 3 — CHART 221 BËGG
+═══════════════════════════════════ */
+.chart-hero{
+  background:linear-gradient(160deg,#050a06 0%,#020602 100%);
+  border-bottom:1px solid rgba(26,240,96,.1);
+  padding:16px 18px 0;position:relative;overflow:hidden;
+}
+.ch-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(26,240,96,.12) 0%,transparent 60%);}
+.ch-wax{position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,rgba(26,240,96,.03) 0px,rgba(26,240,96,.03) 1px,transparent 1px,transparent 18px),repeating-linear-gradient(-45deg,rgba(26,240,96,.03) 0px,rgba(26,240,96,.03) 1px,transparent 1px,transparent 18px);background-size:18px 18px;}
+.ch-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;z-index:2;}
+.ch-brand{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:900;color:var(--G);}
+.ch-brand span{color:var(--w40);}
+.ch-week{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--w25);text-transform:uppercase;}
+/* Chart tabs */
+.chart-tabs{display:flex;gap:0;position:relative;z-index:2;border-bottom:1px solid var(--w08);}
+.ct{padding:10px 14px;font-size:10px;font-weight:700;color:var(--w30);cursor:pointer;border-bottom:2px solid transparent;flex-shrink:0;white-space:nowrap;}
+.ct.on{color:var(--G);border-bottom-color:var(--G);}
+/* Chart list */
+.chart-list{padding:10px 16px 20px;display:flex;flex-direction:column;gap:6px;}
+.chart-item{
+  display:flex;align-items:center;gap:11px;
+  background:var(--w04);border:1px solid var(--w06);
+  border-radius:14px;padding:10px 12px;cursor:pointer;
+  transition:background .15s;
+  animation:chart-item-in .4s cubic-bezier(.175,.885,.32,1.275) both;
+}
+.chart-item:nth-child(1){animation-delay:.05s;}
+.chart-item:nth-child(2){animation-delay:.1s;}
+.chart-item:nth-child(3){animation-delay:.15s;}
+.chart-item:nth-child(4){animation-delay:.2s;}
+.chart-item:nth-child(5){animation-delay:.25s;}
+@keyframes chart-item-in{from{opacity:0;transform:translateX(-12px);}to{opacity:1;transform:translateX(0);}}
+.chart-item:hover{background:var(--w06);}
+.chart-item.top1{background:linear-gradient(135deg,rgba(26,240,96,.1),rgba(26,240,96,.03));border-color:rgba(26,240,96,.2);}
+.ci-rank{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;width:28px;text-align:center;flex-shrink:0;}
+.ci-rank.r1{color:var(--G);}
+.ci-rank.r2{color:var(--SY);}
+.ci-rank.r3{color:var(--O);}
+.ci-rank.r4,.ci-rank.r5{color:var(--w30);}
+.ci-move{font-size:9px;font-weight:700;width:20px;text-align:center;flex-shrink:0;}
+.ci-move.up{color:var(--G);}
+.ci-move.down{color:var(--SR);}
+.ci-move.same{color:var(--w25);}
+.ci-cover{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.ci-body{flex:1;min-width:0;}
+.ci-title{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ci-artist{font-size:10px;color:var(--w40);}
+.ci-right{text-align:right;flex-shrink:0;}
+.ci-dafa{font-size:13px;font-weight:700;color:var(--G);}
+.ci-dafa-l{font-size:9px;color:var(--w30);}
+.dafa-btn{
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(26,240,96,.08);border:1px solid rgba(26,240,96,.2);
+  display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;
+  flex-shrink:0;transition:transform .15s;
+}
+.dafa-btn:active{transform:scale(1.3);}
+.dafa-btn.on{background:rgba(26,240,96,.2);border-color:rgba(26,240,96,.4);animation:dafa-pop .3s cubic-bezier(.175,.885,.32,1.275) both;}
+@keyframes dafa-pop{0%{transform:scale(1);}50%{transform:scale(1.4);}100%{transform:scale(1);}}
+
+/* Certification strip */
+.cert-strip{
+  margin:0 16px 12px;
+  background:linear-gradient(135deg,rgba(26,240,96,.08),rgba(26,240,96,.02));
+  border:1.5px solid rgba(26,240,96,.18);
+  border-radius:14px;padding:11px 13px;
+  display:flex;align-items:center;gap:10px;cursor:pointer;
+  animation:cert-glow 4s ease-in-out infinite;
+}
+@keyframes cert-glow{0%,100%{box-shadow:none;}50%{box-shadow:0 0 20px rgba(26,240,96,.12);}}
+.cert-ico{font-size:22px;animation:cauris-float 3s ease-in-out infinite;}
+@keyframes cauris-float{0%,100%{transform:translateY(0) rotate(-5deg);}50%{transform:translateY(-4px) rotate(5deg);}}
+.cert-body{flex:1;}
+.cert-title{font-size:12px;font-weight:700;color:var(--G);}
+.cert-sub{font-size:10px;color:var(--w35);}
+.cert-contrib{font-size:10px;font-weight:700;color:rgba(26,240,96,.6);}
+
+/* ═══════════════════════════════════
+   FLOW 4 — DÉFIS MUSIQUE
+═══════════════════════════════════ */
+.defis-hero{
+  background:linear-gradient(160deg,rgba(255,100,34,.18) 0%,rgba(232,25,44,.12) 50%,transparent 100%);
+  border-bottom:1px solid rgba(255,100,34,.15);
+  padding:18px 18px 20px;position:relative;overflow:hidden;
+}
+.dh-wax{position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,rgba(255,100,34,.06) 0px,rgba(255,100,34,.06) 1px,transparent 1px,transparent 18px),repeating-linear-gradient(-45deg,rgba(255,100,34,.06) 0px,rgba(255,100,34,.06) 1px,transparent 1px,transparent 18px);background-size:18px 18px;}
+.dh-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;z-index:2;}
+.dh-title{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:var(--O);letter-spacing:-.5px;}
+.dh-live{display:flex;align-items:center;gap:5px;background:rgba(232,25,44,.15);border:1px solid rgba(232,25,44,.3);border-radius:100px;padding:4px 10px;font-size:9px;font-weight:700;color:var(--SR);animation:live-pulse 1.5s ease-in-out infinite;}
+@keyframes live-pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,25,44,.3);}50%{box-shadow:0 0 0 8px rgba(232,25,44,.0);}}
+
+/* Active défi card */
+.defi-card{
+  background:var(--w06);border:1.5px solid rgba(255,100,34,.2);
+  border-radius:18px;overflow:hidden;margin-bottom:10px;cursor:pointer;
+  position:relative;z-index:2;
+}
+.dc-cover{
+  height:100px;position:relative;
+  background:linear-gradient(135deg,#1a0804,#0a0402);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.dc-cover-emoji{font-size:48px;animation:defi-bounce 2s ease-in-out infinite;}
+@keyframes defi-bounce{0%,100%{transform:scale(1);}50%{transform:scale(1.1) rotate(5deg);}}
+.dc-prize-badge{
+  position:absolute;top:10px;right:10px;
+  background:var(--SY);color:var(--ink);
+  border-radius:100px;padding:4px 12px;
+  font-family:'Unbounded',sans-serif;font-size:10px;font-weight:900;
+  box-shadow:0 3px 12px rgba(250,216,54,.4);
+  animation:prize-bounce 2s ease-in-out infinite;
+}
+@keyframes prize-bounce{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+.dc-body{padding:12px 14px;}
+.dc-category{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--O);text-transform:uppercase;margin-bottom:4px;}
+.dc-name{font-size:14px;font-weight:700;margin-bottom:4px;}
+.dc-desc{font-size:11px;color:var(--w40);line-height:1.55;margin-bottom:10px;}
+.dc-stats{display:flex;gap:12px;}
+.dc-stat{font-size:10px;color:var(--w30);}
+.dc-stat b{color:var(--w60);font-weight:700;}
+.dc-progress{height:3px;background:var(--w08);margin-top:10px;}
+.dc-prog-fill{height:100%;background:linear-gradient(to right,var(--O),var(--SR));width:68%;animation:prog-fill 1.5s ease-out both;}
+@keyframes prog-fill{from{width:0;}to{width:68%;}}
+
+/* Leaderboard mini */
+.defi-leaderboard{padding:12px 16px 20px;}
+.dlb-title{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--w25);text-transform:uppercase;margin-bottom:10px;}
+.dlb-item{
+  display:flex;align-items:center;gap:10px;
+  background:var(--w04);border:1px solid var(--w06);
+  border-radius:12px;padding:9px 12px;margin-bottom:6px;
+  animation:dlb-in .4s cubic-bezier(.175,.885,.32,1.275) both;
+}
+.dlb-item:nth-child(2){animation-delay:.05s;}
+.dlb-item:nth-child(3){animation-delay:.1s;}
+.dlb-item:nth-child(4){animation-delay:.15s;}
+@keyframes dlb-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.dlb-item.me{background:rgba(26,240,96,.06);border-color:rgba(26,240,96,.2);}
+.dlb-pos{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:900;width:24px;text-align:center;flex-shrink:0;}
+.dlb-pos.p1{color:var(--SY);}
+.dlb-pos.p2{color:var(--w55);}
+.dlb-pos.p3{color:var(--O);}
+.dlb-ava{font-size:19px;flex-shrink:0;}
+.dlb-name{flex:1;font-size:12px;font-weight:700;}
+.dlb-votes{font-size:11px;font-weight:700;color:var(--G);}
+.dlb-votes-l{font-size:9px;color:var(--w30);}
+
+.defi-enter-btn{
+  margin:0 16px 20px;
+  height:52px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,var(--O),var(--SR));
+  color:#fff;font-family:'Unbounded',sans-serif;font-size:11px;font-weight:900;
+  letter-spacing:.5px;cursor:pointer;
+  box-shadow:0 4px 20px rgba(255,100,34,.4);
+  animation:defi-btn-pulse 2.5s ease-in-out infinite;width:calc(100% - 32px);
+}
+@keyframes defi-btn-pulse{0%,100%{box-shadow:0 4px 20px rgba(255,100,34,.4);}50%{box-shadow:0 4px 32px rgba(255,100,34,.6),0 0 0 8px rgba(255,100,34,.05);}}
+
+/* ═══════════════════════════════════
+   FLOW 5 — K21 PASS
+═══════════════════════════════════ */
+.pass-hero{
+  background:linear-gradient(160deg,rgba(247,183,49,.14) 0%,rgba(255,100,34,.08) 50%,transparent 100%);
+  border-bottom:1px solid rgba(247,183,49,.12);
+  padding:16px 18px 20px;position:relative;overflow:hidden;
+}
+.ph-wax{position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,rgba(247,183,49,.06) 0px,rgba(247,183,49,.06) 1px,transparent 1px,transparent 18px),repeating-linear-gradient(-45deg,rgba(247,183,49,.06) 0px,rgba(247,183,49,.06) 1px,transparent 1px,transparent 18px);background-size:18px 18px;}
+.ph-top{display:flex;align-items:center;gap:12px;margin-bottom:18px;position:relative;z-index:2;}
+.ph-head{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;}
+
+/* The actual card */
+.k21-pass-card{
+  position:relative;z-index:2;
+  width:100%;aspect-ratio:1.586/1;
+  border-radius:20px;overflow:hidden;
+  background:linear-gradient(135deg,#1a1200,#0d0800,#1a0a00);
+  border:1.5px solid rgba(247,183,49,.3);
+  box-shadow:0 8px 32px rgba(180,100,0,.4),0 0 0 1px rgba(247,183,49,.1);
+  animation:card-float 4s ease-in-out infinite;
+  padding:20px;display:flex;flex-direction:column;justify-content:space-between;
+}
+@keyframes card-float{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-6px) rotate(.5deg);}}
+.kpc-wax{position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,rgba(247,183,49,.04) 0px,rgba(247,183,49,.04) 1px,transparent 1px,transparent 18px),repeating-linear-gradient(-45deg,rgba(247,183,49,.04) 0px,rgba(247,183,49,.04) 1px,transparent 1px,transparent 18px);background-size:18px 18px;}
+.kpc-glow{position:absolute;top:-30px;right:-30px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(247,183,49,.2),transparent 70%);animation:pass-glow 4s ease-in-out infinite;}
+@keyframes pass-glow{0%,100%{opacity:.6;}50%{opacity:1;}}
+.kpc-top{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;}
+.kpc-brand{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;display:flex;align-items:baseline;gap:2px;}
+.kpc-k{color:var(--G);}
+.kpc-2{color:var(--SY);}
+.kpc-1{color:var(--O);}
+.kpc-pass{font-size:8px;font-weight:700;letter-spacing:2px;color:rgba(247,183,49,.5);margin-left:6px;text-transform:uppercase;}
+.kpc-chip{width:32px;height:24px;border-radius:5px;background:linear-gradient(135deg,#d4a017,#a07010);border:1px solid rgba(247,183,49,.4);}
+.kpc-mid{position:relative;z-index:2;}
+.kpc-number{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:rgba(247,183,49,.8);}
+.kpc-bottom{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:flex-end;}
+.kpc-name{font-size:12px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:1px;}
+.kpc-network{font-size:20px;opacity:.8;}
+.kpc-arr-label{font-size:8px;color:rgba(255,255,255,.3);letter-spacing:.5px;margin-bottom:2px;}
+.kpc-arr-val{font-size:10px;font-weight:700;color:rgba(255,255,255,.6);}
+.kpc-flag-stripe{position:absolute;bottom:0;left:0;right:0;height:3px;display:flex;}
+.kpcf-g{flex:1;background:var(--G);}
+.kpcf-y{flex:1;background:var(--SY);}
+.kpcf-r{flex:1;background:var(--SR);}
+
+/* Pass features */
+.pass-features{padding:14px 18px;display:flex;flex-direction:column;gap:8px;}
+.pf-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--w06);border:1px solid var(--w08);
+  border-radius:13px;padding:12px 14px;
+  animation:pf-in .4s cubic-bezier(.175,.885,.32,1.275) both;
+}
+.pf-item:nth-child(1){animation-delay:.1s;}
+.pf-item:nth-child(2){animation-delay:.2s;}
+.pf-item:nth-child(3){animation-delay:.3s;}
+@keyframes pf-in{from{opacity:0;transform:translateX(10px);}to{opacity:1;transform:translateX(0);}}
+.pf-ico{font-size:22px;flex-shrink:0;}
+.pf-body{flex:1;}
+.pf-title{font-size:13px;font-weight:700;margin-bottom:2px;}
+.pf-sub{font-size:10px;color:var(--w35);}
+.pf-badge{font-size:8px;font-weight:700;border-radius:6px;padding:3px 8px;flex-shrink:0;}
+.badge-g{background:rgba(26,240,96,.1);color:var(--G);border:1px solid rgba(26,240,96,.2);}
+.badge-y{background:rgba(250,216,54,.1);color:var(--SY);border:1px solid rgba(250,216,54,.2);}
+
+.pass-cta{padding:0 18px 20px;display:flex;flex-direction:column;gap:8px;}
+.btn-gold{
+  width:100%;height:52px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,var(--SY),var(--Y));
+  color:var(--ink);font-family:'Unbounded',sans-serif;font-size:11px;font-weight:900;
+  letter-spacing:.5px;cursor:pointer;
+  box-shadow:0 4px 20px rgba(250,216,54,.35);
+  animation:gold-pulse 2.5s ease-in-out infinite;
+}
+@keyframes gold-pulse{0%,100%{box-shadow:0 4px 20px rgba(250,216,54,.35);}50%{box-shadow:0 4px 32px rgba(250,216,54,.6),0 0 0 8px rgba(250,216,54,.05);}}
+
+/* ═══════════════════════════════════
+   FLOW 6 — XEL AK SAGO (BUDGETING)
+═══════════════════════════════════ */
+.xel-hero{
+  background:linear-gradient(160deg,rgba(26,240,96,.12) 0%,rgba(250,216,54,.06) 60%,transparent 100%);
+  border-bottom:1px solid rgba(26,240,96,.1);
+  padding:16px 18px 20px;position:relative;overflow:hidden;
+}
+.xh-wax{position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,rgba(26,240,96,.03) 0px,rgba(26,240,96,.03) 1px,transparent 1px,transparent 18px),repeating-linear-gradient(-45deg,rgba(26,240,96,.03) 0px,rgba(26,240,96,.03) 1px,transparent 1px,transparent 18px);background-size:18px 18px;}
+.xh-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;position:relative;z-index:2;}
+.xh-title{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;}
+.xh-desc{font-size:12px;color:var(--w40);line-height:1.65;position:relative;z-index:2;margin-bottom:14px;}
+/* Self-care framing badge */
+.xh-frame{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(26,240,96,.08);border:1px solid rgba(26,240,96,.18);
+  border-radius:100px;padding:5px 13px;
+  font-size:10px;font-weight:700;color:rgba(26,240,96,.8);
+  position:relative;z-index:2;
+}
+
+/* Spending insights */
+.xel-insights{padding:14px 18px;}
+.xi-title{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--w25);text-transform:uppercase;margin-bottom:10px;}
+/* Donut chart area */
+.donut-wrap{display:flex;align-items:center;gap:16px;margin-bottom:14px;}
+.donut{
+  width:80px;height:80px;border-radius:50%;
+  background:conic-gradient(var(--G) 0% 40%,var(--SY) 40% 65%,var(--O) 65% 80%,var(--SR) 80% 100%);
+  display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;
+  animation:donut-spin 1.5s ease-out both;
+}
+@keyframes donut-spin{from{transform:rotate(-90deg);opacity:0;}to{transform:rotate(0deg);opacity:1;}}
+.donut::after{content:'';position:absolute;width:50px;height:50px;border-radius:50%;background:var(--ink);}
+.donut-legend{display:flex;flex-direction:column;gap:5px;flex:1;}
+.dl-item{display:flex;align-items:center;gap:6px;}
+.dl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dl-label{flex:1;font-size:10px;color:var(--w40);}
+.dl-pct{font-size:10px;font-weight:700;}
+
+/* Category budgets */
+.budget-cats{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.bc-item{background:var(--w06);border:1px solid var(--w08);border-radius:14px;padding:12px 14px;}
+.bc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+.bc-name{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;}
+.bc-ico{font-size:16px;}
+.bc-vals{font-size:10px;color:var(--w40);}
+.bc-vals b{color:var(--w70);font-weight:700;}
+.bc-track{height:6px;background:var(--w08);border-radius:3px;overflow:hidden;}
+.bc-fill{height:100%;border-radius:3px;animation:bc-fill-anim 1.2s ease-out both;}
+@keyframes bc-fill-anim{from{width:0;}to{}}
+
+/* Goal setting */
+.xel-goal{
+  margin:0 18px 14px;
+  background:linear-gradient(145deg,rgba(26,240,96,.07),rgba(26,240,96,.02));
+  border:1.5px solid rgba(26,240,96,.18);
+  border-radius:16px;padding:14px;
+}
+.xg-title{font-size:12px;font-weight:700;color:var(--G);margin-bottom:8px;}
+.xg-name{font-size:14px;font-weight:700;margin-bottom:4px;}
+.xg-amounts{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.xga-saved{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;color:var(--G);letter-spacing:-1px;}
+.xga-total{font-size:12px;color:var(--w35);}
+.xg-track{height:8px;background:var(--w08);border-radius:4px;overflow:hidden;margin-bottom:6px;}
+.xg-fill{height:100%;background:linear-gradient(to right,var(--G),var(--SY));border-radius:4px;width:55%;animation:xg-fill 1.5s ease-out both;box-shadow:0 2px 8px rgba(26,240,96,.3);}
+@keyframes xg-fill{from{width:0;}to{width:55%;}}
+.xg-sub{font-size:10px;color:rgba(26,240,96,.5);}
+
+/* Peer insight */
+.peer-insight{
+  margin:0 18px 20px;
+  background:var(--w04);border:1px solid var(--w08);
+  border-radius:14px;padding:12px 14px;
+  display:flex;align-items:flex-start;gap:10px;
+}
+.pi-ico{font-size:18px;flex-shrink:0;}
+.pi-body{flex:1;}
+.pi-title{font-size:12px;font-weight:700;color:var(--SY);margin-bottom:3px;}
+.pi-text{font-size:11px;color:var(--w40);line-height:1.6;}
+.pi-text b{color:var(--w60);}
+</style>
+</head>
+<body>
+
+<div class="page-h">K21 — UX/UI Design System</div>
+<div class="page-sub">All Remaining Flows · Complete</div>
+<div class="flag"><div class="fg"></div><div class="fy"></div><div class="fr"></div></div>
+
+<!-- ═══════════════════════════════════════════
+     FLOW 1 — HOME DASHBOARD
+═══════════════════════════════════════════ -->
+<div class="sec-t">Flow 01 — Home Dashboard</div>
+<div class="sec-s">Balance · Actions · Rect Sound · Wakhna · Mboolo pulse</div>
+<div class="row">
+
+  <div class="col">
+    <div class="cl">Home</div>
+    <div class="phone">
+      <div class="wax"></div>
+      <div class="sb"><span class="sbt"></span><span class="sbr">📶 🔋</span></div>
+      <div class="sc" style="padding-bottom:70px;">
+        <!-- Hero -->
+        <div class="home-hero">
+          <div class="hh-bg"></div>
+          <div class="hh-wax"></div>
+          <div class="hh-content">
+            <div class="hh-toprow">
+              <div>
+                <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--w30);text-transform:uppercase;margin-bottom:3px;">📍 Médina · Dakar</div>
+                <div class="hh-greeting">Salut <b>Saliou</b> 👋🏿</div>
+              </div>
+              <div class="hh-notif">🔔<div class="hh-dot"></div></div>
+            </div>
+            <div class="balance-display">
+              <div class="bd-eye">👁 Solde</div>
+              <div class="bd-amount">47 000 <span class="bd-curr">F</span></div>
+              <div class="bd-zero-fees">✦ Zéro frais sur tous tes envois</div>
+            </div>
+            <!-- Actions -->
+            <div class="home-actions">
+              <div class="ha-item">
+                <div class="ha-btn" style="background:rgba(26,240,96,.12);border:1.5px solid rgba(26,240,96,.2);">💸</div>
+                <div class="ha-label">Yónnee</div>
+              </div>
+              <div class="ha-item">
+                <div class="ha-btn" style="background:rgba(250,216,54,.1);border:1.5px solid rgba(250,216,54,.2);">📥</div>
+                <div class="ha-label">Jël</div>
+              </div>
+              <div class="ha-item">
+                <div class="ha-btn" style="background:rgba(255,100,34,.1);border:1.5px solid rgba(255,100,34,.2);">🏪</div>
+                <div class="ha-label">Fey</div>
+              </div>
+              <div class="ha-item">
+                <div class="ha-btn" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);">⋯</div>
+                <div class="ha-label">Plus</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flag divider -->
+        <div class="flag-div"><div class="fd-g"></div><div class="fd-y"></div><div class="fd-r"></div></div>
+
+        <div class="home-cards">
+          <!-- Rect Sound -->
+          <div class="rect-card">
+            <div class="rc-top">
+              <div class="rc-tag">Rect Sound · 221 Bëgg</div>
+              <div class="rc-live"><div class="rc-dot"></div>LIVE</div>
+            </div>
+            <div class="rc-song">
+              <div class="rc-cover">🎵</div>
+              <div class="rc-info">
+                <div class="rc-title">"Yëkël" — Saliou K.</div>
+                <div class="rc-artist">Chart #1 · Médina</div>
+                <div class="rc-chart" style="color:var(--G);">🔥 24 800 Dafa neex aujourd'hui</div>
+              </div>
+              <div class="rc-bars">
+                <div class="rc-bar"></div><div class="rc-bar"></div>
+                <div class="rc-bar"></div><div class="rc-bar"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wakhna mini -->
+          <div class="wakhna-mini">
+            <div class="wm-score">840</div>
+            <div class="wm-body">
+              <div class="wm-label">Wakhna Score</div>
+              <div class="wm-rank">Top <b>12%</b> Médina · #47</div>
+              <div class="wm-bar"><div class="wm-fill"></div></div>
+            </div>
+            <div style="font-size:20px;animation:score-star 2s ease-in-out infinite;">✦</div>
+          </div>
+
+          <!-- Mboolo pulse -->
+          <div class="mboolo-mini">
+            <div class="mm-ava-stack">
+              <div class="mm-a">👩🏾</div>
+              <div class="mm-a">👦🏿</div>
+              <div class="mm-a">👩🏿</div>
+            </div>
+            <div class="mm-body">
+              <div class="mm-title">Médina Squad</div>
+              <div class="mm-sub">Ibou: Ñu lekk 18h bi 🍖</div>
+            </div>
+            <div class="mm-badge">4</div>
+          </div>
+        </div>
+
+        <!-- Recent transactions -->
+        <div style="padding:0 18px 14px;">
+          <div class="lbl" style="margin-bottom:10px;">Transactions récentes</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--w04);border:1px solid var(--w06);border-radius:12px;">
+              <div style="width:36px;height:36px;border-radius:11px;background:rgba(26,240,96,.08);display:flex;align-items:center;justify-content:center;font-size:16px;">📥</div>
+              <div style="flex:1;"><div style="font-size:12px;font-weight:700;">Reçu de Papa</div><div style="font-size:10px;color:var(--w30);">Aujourd'hui · 14h22</div></div>
+              <div style="font-size:13px;font-weight:700;color:var(--G);">+5 000 F</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--w04);border:1px solid var(--w06);border-radius:12px;">
+              <div style="width:36px;height:36px;border-radius:11px;background:rgba(255,100,34,.08);display:flex;align-items:center;justify-content:center;font-size:16px;">🏪</div>
+              <div style="flex:1;"><div style="font-size:12px;font-weight:700;">Dibiterie Chez Papa</div><div style="font-size:10px;color:var(--w30);">Hier · 19h04</div></div>
+              <div style="font-size:13px;font-weight:700;color:var(--SR);">-2 500 F</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom nav -->
+      <div class="bottom-nav">
+        <div class="bn-item on"><div class="bn-ico">🏠</div><div class="bn-dot"></div><div class="bn-label">Accueil</div></div>
+        <div class="bn-item"><div class="bn-ico">💬</div><div class="bn-label">Mboolo</div></div>
+        <div class="bn-item"><div class="bn-ico">🎵</div><div class="bn-label">Rect</div></div>
+        <div class="bn-item"><div class="bn-ico">🔍</div><div class="bn-label">Explorer</div></div>
+        <div class="bn-item"><div class="bn-ico">👤</div><div class="bn-label">Moi</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FLOW 2 — SEND MONEY
+═══════════════════════════════════════════ -->
+<div class="sec-t">Flow 02 — Send Money</div>
+<div class="sec-s">Enter amount · Choose recipient · Confirm with photo · Done</div>
+<div class="row">
+
+  <!-- Amount entry -->
+  <div class="col">
+    <div class="cl">Enter amount</div>
+    <div class="phone">
+      <div class="wax"></div>
+      <div class="sb"><span class="sbt">9:41</span><span class="sbr">📶 🔋</span></div>
+      <div class="sc">
+        <div class="send-hero">
+          <div class="sh-wax"></div>
+          <div class="sh-top">
+            <div class="back-btn">←</div>
+            <div class="sh-title">Envoyer</div>
+          </div>
+          <div class="amount-hero">
+            <div class="ah-lbl">Combien ?</div>
+            <div class="ah-num">5 000 <span class="ah-curr">F</span><span class="ah-cursor"></span></div>
+          </div>
+          <div class="quick-row">
+            <div class="chip">1k</div>
+            <div class="chip on">5k</div>
+            <div class="chip">10k</div>
+            <div class="chip">25k</div>
+          </div>
+        </div>
+        <div class="recipient-section">
+          <div class="lbl">À qui ?</div>
+          <div class="rec-card">
+            <div class="rec-ava">👩🏾</div>
+            <div class="rec-body">
+              <div class="rec-name">Fatou Diallo</div>
+              <div class="rec-handle">@fatou_medina</div>
+            </div>
+            <div class="rec-arr">→</div>
+          </div>
+        </div>
+        <div class="reason-wrap">
+          <div class="lbl">Pour quoi ? (optionnel)</div>
+          <input class="reason-field" placeholder="Pour le taxi, pour manger..." value="Pour le taxi 🚕"/>
+        </div>
+        <div style="padding:0 18px 20px;">
+          <button class="btn-g">Continuer →</button>
+        </div>
+        <!-- Recent contacts -->
+        <div style="padding:0 18px 20px;">
+          <div class="lbl" style="margin-bottom:10px;">Contacts récents</div>
+          <div style="display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;cursor:pointer;">
+              <div style="width:48px;height:48px;border-radius:50%;background:rgba(26,240,96,.08);border:2px solid rgba(26,240,96,.2);display:flex;align-items:center;justify-content:center;font-size:22px;">👩🏾</div>
+              <div style="font-size:9px;font-weight:700;color:var(--w40);">Fatou</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;cursor:pointer;">
+              <div style="width:48px;height:48px;border-radius:50%;background:rgba(250,216,54,.08);border:2px solid rgba(250,216,54,.15);display:flex;align-items:center;justify-content:center;font-size:22px;">👦🏿</div>
+              <div style="font-size:9px;font-weight:700;color:var(--w40);">Ibou</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;cursor:pointer;">
+              <div style="width:48px;height:48px;border-radius:50%;background:rgba(232,25,44,.08);border:2px solid rgba(232,25,44,.15);display:flex;align-items:center;justify-content:center;font-size:22px;">👩🏿</div>
+              <div style="font-size:9px;font-weight:700;color:var(--w40);">Aminata</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;cursor:pointer;">
+              <div style="width:48px;height:48px;border-radius:50%;background:var(--w08);border:2px dashed var(--w12);display:flex;align-items:center;justify-content:center;font-size:20px;">+</div>
+              <div style="font-size:9px;font-weight:700;color:var(--w30);">Autre</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arr">→</div>
+
+  <!-- Confirm -->
+  <div class="col">
+    <div class="cl">Confirm + Safety</div>
+    <div class="phone">
+      <div class="wax"></div>
+      <div class="sb"><span class="sbt">9:41</span><span class="sbr">📶 🔋</span></div>
+      <div class="confirm-send">
+        <div class="cs-hero">
+          <div class="csh-wax"></div>
+          <div class="cs-ava">👩🏾</div>
+          <div class="cs-name">Fatou Diallo</div>
+          <div class="cs-handle">@fatou_medina</div>
+          <div class="cs-arr">📍 Médina · Vérifiée K21</div>
+          <div class="cs-amount">5 000 <span style="font-size:20px;font-weight:400;color:rgba(26,240,96,.4);">F</span></div>
+          <div class="cs-free">✦ Zéro frais · Pour le taxi 🚕</div>
+          <!-- Safety confirmation -->
+          <div class="cs-confirm-photo">
+            <span style="font-size:18px;">🔒</span>
+            <div class="csp-text">
+              <b>Oui c'est bien Fatou Diallo ?</b><br>
+              +221 77 *** ** 42 · Médina
+            </div>
+          </div>
+        </div>
+        <div class="cs-body">
+          <div class="cs-row"><span class="csr-l">Destinataire</span><span class="csr-r">Fatou Diallo</span></div>
+          <div class="cs-row"><span class="csr-l">Montant</span><span class="csr-r" style="color:var(--G);">5 000 F CFA</span></div>
+          <div class="cs-row"><span class="csr-l">Frais</span><span class="csr-r" style="color:var(--G);">0 F ✦</span></div>
+          <div class="cs-row"><span class="csr-l">Solde après</span><span class="csr-r" style="color:var(--w55);">42 000 F</span></div>
+        </div>
+        <div class="cs-actions">
+          <button class="btn-g">Oui — Envoyer 5 000 F →</button>
+          <div style="text-align:center;font-size:11px;color:var(--SR);cursor:pointer;font-weight:600;">Ce n'est pas la bonne personne</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arr">→</div>
+
+  <!-- Success -->
+  <div class="col">
+    <div class="cl">Sent ✓</div>
+    <div class="phone">
+      <div class="wax"></div>
+      <div class="sb"><span class="sbt" style="color:var(--w30);">9:41</span><span class="sbr">📶 🔋</span></div>
+      <div class="send-success">
+        <div class="ss-bg"></div>
+        <div class="ss-c">
+          <div class="ss-ring">✓</div>
+          <div class="ss-title">Envoyé !</div>
+          <div class="ss-sub">Fatou a reçu ton argent<br>en quelques secondes.</div>
+          <div class="ss-receipt">
+            <div class="ssr-row"><span class="ssr-l">À</span><span class="ssr-r">Fatou Diallo</span></div>
+            <div class="ssr-row"><span class="ssr-l">Montant</span><span class="ssr-r g">5 000 F CFA</span></div>
+            <div class="ssr-row"><span class="ssr-l">Frais</span><span class="ssr-r g">0 F ✦</span></div>
+            <div class="ssr-row"><span class="ssr-l">Motif</span><span class="ssr-r">Pour le taxi 🚕</span></div>
+            <div class="ssr-row"><span class="ssr-l">Référence</span><span class="ssr-r" style="font-size:9px;color:var(--w30);">K21-0803-FA2C</span></div>
+          </div>
+          <div class="wakhna-bonus">
+            <span style="font-size:16px;">✦</span>
+            <div class="wb-text"><b>+10 Wakhna</b> pour cet envoi</div>
+          </div>
+          <button class="btn-g">Retour à l'accueil</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FLOW 3 — CHART 221 BËGG
+═══════════════════════════════════════════ -->
+<div class="sec-t">Flow 03 — Chart 221 Bëgg</div>
+<div class="sec-s">The first credible Senegalese music chart · Community driven</div>
+<div class="row">
+
+  <div class="col">
+    <div class="cl">Chart 221</div>
+    <div class="phone">
+      <div class="wax"></div>
+      <div class="sb"><span class="sbt">9:41</span><span class="sbr">📶 🔋</span></div>
+      <div class="sc">
+        <div class="chart-hero">
+          <div class="ch-bg"></div>
+          <div class="ch-wax"></div>
+          <div class="ch-title-row">
+            <div class="ch-brand">221 <span>Bëgg</span></div>
+            <div class="ch-week">Semaine 10 · 2026</div>
+          </div>
+          <div class="chart-tabs">
+            <div class="ct on">National</div>
+            <div class="ct">Médina</div>
+            <div class="ct">Mbalax</div>
+            <div class="ct">Hip-hop</div>
+            <div class="ct">Afro</div>
+          </div>
+        </div>
+
+        <!-- Cauris strip -->
+        <div class="cert-strip">
+          <div class="cert-ico">🪸</div>
+          <div class="cert-body">
+            <div class="cert-title">"Yëkël" vient d'obtenir Cauris</div>
+            <div class="cert-sub">Tu as contribué à cette certification</div>
+          </div>
+          <div class="cert-contrib">+20 Wakhna</div>
+        </div>
+
+        <div class="chart-list">
+          <!-- #1 -->
+          <div class="chart-item top1">
+            <div class="ci-rank r1">1</div>
+            <div class="ci-move up">▲2</div>
+            <div class="ci-cover" style="background:linear-gradient(145deg,#1a5e30,#0a2a14);">🎵</div>
+            <div class="ci-body">
+              <div class="ci-title">"Yëkël"</div>
+              <div class="ci-artist">Saliou K. 🪸</div>
+            </div>
+            <div class="ci-right">
+              <div class="ci-dafa">24.8k</div>
+              <div class="ci-dafa-l">🔥 Dafa neex</div>
+            </div>
+            <div class="dafa-btn on">🔥</div>
+          </div>
+          <!-- #2 -->
+          <div class="chart-item">
+            <div class="ci-rank r2">2</div>
+            <div class="ci-move same">—</div>
+            <div class="ci-cover" style="background:linear-gradient(145deg,#2a1800,#120a00);">🌅</div>
+            <div class="ci-body">
+              <div class="ci-title">"Dakar by Night"</div>
+              <div class="ci-artist">DJ Lamine</div>
+            </div>
+            <div class="ci-right">
+              <div class="ci-dafa">18.2k</div>
+              <div class="ci-dafa-l">🔥 Dafa neex</div>
+            </div>
+            <div class="dafa-btn">🔥</div>
+          </div>
+          <!-- #3 -->
+          <div class="chart-item">
+            <div class="ci-rank r3">3</div>
+            <div class="ci-move up">▲5</div>
+            <div class="ci-cover" style="background:linear-gradient(145deg,#1a0a2a,#0a0514);">🌙</div>
+            <div class="ci-body">
+              <div class="ci-title">"Teranga"</div>
+              <div class="ci-artist">Bineta</div>
+            </div>
+            <div class="ci-right">
+              <div class="ci-dafa">14.1k</div>
+              <div class="ci-dafa-l">🔥 Dafa neex</div>
+            </div>
+            <div class="dafa-btn">🔥</div>
+          </div>
+          <!-- #4 -->
+          <div class="chart-item">
+            <div class="ci-rank r4">4</div>
+            <div class="ci-move down">▼1</div>
+            <div class="ci-cover" style="background:linear-gradient(145deg,#2a1a00,#140d00);">☀️</div>
+            <div class="ci-body">
+              <div class="ci-title">"Thiossane"</div>
+              <div class="ci-artist">Saliou K.</div>
+            </div>
+            <div class="ci-right">
+              <div class="ci-dafa">11.4k</div>
+              <div class="ci-dafa-l">🔥 Dafa neex</div>
+            </div>
+            <div class="dafa-btn">🔥</div>
+          </div>
+          <!-- #5 -->
+          <div class="chart-item">
+            <div class="ci-rank r5">5</div>
+            <div class="ci-move up">▲8</div>
+            <div class="ci-cover" style="background:linear-gradient(145deg,#0a1a2a,#040c14);">🌊</div>
+            <div class="ci-body">
+              <div class="ci-title">"Goorgoorlu"</div>
+              <div class="ci-artist">Oumar B.</div>
+            </div>
+            <div class="ci-right">
+              <div class="ci-dafa">9.8k</div>
+              <div class="ci-dafa-l">🔥 Dafa neex</div>
+            </div>
+            <div class="dafa-btn">🔥</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FLOW 4 — DÉFIS MUSIQUE
+═══════════════════════════════════════════ -->
+<div class="sec-t">Flow 04 — Défis Musique</div>
+<div class="sec-s">Live competitions · Real prizes · Arrondissement battles</div>
+<div class="row">
+
+  <div class="col">
+    <div class="cl">Active Défis</div>
+    <div class="phone">
+      <div class="wax"></div>
+      <div class="sb"><span class="sbt">9:41</span><span class="sbr">📶 🔋</span></div>
+      <div class="sc">
+        <div class="defis-hero">
+          <div class="dh-wax"></div>
+          <div class="dh-top">
+            <div class="dh-title">Défis 🏆</div>
+            <div class="dh-live"><div style="width:5px;height:5px;border-radius:50%;background:var(--SR);animation:dot-blink .8s infinite;"></div>3 EN DIRECT</div>
+          </div>
+        </div>
+        <!-- Active défi -->
+        <div style="padding:12px 16px 0;">
+          <div class="defi-card">
+            <div class="dc-cover">
+              <div class="dc-cover-emoji">🎤</div>
+              <div class="dc-prize-badge">1 000 000 F 🏆</div>
+            </div>
+            <div class="dc-body">
+              <div class="dc-category">Défi Musique · National</div>
+              <div class="dc-name">Meilleure Freestyle Médina</div>
+              <div class="dc-desc">Enregistre ton meilleur couplet. Médina vs Plateau vs Parcelles. Le public vote avec ses Dafa neex.</div>
+              <div class="dc-stats">
+                <div class="dc-stat"><b>2 847</b> participants</div>
+                <div class="dc-stat"><b>4j</b> restants</div>
+                <div class="dc-stat"><b>48k</b> votes</div>
+              </div>
+              <div class="dc-progress"><div class="dc-prog-fill"></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Leaderboard -->
+        <div class="defi-leaderboard">
+          <div class="dlb-title">Classement actuel</div>
+          <div class="dlb-item">
+            <div class="dlb-pos p1">1</div>
+            <div class="dlb-ava">👩🏾</div>
+            <div class="dlb-name">Fatou M. · Médina</div>
+            <div style="text-align:right;"><div class="dlb-votes">12.4k</div><div class="dlb-votes-l">🔥 votes</div></div>
+          </div>
+          <div class="dlb-item dlb-item me">
+            <div class="dlb-pos p2">2</div>
+            <div class="dlb-ava">👨🏿</div>
+            <div class="dlb-name">Saliou K. · Médina (toi)</div>
+            <div style="text-align:right;"><div class="dlb-votes">10.1k</div><div class="dlb-votes-l">🔥 votes</div></div>
+          </div>
+          <div class="dlb-item">
+            <div class="dlb-pos p3">3</div>
+            <div class="dlb-ava">👦🏾</div>
+            <div class="dlb-name">Malik D. · Plateau</div>
+            <div style="text-align:right;"><div class="dlb-votes">8.7k</div><div class="dlb-votes-l">🔥 votes</div></div>
+          </div>
+        </div>
+        <button class="defi-enter-btn">Voter maintenant 🔥</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FLOW 5 — K21 PASS
+═══════════════════════════════════════════ -->
+<div class="sec-t">Flow 05 — K21 Pass</div>
+<div class="sec-s">The physical card · Status object · Diaspora bridge</div>
+<div class="row">
+
+  <div class="col">
+    <div class="cl">K21 Pass</div>
+    <div class="phone">
+      <div class="wax"></div>
+      <div class="sb"><span class="sbt">9:41</span><span class="sbr">📶 🔋</span></div>
+      <div class="sc">
+        <div class="pass-hero">
+          <div class="ph-wax"></div>
+          <div class="ph-top">
+            <div class="back-btn">←</div>
+            <div class="ph-head">K21 Pass</div>
+          </div>
+          <!-- The card -->
+          <div class="k21-pass-card">
+            <div class="kpc-wax"></div>
+            <div class="kpc-glow"></div>
+            <div class="kpc-top">
+              <div class="kpc-brand">
+                <span class="kpc-k">K</span><span class="kpc-2">2</span><span class="kpc-1">1</span>
+                <span class="kpc-pass">PASS</span>
+              </div>
+              <div class="kpc-chip"></div>
+            </div>
+            <div class="kpc-mid">
+              <div class="kpc-number">•••• •••• •••• 4821</div>
+            </div>
+            <div class="kpc-bottom">
+              <div>
+                <div class="kpc-arr-label">TITULAIRE</div>
+                <div class="kpc-name">Saliou Diallo</div>
+              </div>
+              <div>
+                <div class="kpc-arr-label">EXPIRE</div>
+                <div class="kpc-arr-val">03/29</div>
+              </div>
+              <div class="kpc-network">💳</div>
+            </div>
+            <div class="kpc-flag-stripe">
+              <div class="kpcf-g"></div><div class="kpcf-y"></div><div class="kpcf-r"></div>
+            </div>
+          </div>
+        </div>
+        <div class="pass-features">
+          <div class="lbl" style="padding-top:4px;">Ce que tu obtiens</div>
+          <div class="pf-item">
+            <div class="pf-ico">🌍</div>
+            <div class="pf-body">
+              <div class="pf-title">Paiement partout dans le monde</div>
+              <div class="pf-sub">Visa / Mastercard · Accepté dans 180 pays</div>
+            </div>
+            <div class="pf-badge badge-g">VISA</div>
+          </div>
+          <div class="pf-item">
+            <div class="pf-ico">✈️</div>
+            <div class="pf-body">
+              <div class="pf-title">Top-up diaspora</div>
+              <div class="pf-sub">Famille en France ? Ils rechargent ta carte directement</div>
+            </div>
+            <div class="pf-badge badge-y">DIASPORA</div>
+          </div>
+          <div class="pf-item">
+            <div class="pf-ico">✦</div>
+            <div class="pf-body">
+              <div class="pf-title">Badge Investisseur K21</div>
+              <div class="pf-sub">Profil vérifié · Priorité sur les nouvelles fonctionnalités</div>
+            </div>
+            <div class="pf-badge badge-g">STATUT</div>
+          </div>
+        </div>
+        <div class="pass-cta">
+          <button class="btn-gold">Commander mon K21 Pass →</button>
+          <div style="text-align:center;font-size:10px;color:var(--w25);">Livraison à Dakar · 3 500 F/an</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FLOW 6 — XEL AK SAGO
+═══════════════════════════════════════════ -->
+<div class="sec-t">Flow 06 — Xel ak Sago</div>
+<div class="sec-s">Self-care budgeting · Never restrictive · Always empowering</div>
+<div class="row">
+
+  <div class="col">
+    <div class="cl">Budget Dashboard</div>
+    <div class="phone">
+      <div class="wax"></div>
+      <div class="sb"><span class="sbt">9:41</span><span class="sbr">📶 🔋</span></div>
+      <div class="sc">
+        <div class="xel-hero">
+          <div class="xh-wax"></div>
+          <div class="xh-top">
+            <div class="back-btn">←</div>
+            <div class="xh-title">Xel ak Sago</div>
+          </div>
+          <div class="xh-desc">Tes finances, ton rythme. Définis toi-même tes limites et tes objectifs.</div>
+          <div class="xh-frame">🌿 Pour toi · Jamais imposé par quelqu'un d'autre</div>
+        </div>
+
+        <div class="xel-insights">
+          <div class="xi-title">Ce mois · Mars 2026</div>
+          <div class="donut-wrap">
+            <div class="donut"></div>
+            <div class="donut-legend">
+              <div class="dl-item"><div class="dl-dot" style="background:var(--G);"></div><div class="dl-label">Épargne</div><div class="dl-pct" style="color:var(--G);">40%</div></div>
+              <div class="dl-item"><div class="dl-dot" style="background:var(--SY);"></div><div class="dl-label">Nourriture</div><div class="dl-pct" style="color:var(--SY);">25%</div></div>
+              <div class="dl-item"><div class="dl-dot" style="background:var(--O);"></div><div class="dl-label">Transport</div><div class="dl-pct" style="color:var(--O);">15%</div></div>
+              <div class="dl-item"><div class="dl-dot" style="background:var(--SR);"></div><div class="dl-label">Autre</div><div class="dl-pct" style="color:var(--SR);">20%</div></div>
+            </div>
+          </div>
+          <div class="budget-cats">
+            <div class="bc-item">
+              <div class="bc-top">
+                <div class="bc-name"><span class="bc-ico">🍖</span>Nourriture</div>
+                <div class="bc-vals"><b>18 500 F</b> / 25 000 F</div>
+              </div>
+              <div class="bc-track"><div class="bc-fill" style="width:74%;background:var(--SY);"></div></div>
+            </div>
+            <div class="bc-item">
+              <div class="bc-top">
+                <div class="bc-name"><span class="bc-ico">🚕</span>Transport</div>
+                <div class="bc-vals"><b>7 200 F</b> / 10 000 F</div>
+              </div>
+              <div class="bc-track"><div class="bc-fill" style="width:72%;background:var(--O);"></div></div>
+            </div>
+            <div class="bc-item">
+              <div class="bc-top">
+                <div class="bc-name"><span class="bc-ico">🎮</span>Loisirs</div>
+                <div class="bc-vals"><b>4 100 F</b> / 8 000 F</div>
+              </div>
+              <div class="bc-track"><div class="bc-fill" style="width:51%;background:var(--G);"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Savings goal -->
+        <div class="xel-goal">
+          <div class="xg-title">✦ Mon objectif · Téléphone</div>
+          <div class="xg-name">iPhone 15 — Objectif perso</div>
+          <div class="xg-amounts">
+            <div><div class="xg-saved">82 500 F</div><div style="font-size:9px;color:rgba(26,240,96,.5);">épargné</div></div>
+            <div class="xga-total">sur 150 000 F</div>
+          </div>
+          <div class="xg-track"><div class="xg-fill"></div></div>
+          <div class="xg-sub">55% atteint · Encore 67 500 F · ~4 mois à ce rythme</div>
+        </div>
+
+        <!-- Peer insight — non-judgmental -->
+        <div class="peer-insight">
+          <div class="pi-ico">💡</div>
+          <div class="pi-body">
+            <div class="pi-title">Info · Pas un jugement</div>
+            <div class="pi-text">Les utilisateurs de Médina dépensent en moyenne <b>21 000 F</b> en nourriture ce mois. Toi : 18 500 F. Tu gères bien 👍🏿</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

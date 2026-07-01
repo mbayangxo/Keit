@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K21 — Complete App Redesign</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  /* Senegal flag */
+  --SG:#00853F; --SGl:#1af060; --SGd:#005a2a;
+  --SY:#FDEF42; --SYd:#e8c800;
+  --SR:#E31B23; --SRd:#b5141a;
+  /* K21 system */
+  --G:#1af060; --Gd:#0fbc48;
+  --Y:#f7b731; --O:#ff6422;
+  --ink:#050805;
+  --w:#fff;
+  --w06:rgba(255,255,255,.06); --w08:rgba(255,255,255,.08);
+  --w12:rgba(255,255,255,.12); --w20:rgba(255,255,255,.20);
+  --w30:rgba(255,255,255,.30); --w40:rgba(255,255,255,.40);
+  --w55:rgba(255,255,255,.55); --w70:rgba(255,255,255,.70);
+}
+html,body{background:#0a0f0a;font-family:'Outfit',sans-serif;color:var(--w);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:28px 12px 80px;}
+.ph{font-family:'Unbounded',sans-serif;font-size:8px;font-weight:700;letter-spacing:4px;color:rgba(255,255,255,.15);text-transform:uppercase;margin-bottom:5px;text-align:center;}
+.ps{font-size:11px;color:rgba(255,255,255,.18);margin-bottom:8px;text-align:center;}
+.flag{display:flex;height:3px;width:120px;margin:0 auto 32px;border-radius:2px;overflow:hidden;}
+.fg{flex:1;background:var(--SG);}.fy{flex:1;background:var(--SY);}.fr{flex:1;background:var(--SR);}
+.sec{font-family:'Unbounded',sans-serif;font-size:9px;font-weight:900;letter-spacing:3px;color:rgba(255,255,255,.2);text-transform:uppercase;margin-bottom:5px;text-align:center;}
+.sec-s{font-size:10px;color:rgba(255,255,255,.15);margin-bottom:18px;text-align:center;}
+.row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:flex-start;margin-bottom:52px;}
+.col{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.cl{font-size:8px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.18);text-transform:uppercase;text-align:center;}
+.arr{color:rgba(255,255,255,.1);font-size:16px;padding-top:46px;flex-shrink:0;align-self:flex-start;}
+
+/* PHONE */
+.phone{width:315px;height:672px;background:var(--ink);border-radius:36px;overflow:hidden;position:relative;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 32px 72px rgba(0,0,0,.9);}
+.phone.tall{height:720px;}
+.sb{height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:relative;z-index:20;flex-shrink:0;}
+.sc{position:absolute;top:42px;left:0;right:0;bottom:0;overflow-y:auto;scrollbar-width:none;z-index:10;}
+.sc::-webkit-scrollbar{display:none;}
+.wax{position:absolute;inset:0;pointer-events:none;z-index:1;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.02) 0px,rgba(255,255,255,.02) 1px,transparent 1px,transparent 16px),repeating-linear-gradient(-45deg,rgba(255,255,255,.02) 0px,rgba(255,255,255,.02) 1px,transparent 1px,transparent 16px);background-size:16px 16px;animation:wd 28s linear infinite;}
+@keyframes wd{from{background-position:0 0;}to{background-position:32px 32px;}}
+
+/* SHARED */
+.btn-g{width:100%;height:50px;border-radius:14px;border:none;background:var(--G);color:var(--ink);font-family:'Unbounded',sans-serif;font-size:11px;font-weight:900;letter-spacing:.5px;cursor:pointer;box-shadow:0 4px 20px rgba(26,240,96,.35);animation:gp 2.5s ease-in-out infinite;}
+@keyframes gp{0%,100%{box-shadow:0 4px 20px rgba(26,240,96,.35);}50%{box-shadow:0 4px 32px rgba(26,240,96,.6),0 0 0 8px rgba(26,240,96,.05);}}
+.lbl{font-size:8px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:5px;}
+.back{width:34px;height:34px;border-radius:11px;background:var(--w08);border:1px solid var(--w12);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;flex-shrink:0;}
+/* Bottom nav */
+.bnav{position:absolute;bottom:0;left:0;right:0;background:rgba(5,8,5,.96);backdrop-filter:blur(16px);border-top:1px solid var(--w08);display:flex;padding:8px 0 14px;z-index:30;}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;}
+.bni-ico{font-size:19px;}
+.bni-lbl{font-size:7px;font-weight:700;color:var(--w30);}
+.bni.on .bni-lbl{color:var(--G);}
+.bni-dot{width:4px;height:4px;border-radius:50%;background:var(--G);display:none;}
+.bni.on .bni-dot{display:block;}
+/* Carousel base */
+.carousel{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:0 16px 10px;}
+.carousel::-webkit-scrollbar{display:none;}
+
+/* ════════════════════════════════════
+   1. HOME — FULL SENEGAL GREEN
+════════════════════════════════════ */
+.home-bg{
+  position:absolute;inset:0;z:0;
+  background:linear-gradient(160deg,var(--SG) 0%,#005a2a 45%,#020a04 100%);
+  animation:home-breathe 8s ease-in-out infinite;
+}
+@keyframes home-breathe{
+  0%,100%{background:linear-gradient(160deg,var(--SG) 0%,#005a2a 45%,#020a04 100%);}
+  50%{background:linear-gradient(160deg,#00a04c 0%,#006e35 45%,#020a04 100%);}
+}
+.home-wax{position:absolute;inset:0;z-index:1;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.04) 0px,rgba(255,255,255,.04) 1px,transparent 1px,transparent 16px),repeating-linear-gradient(-45deg,rgba(255,255,255,.04) 0px,rgba(255,255,255,.04) 1px,transparent 1px,transparent 16px);background-size:16px 16px;animation:wd 28s linear infinite;}
+
+/* Floating particles */
+.particles{position:absolute;inset:0;z-index:2;overflow:hidden;pointer-events:none;}
+.p{position:absolute;border-radius:50%;animation:pfloat linear infinite;}
+@keyframes pfloat{0%{transform:translateY(110%);opacity:0;}10%{opacity:1;}90%{opacity:.5;}100%{transform:translateY(-10%);opacity:0;}}
+
+.home-content{position:relative;z-index:3;padding:12px 16px 0;}
+.h-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.h-greeting{font-size:11px;color:rgba(255,255,255,.7);}
+.h-greeting b{color:#fff;font-size:13px;}
+.h-icons{display:flex;gap:8px;}
+.h-ico{width:34px;height:34px;border-radius:11px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:15px;position:relative;cursor:pointer;animation:ico-bounce 3s ease-in-out infinite;}
+.h-ico:nth-child(2){animation-delay:.3s;}
+@keyframes ico-bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
+.notif-dot{position:absolute;top:7px;right:8px;width:6px;height:6px;border-radius:50%;background:var(--SR);border:1.5px solid transparent;animation:nd 1s ease-in-out infinite;}
+@keyframes nd{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* Balance */
+.balance-hero{text-align:center;padding:8px 0 16px;}
+.bh-eye{font-size:10px;color:rgba(255,255,255,.6);margin-bottom:5px;cursor:pointer;}
+.bh-amount{font-family:'Unbounded',sans-serif;font-size:46px;font-weight:900;color:#fff;letter-spacing:-3px;line-height:1;text-shadow:0 0 60px rgba(255,255,255,.3);animation:ba 1s ease-out both;}
+@keyframes ba{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.bh-curr{font-size:16px;font-weight:400;color:rgba(255,255,255,.5);}
+.bh-pill{display:inline-flex;align-items:center;gap:5px;margin-top:8px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;}
+
+/* Quick actions — CIRCLE AVATARS above, clickable */
+.actions-section{margin-bottom:16px;}
+.as-label{font-size:8px;font-weight:700;letter-spacing:1.5px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:10px;text-align:center;}
+.actions-row{display:flex;justify-content:space-around;}
+.act-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;}
+.act-circle{
+  width:54px;height:54px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  border:2.5px solid rgba(255,255,255,.3);
+  background:rgba(255,255,255,.15);
+  animation:act-float 3s ease-in-out infinite;
+  transition:transform .15s;box-shadow:0 4px 16px rgba(0,0,0,.2);
+}
+.act-circle:active{transform:scale(.88);}
+.act-item:nth-child(1) .act-circle{animation-delay:0s;background:rgba(26,240,96,.25);border-color:rgba(26,240,96,.5);}
+.act-item:nth-child(2) .act-circle{animation-delay:.25s;background:rgba(250,216,54,.2);border-color:rgba(250,216,54,.4);}
+.act-item:nth-child(3) .act-circle{animation-delay:.5s;background:rgba(255,100,34,.2);border-color:rgba(255,100,34,.4);}
+.act-item:nth-child(4) .act-circle{animation-delay:.75s;}
+.act-item:nth-child(5) .act-circle{animation-delay:1s;background:rgba(232,25,44,.2);border-color:rgba(232,25,44,.4);}
+@keyframes act-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+.act-lbl{font-size:9px;font-weight:700;color:rgba(255,255,255,.8);}
+
+/* Flag divider */
+.fd{display:flex;height:2px;}
+.fdg{flex:1;background:var(--SG)}.fdy{flex:1;background:var(--SY)}.fdr{flex:1;background:var(--SR);}
+
+/* Dark cards section */
+.cards-bg{background:var(--ink);border-radius:22px 22px 0 0;padding:14px 14px 70px;margin-top:0;}
+
+/* WORK DASHBOARD — Squares carousel */
+.work-dash{margin-bottom:14px;}
+.wd-label{font-size:8px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:10px;padding:0 2px;}
+.wd-carousel{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;}
+.wd-carousel::-webkit-scrollbar{display:none;}
+.wd-sq{
+  width:100px;height:100px;border-radius:18px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:12px;flex-shrink:0;cursor:pointer;
+  transition:transform .15s;
+  animation:sq-in .4s cubic-bezier(.175,.885,.32,1.275) both;
+}
+.wd-sq:active{transform:scale(.94);}
+.wd-sq:nth-child(1){animation-delay:.05s;}
+.wd-sq:nth-child(2){animation-delay:.1s;}
+.wd-sq:nth-child(3){animation-delay:.15s;}
+.wd-sq:nth-child(4){animation-delay:.2s;}
+@keyframes sq-in{from{opacity:0;transform:scale(.8) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.sq-ico{font-size:22px;}
+.sq-val{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;letter-spacing:-.5px;line-height:1;}
+.sq-lbl{font-size:8px;font-weight:600;opacity:.7;}
+
+/* Mboolo mini */
+.mboolo-card{background:linear-gradient(135deg,rgba(232,92,26,.15),rgba(232,92,26,.05));border:1.5px solid rgba(232,92,26,.25);border-radius:16px;padding:11px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:8px;animation:mb-pulse 3s ease-in-out infinite;}
+@keyframes mb-pulse{0%,100%{border-color:rgba(232,92,26,.25);}50%{border-color:rgba(232,92,26,.5);}}
+.mc-avas{display:flex;}
+.mc-a{width:26px;height:26px;border-radius:50%;background:var(--w08);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:12px;margin-left:-7px;}
+.mc-a:first-child{margin-left:0;}
+.mc-body{flex:1;}
+.mc-title{font-size:12px;font-weight:700;color:rgba(255,200,150,.9);}
+.mc-sub{font-size:10px;color:var(--w30);}
+.mc-badge{min-width:19px;height:19px;border-radius:10px;background:#e85c1a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;padding:0 4px;animation:bb 1.5s ease-in-out infinite;}
+@keyframes bb{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+
+/* ════════════════════════════════════
+   2. MBOOLO CHAT — MAX YOUTH
+════════════════════════════════════ */
+/* Header */
+.chat-hd{
+  background:linear-gradient(135deg,#c44010,#e85c1a);
+  padding:10px 13px;display:flex;align-items:center;gap:9px;
+  box-shadow:0 3px 14px rgba(180,40,0,.3);flex-shrink:0;
+}
+.ch-back{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;cursor:pointer;}
+.ch-avas{display:flex;}
+.ch-av{width:32px;height:32px;border-radius:50%;border:2.5px solid #c44010;display:flex;align-items:center;justify-content:center;font-size:14px;background:#fff;margin-left:-7px;}
+.ch-av:first-child{margin-left:0;}
+.ch-info{flex:1;}
+.ch-name{font-size:13px;font-weight:700;color:#fff;}
+.ch-meta{font-size:9px;color:rgba(255,255,255,.65);}
+.ch-acts{display:flex;gap:7px;}
+.ch-act{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;}
+
+/* PINNED section */
+.pinned-bar{
+  background:rgba(250,216,54,.08);border-bottom:2px solid rgba(250,216,54,.15);
+  padding:7px 13px;display:flex;align-items:center;gap:8px;cursor:pointer;
+  animation:pin-glow 4s ease-in-out infinite;flex-shrink:0;
+}
+@keyframes pin-glow{0%,100%{background:rgba(250,216,54,.08);}50%{background:rgba(250,216,54,.13);}}
+.pin-ico{font-size:13px;color:var(--SY);flex-shrink:0;}
+.pin-text{flex:1;font-size:11px;color:rgba(255,216,80,.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pin-count{font-size:9px;font-weight:700;color:rgba(250,216,54,.5);flex-shrink:0;}
+
+/* Status bar */
+.status-strip{background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,122,61,.1);padding:6px 13px;display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+.status-strip::-webkit-scrollbar{display:none;}
+.spill{display:flex;align-items:center;gap:5px;background:rgba(255,122,61,.1);border:1px solid rgba(255,122,61,.18);border-radius:100px;padding:4px 9px 4px 4px;flex-shrink:0;animation:spill-float 3s ease-in-out infinite;}
+.spill:nth-child(2){animation-delay:.5s;}.spill:nth-child(3){animation-delay:1s;}
+@keyframes spill-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-2px);}}
+.spill-av{width:18px;height:18px;border-radius:50%;background:rgba(255,122,61,.2);display:flex;align-items:center;justify-content:center;font-size:9px;}
+.spill-t{font-size:9px;font-weight:600;color:rgba(255,180,120,.8);white-space:nowrap;}
+.spill-t.music{color:rgba(26,240,96,.85);}
+
+/* Messages */
+.msgs{flex:1;overflow-y:auto;scrollbar-width:none;padding:10px 12px 8px;display:flex;flex-direction:column;gap:8px;background:rgba(255,248,242,.03);}
+.msgs::-webkit-scrollbar{display:none;}
+.dchip{align-self:center;background:rgba(255,255,255,.06);border:1px solid var(--w08);border-radius:100px;padding:2px 10px;font-size:8px;font-weight:700;color:var(--w30);}
+
+.msg{display:flex;gap:6px;max-width:80%;animation:ma .28s cubic-bezier(.175,.885,.32,1.275) both;}
+.msg.them{align-self:flex-start;}
+.msg.me{align-self:flex-end;flex-direction:row-reverse;}
+.msg:nth-child(2){animation-delay:.08s;}.msg:nth-child(3){animation-delay:.16s;}.msg:nth-child(4){animation-delay:.24s;}.msg:nth-child(5){animation-delay:.32s;}.msg:nth-child(6){animation-delay:.40s;}
+@keyframes ma{from{opacity:0;transform:scale(.82) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.mav{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,122,61,.2);display:flex;align-items:center;justify-content:center;font-size:12px;align-self:flex-end;flex-shrink:0;}
+
+/* Bubble styles */
+.bub{padding:8px 11px;border-radius:16px;font-size:12px;line-height:1.5;position:relative;}
+.msg.them .bub{background:#fff;border:1.5px solid rgba(232,92,26,.1);border-radius:16px 16px 16px 3px;color:#1a0e08;box-shadow:0 2px 8px rgba(180,60,0,.1);}
+.msg.me .bub{background:linear-gradient(135deg,var(--SG),#005a2a);border-radius:16px 16px 3px 16px;color:#fff;box-shadow:0 3px 12px rgba(0,133,63,.35);}
+.bub-name{font-size:8px;font-weight:700;color:#e85c1a;margin-bottom:2px;}
+.bub-time{font-size:8px;color:rgba(255,255,255,.35);margin-top:2px;text-align:right;}
+.msg.them .bub-time{color:rgba(26,14,8,.3);}
+
+/* Reaction bar below bubble */
+.reactions{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap;}
+.react{height:20px;padding:0 7px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer;animation:react-pop .25s cubic-bezier(.175,.885,.32,1.275) both;}
+.react.on{background:rgba(26,240,96,.15);border-color:rgba(26,240,96,.3);}
+.react-count{font-size:9px;font-weight:700;color:var(--w55);}
+
+/* Floating reactions going up */
+.float-reacts{position:absolute;right:10px;bottom:60px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;pointer-events:none;z-index:5;}
+.fr-emoji{font-size:20px;animation:fr-float 2s ease-out both;}
+.fr-emoji:nth-child(1){animation-delay:0s;}
+.fr-emoji:nth-child(2){animation-delay:.3s;}
+.fr-emoji:nth-child(3){animation-delay:.6s;}
+@keyframes fr-float{from{opacity:1;transform:translateY(0);}to{opacity:0;transform:translateY(-80px) scale(1.5);}}
+
+/* Music share */
+.music-bub{background:#f0fff5;border:2px solid rgba(26,200,80,.25);border-radius:13px;padding:9px 11px;display:flex;align-items:center;gap:9px;cursor:pointer;animation:mglow 3s ease-in-out infinite;}
+@keyframes mglow{0%,100%{box-shadow:0 2px 8px rgba(26,200,80,.1);}50%{box-shadow:0 2px 16px rgba(26,200,80,.25);}}
+.mb-cov{width:38px;height:38px;border-radius:10px;background:linear-gradient(145deg,#1a5e30,#0a2a14);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.mb-track{font-size:11px;font-weight:700;color:#0a5e25;}
+.mb-art{font-size:9px;color:rgba(10,94,37,.6);}
+.mb-badge{font-size:8px;font-weight:700;background:var(--G);color:var(--ink);border-radius:4px;padding:1px 5px;margin-top:2px;display:inline-block;}
+.mb-fire{font-size:16px;cursor:pointer;animation:fw .8s ease-in-out infinite;}
+@keyframes fw{0%,100%{transform:rotate(-5deg);}50%{transform:rotate(5deg) scale(1.2);}}
+
+/* Poll bubble */
+.poll-bub{background:rgba(250,216,54,.08);border:1.5px solid rgba(250,216,54,.2);border-radius:13px;padding:10px 12px;min-width:190px;}
+.poll-q{font-size:11px;font-weight:700;color:rgba(255,216,80,.95);margin-bottom:8px;}
+.poll-opt{height:30px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);margin-bottom:5px;display:flex;align-items:center;padding:0 10px;font-size:11px;cursor:pointer;position:relative;overflow:hidden;transition:background .15s;}
+.poll-opt.leading{border-color:rgba(26,240,96,.3);}
+.poll-fill{position:absolute;left:0;top:0;bottom:0;background:rgba(26,240,96,.1);border-radius:8px;animation:pf-in 1s ease-out both;}
+@keyframes pf-in{from{width:0;}to{}}
+.poll-txt{position:relative;z-index:2;flex:1;}
+.poll-pct{position:relative;z-index:2;font-size:10px;font-weight:700;color:var(--G);}
+.poll-votes{font-size:9px;color:var(--w30);margin-top:4px;}
+
+/* Typing */
+.typing-ind{display:flex;gap:6px;align-items:flex-end;align-self:flex-start;}
+.typ-bub{background:#fff;border:1.5px solid rgba(232,92,26,.1);border-radius:16px 16px 16px 3px;padding:10px 13px;display:flex;gap:4px;align-items:center;box-shadow:0 2px 8px rgba(180,60,0,.08);}
+.td{width:6px;height:6px;border-radius:50%;background:#e85c1a;}
+.td:nth-child(1){animation:tb .7s ease-in-out infinite;}
+.td:nth-child(2){animation:tb .7s .12s ease-in-out infinite;}
+.td:nth-child(3){animation:tb .7s .24s ease-in-out infinite;}
+@keyframes tb{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);background:#c44010;}}
+
+/* Quick reaction strip */
+.quick-reacts{display:flex;gap:6px;padding:6px 12px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:rgba(255,255,255,.02);border-top:1px solid rgba(255,122,61,.08);}
+.quick-reacts::-webkit-scrollbar{display:none;}
+.qr{font-size:18px;cursor:pointer;transition:transform .15s;flex-shrink:0;}
+.qr:active{transform:scale(1.5);}
+
+/* Input */
+.chat-in{background:rgba(12,8,5,.97);border-top:1.5px solid rgba(255,122,61,.12);padding:8px 11px;display:flex;gap:7px;align-items:center;flex-shrink:0;}
+.ci-at{width:34px;height:34px;border-radius:11px;background:rgba(255,122,61,.1);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;}
+.ci-fi{flex:1;height:36px;border-radius:18px;background:rgba(255,122,61,.07);border:1.5px solid rgba(255,122,61,.15);padding:0 13px;font-size:12px;color:rgba(255,200,150,.8);display:flex;align-items:center;animation:ci-breathe 5s ease-in-out infinite;}
+@keyframes ci-breathe{0%,100%{border-color:rgba(255,122,61,.15);}50%{border-color:rgba(255,122,61,.3);}}
+.ci-cur{display:inline-block;width:1.5px;height:13px;background:#e85c1a;margin-left:2px;animation:cc 1s ease-in-out infinite;vertical-align:middle;}
+@keyframes cc{0%,100%{opacity:1;}50%{opacity:0;}}
+.ci-send{width:36px;height:36px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--SG),var(--SGd));display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff;flex-shrink:0;box-shadow:0 3px 12px rgba(0,133,63,.4);animation:sp 2s ease-in-out infinite;}
+@keyframes sp{0%,100%{box-shadow:0 3px 12px rgba(0,133,63,.4),0 0 0 0 rgba(0,133,63,.2);}50%{box-shadow:0 3px 18px rgba(0,133,63,.55),0 0 0 8px rgba(0,133,63,.0);}}
+
+/* ════════════════════════════════════
+   3. TRENDING
+════════════════════════════════════ */
+.trend-hero{
+  background:linear-gradient(160deg,rgba(232,25,44,.16) 0%,transparent 60%);
+  border-bottom:1px solid rgba(232,25,44,.12);
+  padding:13px 16px 0;position:relative;overflow:hidden;
+}
+.th-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(232,25,44,.1) 0%,transparent 60%);}
+.trend-title{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;color:var(--SR);margin-bottom:12px;position:relative;z-index:2;display:flex;align-items:center;gap:8px;}
+.trend-live{display:flex;align-items:center;gap:4px;background:rgba(232,25,44,.15);border:1px solid rgba(232,25,44,.3);border-radius:100px;padding:3px 9px;font-size:8px;font-weight:700;color:var(--SR);animation:lp 1.5s ease-in-out infinite;}
+@keyframes lp{0%,100%{box-shadow:0 0 0 0 rgba(232,25,44,.3);}50%{box-shadow:0 0 0 7px rgba(232,25,44,.0);}}
+.ld{width:5px;height:5px;border-radius:50%;background:var(--SR);animation:nd .8s ease-in-out infinite;}
+
+/* Category tabs — carousel */
+.trend-tabs{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;position:relative;z-index:2;}
+.trend-tabs::-webkit-scrollbar{display:none;}
+.tt{padding:9px 13px;font-size:9px;font-weight:700;color:var(--w30);cursor:pointer;border-bottom:2.5px solid transparent;flex-shrink:0;white-space:nowrap;transition:all .2s;}
+.tt.on{color:var(--SR);border-bottom-color:var(--SR);}
+
+/* Trending items */
+.trend-list{padding:10px 14px 16px;display:flex;flex-direction:column;gap:6px;}
+.trend-item{
+  display:flex;align-items:center;gap:10px;
+  background:var(--w06);border:1px solid var(--w08);
+  border-radius:13px;padding:9px 11px;cursor:pointer;
+  animation:ti-in .35s cubic-bezier(.175,.885,.32,1.275) both;
+  position:relative;overflow:hidden;
+}
+.trend-item:nth-child(1){animation-delay:.05s;}
+.trend-item:nth-child(2){animation-delay:.1s;}
+.trend-item:nth-child(3){animation-delay:.15s;}
+.trend-item:nth-child(4){animation-delay:.2s;}
+.trend-item:nth-child(5){animation-delay:.25s;}
+@keyframes ti-in{from{opacity:0;transform:translateX(-10px);}to{opacity:1;transform:translateX(0);}}
+.trend-item.hot::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(232,25,44,.08),transparent);pointer-events:none;}
+.ti-rank{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:900;width:24px;text-align:center;flex-shrink:0;}
+.ti-rank.r1{color:var(--SR);}
+.ti-rank.r2{color:var(--SY);}
+.ti-rank.r3{color:var(--O);}
+.ti-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.ti-body{flex:1;min-width:0;}
+.ti-title{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ti-meta{font-size:9px;color:var(--w30);}
+.ti-right{text-align:right;flex-shrink:0;}
+.ti-count{font-size:11px;font-weight:700;}
+.ti-lbl{font-size:8px;color:var(--w30);}
+.ti-tag{font-size:8px;font-weight:700;border-radius:5px;padding:2px 6px;margin-top:2px;display:inline-block;}
+.tag-music{background:rgba(26,240,96,.1);color:var(--G);border:1px solid rgba(26,240,96,.2);}
+.tag-news{background:rgba(232,25,44,.1);color:var(--SR);border:1px solid rgba(232,25,44,.2);}
+.tag-cause{background:rgba(250,216,54,.1);color:var(--SY);border:1px solid rgba(250,216,54,.2);}
+.tag-local{background:rgba(255,100,34,.1);color:var(--O);border:1px solid rgba(255,100,34,.2);}
+.hot-badge{position:absolute;top:8px;right:8px;font-size:12px;animation:hb-bounce 1s ease-in-out infinite;}
+@keyframes hb-bounce{0%,100%{transform:scale(1);}50%{transform:scale(1.2) rotate(10deg);}}
+
+/* News card carousel */
+.news-carousel{padding:0 14px 12px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
+.news-carousel::-webkit-scrollbar{display:none;}
+.news-card{width:180px;flex-shrink:0;background:var(--w06);border:1px solid var(--w08);border-radius:14px;overflow:hidden;cursor:pointer;animation:nc-in .4s cubic-bezier(.175,.885,.32,1.275) both;}
+.news-card:nth-child(1){animation-delay:.1s;}
+.news-card:nth-child(2){animation-delay:.2s;}
+@keyframes nc-in{from{opacity:0;transform:scale(.9);}to{opacity:1;transform:scale(1);}}
+.nc-img{height:80px;display:flex;align-items:center;justify-content:center;font-size:36px;position:relative;}
+.nc-src{position:absolute;bottom:6px;left:8px;font-size:7px;font-weight:700;color:rgba(255,255,255,.6);background:rgba(0,0,0,.4);border-radius:4px;padding:2px 5px;}
+.nc-body{padding:8px;}
+.nc-cat{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--SR);margin-bottom:3px;}
+.nc-title{font-size:10px;font-weight:700;line-height:1.4;}
+.nc-time{font-size:8px;color:var(--w30);margin-top:4px;}
+
+/* Petition teaser */
+.petition-card{
+  margin:0 14px 12px;
+  background:linear-gradient(135deg,rgba(250,216,54,.08),rgba(250,216,54,.02));
+  border:1.5px solid rgba(250,216,54,.18);
+  border-radius:14px;padding:11px 13px;cursor:pointer;
+  animation:pet-glow 4s ease-in-out infinite;
+}
+@keyframes pet-glow{0%,100%{box-shadow:none;}50%{box-shadow:0 0 20px rgba(250,216,54,.1);}}
+.pc-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.pc-ico{font-size:18px;animation:pet-bounce 2s ease-in-out infinite;}
+@keyframes pet-bounce{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
+.pc-label{font-size:8px;font-weight:700;letter-spacing:1px;color:rgba(250,216,54,.7);text-transform:uppercase;}
+.pc-title{font-size:12px;font-weight:700;margin-bottom:6px;line-height:1.4;}
+.pc-track{height:5px;background:var(--w08);border-radius:3px;overflow:hidden;margin-bottom:4px;}
+.pc-fill{height:100%;background:linear-gradient(to right,var(--SY),var(--O));border-radius:3px;width:73%;animation:pc-fill 1.5s ease-out both;box-shadow:0 2px 6px rgba(250,216,54,.3);}
+@keyframes pc-fill{from{width:0;}to{width:73%;}}
+.pc-sigs{font-size:10px;color:var(--w40);}
+.pc-sigs b{color:var(--SY);font-weight:700;}
+
+/* ════════════════════════════════════
+   4. DISCOVER
+════════════════════════════════════ */
+.disc-hero{
+  background:linear-gradient(160deg,rgba(255,100,34,.16) 0%,transparent 60%);
+  border-bottom:1px solid rgba(255,100,34,.1);
+  padding:12px 15px 0;
+}
+.disc-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.disc-title{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:900;color:var(--O);}
+.disc-search{height:36px;flex:1;max-width:150px;background:var(--w06);border:1.5px solid var(--w10);border-radius:100px;display:flex;align-items:center;gap:7px;padding:0 12px;font-size:11px;color:var(--w30);}
+
+/* Category pills — carousel */
+.disc-pills{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding-bottom:12px;}
+.disc-pills::-webkit-scrollbar{display:none;}
+.dp{height:32px;padding:0 13px;border-radius:100px;font-size:10px;font-weight:700;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:5px;flex-shrink:0;transition:all .15s;}
+.dp.on{color:var(--ink);}
+
+/* Discover grid — 2 columns */
+.disc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px 16px;}
+.dg-item{border-radius:16px;overflow:hidden;cursor:pointer;position:relative;aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:flex-end;animation:dg-in .4s cubic-bezier(.175,.885,.32,1.275) both;}
+.dg-item:nth-child(1){animation-delay:.05s;}
+.dg-item:nth-child(2){animation-delay:.1s;}
+.dg-item:nth-child(3){animation-delay:.15s;}
+.dg-item:nth-child(4){animation-delay:.2s;}
+.dg-item.wide{grid-column:span 2;aspect-ratio:2/1;}
+@keyframes dg-in{from{opacity:0;transform:scale(.88);}to{opacity:1;transform:scale(1);}}
+.dg-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;}
+.dg-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.7) 0%,transparent 60%);}
+.dg-body{position:relative;z-index:2;padding:8px 9px;}
+.dg-cat{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;opacity:.8;}
+.dg-title{font-size:11px;font-weight:700;line-height:1.3;}
+.dg-meta{font-size:8px;opacity:.65;margin-top:2px;}
+.dg-live-dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--SR);border:2px solid rgba(0,0,0,.3);animation:ld 1s ease-in-out infinite;}
+@keyframes ld{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* ════════════════════════════════════
+   5. EAT SCREEN
+════════════════════════════════════ */
+.eat-hero{
+  background:linear-gradient(160deg,rgba(255,183,0,.15) 0%,transparent 55%);
+  border-bottom:1px solid rgba(255,183,0,.1);
+  padding:12px 15px 0;
+}
+.eat-title{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:900;color:var(--SY);margin-bottom:12px;}
+
+/* Flash deals carousel */
+.flash-label{padding:0 15px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.fl-title{font-size:8px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;display:flex;align-items:center;gap:6px;}
+.fl-timer{background:rgba(232,25,44,.15);border:1px solid rgba(232,25,44,.3);border-radius:100px;padding:3px 8px;font-size:9px;font-weight:700;color:var(--SR);animation:timer-pulse 1s ease-in-out infinite;}
+@keyframes timer-pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+.flash-carousel{display:flex;gap:9px;overflow-x:auto;scrollbar-width:none;padding:0 15px 12px;}
+.flash-carousel::-webkit-scrollbar{display:none;}
+.flash-card{
+  width:130px;flex-shrink:0;border-radius:15px;overflow:hidden;cursor:pointer;
+  background:var(--w06);border:1.5px solid var(--w10);
+  animation:fc-in .4s cubic-bezier(.175,.885,.32,1.275) both;position:relative;
+}
+.flash-card:nth-child(1){animation-delay:.05s;}
+.flash-card:nth-child(2){animation-delay:.1s;}
+.flash-card:nth-child(3){animation-delay:.15s;}
+.flash-card:nth-child(4){animation-delay:.2s;}
+@keyframes fc-in{from{opacity:0;transform:scale(.85) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.fc-img{height:72px;display:flex;align-items:center;justify-content:center;font-size:34px;position:relative;}
+.fc-discount{position:absolute;top:6px;left:6px;background:var(--SR);color:#fff;font-family:'Unbounded',sans-serif;font-size:9px;font-weight:900;border-radius:7px;padding:2px 6px;box-shadow:0 2px 8px rgba(232,25,44,.4);animation:disc-pulse 1.5s ease-in-out infinite;}
+@keyframes disc-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+.fc-body{padding:7px 9px;}
+.fc-name{font-size:10px;font-weight:700;margin-bottom:2px;}
+.fc-price{display:flex;align-items:center;gap:5px;}
+.fc-new{font-size:11px;font-weight:700;color:var(--G);}
+.fc-old{font-size:9px;color:var(--w30);text-decoration:line-through;}
+.fc-time{font-size:8px;color:var(--SR);margin-top:3px;font-weight:600;}
+
+/* Restaurant grid */
+.rest-section{padding:10px 15px 0;}
+.rest-label{font-size:8px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:10px;}
+.rest-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-bottom:16px;}
+.rg-item{background:var(--w06);border:1px solid var(--w08);border-radius:14px;overflow:hidden;cursor:pointer;animation:rg-in .4s cubic-bezier(.175,.885,.32,1.275) both;}
+.rg-item:nth-child(1){animation-delay:.1s;}
+.rg-item:nth-child(2){animation-delay:.15s;}
+.rg-item:nth-child(3){animation-delay:.2s;}
+.rg-item:nth-child(4){animation-delay:.25s;}
+@keyframes rg-in{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.rg-img{height:58px;display:flex;align-items:center;justify-content:center;font-size:30px;}
+.rg-body{padding:7px 9px;}
+.rg-name{font-size:11px;font-weight:700;margin-bottom:2px;}
+.rg-meta{font-size:9px;color:var(--w35);}
+.rg-rating{color:var(--SY);font-size:9px;font-weight:700;margin-top:2px;}
+
+/* ════════════════════════════════════
+   6. EVENTS
+════════════════════════════════════ */
+.events-hero{
+  background:linear-gradient(160deg,rgba(26,240,96,.14) 0%,rgba(250,216,54,.08) 50%,transparent 100%);
+  border-bottom:1px solid rgba(26,240,96,.1);
+  padding:12px 15px 0;
+}
+.ev-title{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:900;color:var(--G);margin-bottom:12px;}
+/* Hero event — full bleed */
+.event-hero-card{
+  margin:0 14px 10px;border-radius:18px;overflow:hidden;cursor:pointer;position:relative;height:140px;
+  animation:ehc-in .5s cubic-bezier(.175,.885,.32,1.275) both;
+}
+@keyframes ehc-in{from{opacity:0;transform:scale(.92);}to{opacity:1;transform:scale(1);}}
+.ehc-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:72px;background:linear-gradient(135deg,#0a1a0c,#020602);}
+.ehc-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.2) 100%);}
+.ehc-live{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:4px;background:var(--SR);border-radius:100px;padding:3px 9px;font-size:8px;font-weight:700;animation:lp 1.5s ease-in-out infinite;}
+.ehc-body{position:absolute;bottom:0;left:0;right:0;padding:10px 12px;}
+.ehc-cat{font-size:7px;font-weight:700;color:var(--G);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.ehc-title{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:4px;}
+.ehc-meta{font-size:9px;color:rgba(255,255,255,.65);display:flex;align-items:center;gap:10px;}
+.ehc-price{background:var(--G);color:var(--ink);border-radius:100px;padding:2px 8px;font-size:9px;font-weight:700;}
+
+/* Event list items */
+.event-list{padding:4px 14px 16px;display:flex;flex-direction:column;gap:7px;}
+.ev-item{display:flex;gap:10px;background:var(--w06);border:1px solid var(--w08);border-radius:14px;padding:10px 12px;cursor:pointer;animation:ev-in .4s cubic-bezier(.175,.885,.32,1.275) both;transition:all .15s;}
+.ev-item:nth-child(1){animation-delay:.1s;}
+.ev-item:nth-child(2){animation-delay:.15s;}
+.ev-item:nth-child(3){animation-delay:.2s;}
+@keyframes ev-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.ev-item:hover{background:var(--w08);}
+.ev-date-box{width:40px;flex-shrink:0;background:rgba(26,240,96,.08);border:1px solid rgba(26,240,96,.18);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;}
+.evd-day{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;color:var(--G);line-height:1;}
+.evd-mon{font-size:7px;font-weight:700;color:rgba(26,240,96,.6);text-transform:uppercase;}
+.ev-body{flex:1;min-width:0;}
+.ev-title{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ev-meta{font-size:9px;color:var(--w35);margin-top:2px;}
+.ev-price{font-size:10px;font-weight:700;color:var(--SY);margin-top:3px;}
+.ev-going{width:28px;height:28px;border-radius:50%;background:rgba(26,240,96,.1);border:1.5px solid rgba(26,240,96,.25);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;cursor:pointer;align-self:center;transition:all .15s;}
+.ev-going:hover{background:var(--G);border-color:var(--G);}
+
+/* ════════════════════════════════════
+   7. NOTIFICATIONS
+════════════════════════════════════ */
+.notif-hero{
+  background:linear-gradient(160deg,rgba(26,240,96,.12) 0%,transparent 55%);
+  border-bottom:1px solid rgba(26,240,96,.1);
+  padding:12px 15px 14px;
+}
+.notif-title{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:900;color:var(--G);display:flex;align-items:center;gap:8px;}
+.notif-count{background:var(--SR);color:#fff;border-radius:100px;padding:2px 9px;font-size:10px;font-weight:700;animation:notif-bounce 1.5s ease-in-out infinite;}
+@keyframes notif-bounce{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
+.notif-list{padding:8px 14px 16px;display:flex;flex-direction:column;gap:5px;}
+.notif-item{
+  display:flex;align-items:center;gap:10px;
+  border-radius:14px;padding:10px 12px;cursor:pointer;
+  transition:background .15s;
+  animation:ni-in .35s cubic-bezier(.175,.885,.32,1.275) both;
+  position:relative;overflow:hidden;
+}
+.notif-item:nth-child(1){animation-delay:.04s;}
+.notif-item:nth-child(2){animation-delay:.08s;}
+.notif-item:nth-child(3){animation-delay:.12s;}
+.notif-item:nth-child(4){animation-delay:.16s;}
+.notif-item:nth-child(5){animation-delay:.20s;}
+@keyframes ni-in{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:translateX(0);}}
+.notif-item.unread{background:var(--w06);border:1px solid var(--w08);}
+.notif-item.unread::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px;}
+.notif-item.ni-g::before{background:var(--G);}
+.notif-item.ni-y::before{background:var(--SY);}
+.notif-item.ni-r::before{background:var(--SR);}
+.notif-item.ni-o::before{background:var(--O);}
+.ni-ico-wrap{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.ni-body{flex:1;min-width:0;}
+.ni-text{font-size:11px;line-height:1.5;color:var(--w70);}
+.ni-text b{color:var(--w);}
+.ni-time{font-size:9px;color:var(--w30);margin-top:2px;}
+.ni-action{flex-shrink:0;}
+.ni-btn{height:26px;padding:0 10px;border-radius:100px;border:none;font-size:9px;font-weight:700;cursor:pointer;}
+.ni-btn-g{background:var(--G);color:var(--ink);}
+.ni-btn-o{background:rgba(255,100,34,.15);color:var(--O);border:1px solid rgba(255,100,34,.25);}
+/* Celebratory notif */
+.notif-item.celebrate{background:linear-gradient(135deg,rgba(250,216,54,.1),rgba(26,240,96,.06));border:1.5px solid rgba(250,216,54,.2);animation:ni-in .35s cubic-bezier(.175,.885,.32,1.275) both,cel-glow 3s ease-in-out infinite;}
+@keyframes cel-glow{0%,100%{box-shadow:none;}50%{box-shadow:0 0 20px rgba(250,216,54,.15);}}
+
+/* ════════════════════════════════════
+   8. PROFILE
+════════════════════════════════════ */
+.prof-hero{
+  position:relative;overflow:hidden;
+  background:linear-gradient(160deg,rgba(232,25,44,.18) 0%,rgba(26,240,96,.08) 60%,transparent 100%);
+}
+.ph-wax{position:absolute;inset:0;z-index:1;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.025) 0px,rgba(255,255,255,.025) 1px,transparent 1px,transparent 16px),repeating-linear-gradient(-45deg,rgba(255,255,255,.025) 0px,rgba(255,255,255,.025) 1px,transparent 1px,transparent 16px);background-size:16px 16px;}
+.ph-content{position:relative;z-index:2;padding:14px 16px 0;}
+.ph-top-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
+.ph-left{display:flex;align-items:flex-start;gap:12px;}
+.ph-avatar{width:68px;height:68px;border-radius:50%;border:3px solid rgba(232,25,44,.4);background:var(--w08);display:flex;align-items:center;justify-content:center;font-size:30px;position:relative;flex-shrink:0;animation:av-pulse 4s ease-in-out infinite;}
+@keyframes av-pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,25,44,.2);}50%{box-shadow:0 0 0 10px rgba(232,25,44,.0);}}
+.ph-verified{position:absolute;bottom:0;right:0;width:19px;height:19px;border-radius:50%;background:var(--G);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:var(--ink);}
+
+/* Photos pinned next to name */
+.ph-info{flex:1;}
+.ph-name-row{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.ph-name{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;letter-spacing:-.4px;}
+.ph-pin-photos{display:flex;gap:-4px;}
+.pp-img{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:11px;margin-left:-4px;background:var(--w08);cursor:pointer;transition:transform .15s;}
+.pp-img:first-child{margin-left:0;}
+.pp-img:hover{transform:scale(1.2) translateY(-2px);}
+.ph-handle{font-size:11px;color:var(--G);margin-bottom:2px;}
+.ph-arr{font-size:10px;color:var(--w30);}
+
+/* Status cards */
+.status-cards{display:flex;gap:6px;padding:10px 0 0;overflow-x:auto;scrollbar-width:none;}
+.status-cards::-webkit-scrollbar{display:none;}
+.sc-item{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  border-radius:100px;padding:5px 11px 5px 6px;flex-shrink:0;cursor:pointer;
+  animation:sc-float 3s ease-in-out infinite;
+}
+.sc-item:nth-child(2){animation-delay:.4s;}.sc-item:nth-child(3){animation-delay:.8s;}
+@keyframes sc-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-2px);}}
+.sc-ico{font-size:13px;}
+.sc-text{font-size:10px;font-weight:600;color:var(--w70);white-space:nowrap;}
+.sc-text.music{color:rgba(26,240,96,.9);}
+
+/* Profile flag stripe */
+.prof-stripe{display:flex;height:2px;}
+.psg{flex:1;background:var(--SG);}.psy{flex:1;background:var(--SY);}.psr{flex:1;background:var(--SR);}
+
+/* Profile stats */
+.prof-stats{display:flex;background:rgba(255,255,255,.03);border-bottom:1px solid var(--w06);}
+.ps-i{flex:1;padding:10px 4px;text-align:center;cursor:pointer;}
+.ps-n{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;letter-spacing:-.5px;}
+.ps-l{font-size:8px;color:var(--w30);margin-top:1px;}
+
+/* Wakhna mini */
+.wakhna-mini{margin:10px 14px;background:linear-gradient(135deg,rgba(26,240,96,.08),rgba(26,240,96,.02));border:1px solid rgba(26,240,96,.15);border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px;}
+.wm-s{font-family:'Unbounded',sans-serif;font-size:26px;font-weight:900;color:var(--G);letter-spacing:-1px;}
+.wm-b{flex:1;}
+.wm-l{font-size:8px;font-weight:700;letter-spacing:1px;color:rgba(26,240,96,.6);text-transform:uppercase;margin-bottom:2px;}
+.wm-r{font-size:10px;color:var(--w40);}
+.wm-r b{color:var(--G);}
+.wm-bar{height:3px;background:var(--w08);border-radius:2px;overflow:hidden;margin-top:5px;}
+.wm-fill{height:100%;background:linear-gradient(to right,var(--G),var(--SY));width:72%;animation:wf 1.2s .4s ease-out both;}
+@keyframes wf{from{width:0;}to{width:72%;}}
+
+/* Highlight photos */
+.highlights{padding:0 14px 14px;}
+.hi-lbl{font-size:8px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:8px;}
+.hi-row{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;}
+.hi-row::-webkit-scrollbar{display:none;}
+.hi-item{width:70px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
+.hi-ring{width:66px;height:66px;border-radius:50%;padding:2.5px;background:linear-gradient(135deg,var(--SR),var(--O));animation:hr-spin 6s linear infinite;}
+@keyframes hr-spin{from{filter:hue-rotate(0);}to{filter:hue-rotate(20deg);}}
+.hi-inner{width:100%;height:100%;border-radius:50%;background:var(--w08);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:26px;}
+.hi-name{font-size:8px;font-weight:700;color:var(--w40);text-align:center;}
+
+/* K21 JUNIOR section */
+.junior-section{margin:0 14px 14px;background:linear-gradient(135deg,rgba(26,240,96,.1),rgba(250,216,54,.06));border:1.5px solid rgba(26,240,96,.2);border-radius:16px;overflow:hidden;}
+.jr-top{background:linear-gradient(135deg,rgba(26,240,96,.15),rgba(26,240,96,.05));padding:12px 13px;display:flex;align-items:center;gap:10px;}
+.jr-icon{font-size:26px;animation:jr-bounce 2s ease-in-out infinite;}
+@keyframes jr-bounce{0%,100%{transform:scale(1);}50%{transform:scale(1.1) rotate(5deg);}}
+.jr-info{flex:1;}
+.jr-title{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:900;color:var(--G);margin-bottom:2px;}
+.jr-sub{font-size:10px;color:var(--w40);}
+.jr-badge{background:var(--G);color:var(--ink);border-radius:100px;padding:3px 9px;font-size:8px;font-weight:900;}
+.jr-features{padding:10px 13px;display:flex;flex-direction:column;gap:6px;}
+.jr-feat{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--w55);}
+.jr-feat b{color:var(--w);}
+.jr-feat-ico{font-size:14px;flex-shrink:0;}
+.jr-id-card{margin:8px 13px 12px;background:linear-gradient(135deg,rgba(26,240,96,.08),rgba(0,0,0,.3));border:1px solid rgba(26,240,96,.2);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:10px;}
+.jr-id-ico{font-size:22px;flex-shrink:0;}
+.jr-id-body{flex:1;}
+.jr-id-title{font-size:12px;font-weight:700;color:var(--G);margin-bottom:2px;}
+.jr-id-sub{font-size:10px;color:var(--w35);}
+.jr-id-scan{width:32px;height:32px;border-radius:10px;background:var(--G);display:flex;align-items:center;justify-content:center;font-size:14px;animation:scan-pulse 2s ease-in-out infinite;}
+@keyframes scan-pulse{0%,100%{box-shadow:0 0 0 0 rgba(26,240,96,.3);}50%{box-shadow:0 0 0 8px rgba(26,240,96,.0);}}
+
+/* ════════════════════════════════════
+   RECT SOUND — GEOMETRIC BOLD
+════════════════════════════════════ */
+.rect-bg{
+  position:absolute;inset:0;z-index:0;
+  background:#050805;
+}
+.rect-grid-bg{
+  position:absolute;inset:0;z-index:1;
+  background-image:
+    linear-gradient(rgba(26,240,96,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(26,240,96,.06) 1px,transparent 1px);
+  background-size:24px 24px;
+  animation:grid-shift 20s linear infinite;
+}
+@keyframes grid-shift{from{background-position:0 0;}to{background-position:24px 24px;}}
+.rect-hero{position:relative;z-index:2;padding:14px 15px 0;}
+.rect-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.rect-brand{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;letter-spacing:-.5px;display:flex;align-items:baseline;gap:1px;}
+.rect-r{color:var(--SR);}
+.rect-e{color:var(--SY);}
+.rect-c{color:var(--G);}
+.rect-t{color:var(--O);}
+.rect-sub-brand{font-size:8px;font-weight:700;letter-spacing:2px;color:var(--w30);text-transform:uppercase;margin-left:6px;}
+.rect-mode{display:flex;gap:2px;background:rgba(255,255,255,.05);border:1px solid var(--w12);border-radius:9px;padding:2px;}
+.rm-btn{padding:4px 10px;border-radius:6px;font-size:9px;font-weight:700;cursor:pointer;transition:all .15s;}
+.rm-btn.on{background:var(--G);color:var(--ink);}
+.rm-btn.off{color:var(--w30);}
+
+/* Now playing — GEOMETRIC */
+.np-geo{position:relative;z-index:2;margin:0 14px 12px;background:rgba(0,0,0,.4);border:1.5px solid rgba(26,240,96,.25);border-radius:0;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));padding:14px;}
+.npg-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.npg-cover{width:48px;height:48px;background:linear-gradient(145deg,#1a5e30,#0a2a14);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:1.5px solid rgba(26,240,96,.3);animation:cover-rotate 8s linear infinite;}
+@keyframes cover-rotate{0%,90%,100%{transform:rotate(0);}95%{transform:rotate(360deg);}}
+.npg-info{flex:1;}
+.npg-title{font-size:13px;font-weight:700;margin-bottom:2px;}
+.npg-artist{font-size:10px;color:var(--w40);}
+.npg-chart{font-size:9px;font-weight:700;color:var(--G);margin-top:2px;}
+.npg-bars{display:flex;gap:2px;align-items:flex-end;height:22px;}
+.npg-bar{width:3px;border-radius:0;background:var(--G);}
+.npg-bar:nth-child(1){height:8px;animation:bar-d .45s infinite;}
+.npg-bar:nth-child(2){height:18px;animation:bar-d .45s .07s infinite;}
+.npg-bar:nth-child(3){height:12px;animation:bar-d .45s .14s infinite;}
+.npg-bar:nth-child(4){height:20px;animation:bar-d .45s .21s infinite;}
+.npg-bar:nth-child(5){height:6px;animation:bar-d .45s .1s infinite;}
+@keyframes bar-d{0%,100%{transform:scaleY(1);}50%{transform:scaleY(.25);}}
+/* Progress */
+.npg-progress{height:2px;background:var(--w12);border-radius:0;margin-bottom:6px;}
+.npg-fill{height:100%;background:var(--G);width:42%;animation:track-fill 30s linear infinite;}
+@keyframes track-fill{from{width:0%;}to{width:100%;}}
+.npg-times{display:flex;justify-content:space-between;font-size:9px;color:var(--w30);}
+.npg-controls{display:flex;justify-content:space-between;align-items:center;}
+.npg-ctrl{width:32px;height:32px;border-radius:0;background:rgba(26,240,96,.08);border:1px solid rgba(26,240,96,.15);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;}
+.npg-play{width:42px;height:42px;background:var(--G);border:none;border-radius:0;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:var(--ink);animation:play-pulse 2s ease-in-out infinite;}
+@keyframes play-pulse{0%,100%{box-shadow:0 0 0 0 rgba(26,240,96,.3);}50%{box-shadow:0 0 0 10px rgba(26,240,96,.0);}}
+.dafa-geo{width:32px;height:32px;border-radius:0;background:rgba(26,240,96,.08);border:1.5px solid rgba(26,240,96,.25);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;animation:dafa-pulse 2s ease-in-out infinite;}
+@keyframes dafa-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.1) rotate(5deg);}}
+
+/* Chart squares */
+.chart-squares{position:relative;z-index:2;padding:0 14px 12px;}
+.cs-label{font-size:8px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:9px;}
+.cs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.cs-item{background:rgba(0,0,0,.4);border:1px solid rgba(26,240,96,.15);border-radius:0;padding:10px 9px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%);animation:csi-in .4s cubic-bezier(.175,.885,.32,1.275) both;}
+.cs-item:nth-child(1){animation-delay:.05s;}
+.cs-item:nth-child(2){animation-delay:.1s;}
+.cs-item:nth-child(3){animation-delay:.15s;}
+.cs-item:nth-child(4){animation-delay:.2s;}
+.cs-item:nth-child(5){animation-delay:.25s;}
+.cs-item:nth-child(6){animation-delay:.3s;}
+@keyframes csi-in{from{opacity:0;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
+.cs-item.top{border-color:rgba(26,240,96,.4);background:rgba(26,240,96,.06);}
+.csi-rank{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:900;color:var(--w30);margin-bottom:4px;}
+.csi-rank.r1{color:var(--G);}
+.csi-ico{font-size:20px;margin-bottom:4px;}
+.csi-title{font-size:9px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.csi-dafa{font-size:8px;color:var(--G);margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="ph">K21 — Complete App Redesign</div>
+<div class="ps">All Screens · Green Home · Max Mboolo · Geometric Rect · Full Animation</div>
+<div class="flag"><div class="fg"></div><div class="fy"></div><div class="fr"></div></div>
+
+<!-- ══════════ HOME ══════════ -->
+<div class="sec">01 — Home Dashboard</div>
+<div class="sec-s">Full Senegal green · Circles above · Work squares carousel</div>
+<div class="row">
+<div class="col">
+<div class="cl">Home</div>
+<div class="phone">
+  <div class="home-bg"></div>
+  <div class="home-wax"></div>
+  <div class="particles">
+    <div class="p" style="width:5px;height:5px;left:10%;background:rgba(255,255,255,.3);animation-duration:10s;animation-delay:0s;"></div>
+    <div class="p" style="width:4px;height:4px;left:40%;background:rgba(250,216,54,.4);animation-duration:14s;animation-delay:3s;"></div>
+    <div class="p" style="width:6px;height:6px;left:70%;background:rgba(255,255,255,.2);animation-duration:11s;animation-delay:6s;"></div>
+    <div class="p" style="width:3px;height:3px;left:85%;background:rgba(26,240,96,.5);animation-duration:9s;animation-delay:1s;"></div>
+  </div>
+  <div class="sb" style="position:relative;z-index:10;">
+    <span style="font-size:10px;color:rgba(255,255,255,.7);">📍 Médina · Dakar</span>
+    <div class="h-icons">
+      <div class="h-ico">🔔<div class="notif-dot"></div></div>
+      <div class="h-ico">👤</div>
+    </div>
+  </div>
+  <div class="sc" style="padding-bottom:68px;">
+    <div class="home-content">
+      <div class="h-top">
+        <div class="h-greeting">Salut <b>Saliou 👋🏿</b></div>
+      </div>
+      <div class="balance-hero">
+        <div class="bh-eye">👁 Solde K21</div>
+        <div class="bh-amount">47 000 <span class="bh-curr">F</span></div>
+        <div class="bh-pill">✦ Zéro frais sur tous tes envois</div>
+      </div>
+      <!-- CIRCLES above — clickable actions -->
+      <div class="actions-section">
+        <div class="as-label">Que veux-tu faire ?</div>
+        <div class="actions-row">
+          <div class="act-item"><div class="act-circle">💸</div><div class="act-lbl">Yónnee</div></div>
+          <div class="act-item"><div class="act-circle">📥</div><div class="act-lbl">Jël</div></div>
+          <div class="act-item"><div class="act-circle">🏪</div><div class="act-lbl">Fey</div></div>
+          <div class="act-item"><div class="act-circle">🏦</div><div class="act-lbl">Tontine</div></div>
+          <div class="act-item"><div class="act-circle">⋯</div><div class="act-lbl">Plus</div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Dark cards -->
+    <div class="cards-bg">
+      <!-- Work dashboard squares -->
+      <div class="work-dash">
+        <div class="wd-label">Tableau de bord</div>
+        <div class="wd-carousel">
+          <div class="wd-sq" style="background:linear-gradient(135deg,rgba(26,240,96,.15),rgba(26,240,96,.05));border:1.5px solid rgba(26,240,96,.25);">
+            <div class="sq-ico">💰</div>
+            <div><div class="sq-val" style="color:var(--G);">47k F</div><div class="sq-lbl">Solde</div></div>
+          </div>
+          <div class="wd-sq" style="background:linear-gradient(135deg,rgba(250,216,54,.12),rgba(250,216,54,.04));border:1.5px solid rgba(250,216,54,.2);">
+            <div class="sq-ico">📊</div>
+            <div><div class="sq-val" style="color:var(--SY);">840</div><div class="sq-lbl">Wakhna</div></div>
+          </div>
+          <div class="wd-sq" style="background:linear-gradient(135deg,rgba(255,100,34,.12),rgba(255,100,34,.04));border:1.5px solid rgba(255,100,34,.2);">
+            <div class="sq-ico">🏆</div>
+            <div><div class="sq-val" style="color:var(--O);">#2</div><div class="sq-lbl">Défi</div></div>
+          </div>
+          <div class="wd-sq" style="background:linear-gradient(135deg,rgba(232,25,44,.1),rgba(232,25,44,.03));border:1.5px solid rgba(232,25,44,.18);">
+            <div class="sq-ico">🎵</div>
+            <div><div class="sq-val" style="color:var(--SR);">3</div><div class="sq-lbl">Cauris fan</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Mboolo -->
+      <div class="mboolo-card">
+        <div class="mc-avas">
+          <div class="mc-a">👩🏾</div><div class="mc-a">👦🏿</div><div class="mc-a">👩🏿</div>
+        </div>
+        <div class="mc-body">
+          <div class="mc-title">Médina Squad</div>
+          <div class="mc-sub">Ibou: Ñu lekk dibiterie 18h 🍖</div>
+        </div>
+        <div class="mc-badge">4</div>
+      </div>
+    </div>
+  </div>
+  <div class="bnav">
+    <div class="bni on"><div class="bni-ico">🏠</div><div class="bni-dot"></div><div class="bni-lbl">Home</div></div>
+    <div class="bni"><div class="bni-ico">💬</div><div class="bni-lbl">Mboolo</div></div>
+    <div class="bni"><div class="bni-ico">🎵</div><div class="bni-lbl">Rect</div></div>
+    <div class="bni"><div class="bni-ico">🔍</div><div class="bni-lbl">Explorer</div></div>
+    <div class="bni"><div class="bni-ico">👤</div><div class="bni-lbl">Moi</div></div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ══════════ MBOOLO MAX ══════════ -->
+<div class="sec">02 — Mboolo Chat · Max Youth</div>
+<div class="sec-s">Pins · Reactions · Polls · Floating emojis · Stories · Everything</div>
+<div class="row">
+<div class="col">
+<div class="cl">Group Chat</div>
+<div class="phone">
+  <div class="wax"></div>
+  <div class="sb" style="display:none;"></div>
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;z-index:10;background:rgba(255,248,242,.025);">
+    <div class="chat-hd">
+      <div class="ch-back">←</div>
+      <div class="ch-avas">
+        <div class="ch-av">👩🏾</div><div class="ch-av">👦🏿</div><div class="ch-av">👩🏿</div>
+      </div>
+      <div class="ch-info">
+        <div class="ch-name">Médina Squad 🔥</div>
+        <div class="ch-meta">8 membres · 5 en ligne</div>
+      </div>
+      <div class="ch-acts">
+        <div class="ch-act">📞</div>
+        <div class="ch-act">⋯</div>
+      </div>
+    </div>
+    <!-- Pinned -->
+    <div class="pinned-bar">
+      <span class="pin-ico">📌</span>
+      <span class="pin-text">📌 Ibou: Dibiterie Chez Papa · 18h · 2000F chacun</span>
+      <span class="pin-count">+2</span>
+    </div>
+    <!-- Status -->
+    <div class="status-strip">
+      <div class="spill"><div class="spill-av">👩🏾</div><div class="spill-t music">🎵 Yëkël</div></div>
+      <div class="spill"><div class="spill-av">👦🏿</div><div class="spill-t">📍 Médina</div></div>
+      <div class="spill"><div class="spill-av">👩🏿</div><div class="spill-t">☕ Ataya</div></div>
+    </div>
+    <!-- Float reacts -->
+    <div class="float-reacts">
+      <div class="fr-emoji">🔥</div>
+      <div class="fr-emoji">❤️</div>
+      <div class="fr-emoji">😂</div>
+    </div>
+    <div class="msgs">
+      <div class="dchip">Aujourd'hui</div>
+      <!-- Music share -->
+      <div class="msg them">
+        <div class="mav">👩🏾</div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div class="bub" style="padding:5px;background:#fff;border:1.5px solid rgba(232,92,26,.1);border-radius:16px 16px 16px 3px;box-shadow:0 2px 8px rgba(180,60,0,.1);">
+            <div class="bub-name">Fatou</div>
+            <div class="music-bub">
+              <div class="mb-cov">🎵</div>
+              <div><div class="mb-track" style="color:#0a5e25;">"Yëkël"</div><div class="mb-art" style="color:rgba(10,94,37,.6);">Saliou K.</div><div class="mb-badge">Chart #1 🔥</div></div>
+              <div class="mb-fire">🔥</div>
+            </div>
+            <div class="bub-time" style="color:rgba(26,14,8,.3);">14h18</div>
+          </div>
+          <div class="reactions">
+            <div class="react on">🔥<span class="react-count">12</span></div>
+            <div class="react">😍<span class="react-count">5</span></div>
+            <div class="react">+</div>
+          </div>
+        </div>
+      </div>
+      <!-- Text -->
+      <div class="msg them">
+        <div class="mav">👦🏿</div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div class="bub"><div class="bub-name">Ibou</div>Waw dafa baax lool 🔥🔥<div class="bub-time" style="color:rgba(26,14,8,.3);">14h19</div></div>
+          <div class="reactions"><div class="react on">😂<span class="react-count">3</span></div></div>
+        </div>
+      </div>
+      <!-- Me -->
+      <div class="msg me">
+        <div class="bub">Merci wallay 🙏🏿<div class="bub-time">14h20 ✓✓</div></div>
+      </div>
+      <!-- Poll -->
+      <div class="msg them">
+        <div class="mav">👩🏿</div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div class="bub" style="padding:5px;background:#fff;border:1.5px solid rgba(232,92,26,.1);border-radius:16px 16px 16px 3px;box-shadow:0 2px 8px rgba(180,60,0,.1);">
+            <div class="bub-name">Aminata</div>
+            <div class="poll-bub">
+              <div class="poll-q">On mange quoi ce soir ? 🍽️</div>
+              <div class="poll-opt leading"><div class="poll-fill" style="width:60%;"></div><span class="poll-txt">🍖 Dibiterie</span><span class="poll-pct">60%</span></div>
+              <div class="poll-opt"><div class="poll-fill" style="width:25%;"></div><span class="poll-txt">🍚 Thiébou dieune</span><span class="poll-pct">25%</span></div>
+              <div class="poll-opt"><div class="poll-fill" style="width:15%;"></div><span class="poll-txt">🌯 Yassa</span><span class="poll-pct">15%</span></div>
+              <div class="poll-votes">24 votes · 2h restantes</div>
+            </div>
+            <div class="bub-time" style="color:rgba(26,14,8,.3);">14h21</div>
+          </div>
+        </div>
+      </div>
+      <!-- Typing -->
+      <div class="typing-ind">
+        <div class="mav">👩🏾</div>
+        <div class="typ-bub"><div class="td"></div><div class="td"></div><div class="td"></div></div>
+      </div>
+    </div>
+    <!-- Quick reactions -->
+    <div class="quick-reacts">
+      <div class="qr">🔥</div><div class="qr">❤️</div><div class="qr">😂</div>
+      <div class="qr">😍</div><div class="qr">👏🏿</div><div class="qr">💸</div>
+      <div class="qr">🎵</div><div class="qr">🙏🏿</div>
+    </div>
+    <div class="chat-in">
+      <div class="ci-at">📎</div>
+      <div class="ci-fi"><span style="color:rgba(255,200,150,.8);">Ok yes 18h bi</span><span class="ci-cur"></span></div>
+      <div class="ci-send">➤</div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ══════════ TRENDING ══════════ -->
+<div class="sec">03 — Trending</div>
+<div class="sec-s">Music · Posts · Local News · Global · Causes · Petitions · All in carousel tabs</div>
+<div class="row">
+<div class="col">
+<div class="cl">Trending</div>
+<div class="phone tall">
+  <div class="wax"></div>
+  <div class="sb"><span style="font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;color:var(--SR);">Trending</span><span style="font-size:10px;color:var(--w30);">📶 🔋</span></div>
+  <div class="sc">
+    <div class="trend-hero">
+      <div class="th-bg"></div>
+      <div class="trend-title">
+        Tendances 🔥
+        <div class="trend-live"><div class="ld"></div>LIVE</div>
+      </div>
+      <div class="trend-tabs">
+        <div class="tt on">🔥 Tout</div>
+        <div class="tt">🎵 Musique</div>
+        <div class="tt">📰 News</div>
+        <div class="tt">🌍 Monde</div>
+        <div class="tt">✊ Causes</div>
+        <div class="tt">📝 Posts</div>
+        <div class="tt">📍 Local</div>
+      </div>
+    </div>
+    <!-- News carousel -->
+    <div style="padding:10px 0 0;">
+      <div style="padding:0 14px;font-size:8px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:8px;">À la une</div>
+      <div class="news-carousel">
+        <div class="news-card">
+          <div class="nc-img" style="background:linear-gradient(135deg,#1a0a00,#0a0500);">🌍<div class="nc-src">RFI</div></div>
+          <div class="nc-body">
+            <div class="nc-cat" style="color:var(--O);">Sénégal</div>
+            <div class="nc-title">Macky Sall annonce une nouvelle politique économique</div>
+            <div class="nc-time">Il y a 2h</div>
+          </div>
+        </div>
+        <div class="news-card">
+          <div class="nc-img" style="background:linear-gradient(135deg,#001a0a,#000a05);">⚽<div class="nc-src">wiwsport</div></div>
+          <div class="nc-body">
+            <div class="nc-cat" style="color:var(--G);">Football</div>
+            <div class="nc-title">Lions de la Teranga : les convocations pour la CAN 2026</div>
+            <div class="nc-time">Il y a 4h</div>
+          </div>
+        </div>
+        <div class="news-card">
+          <div class="nc-img" style="background:linear-gradient(135deg,#1a1a00,#0a0a00);">🎵<div class="nc-src">Dakar Actu</div></div>
+          <div class="nc-body">
+            <div class="nc-cat" style="color:var(--SY);">Musique</div>
+            <div class="nc-title">Yëkël : premier Cauris de l'histoire du Chart 221</div>
+            <div class="nc-time">Il y a 1h</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Petition -->
+    <div style="padding:0 14px;font-size:8px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:8px;">Pétition du moment</div>
+    <div class="petition-card">
+      <div class="pc-top"><div class="pc-ico">✊</div><div class="pc-label">Cause · Dakar</div></div>
+      <div class="pc-title">Wifi gratuit dans tous les campus universitaires du Sénégal</div>
+      <div class="pc-track"><div class="pc-fill"></div></div>
+      <div class="pc-sigs"><b>73 200</b> / 100 000 signatures</div>
+    </div>
+    <!-- Trending list -->
+    <div style="padding:4px 14px 6px;font-size:8px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;">Tendances</div>
+    <div class="trend-list">
+      <div class="trend-item hot">
+        <div class="ti-rank r1">1</div>
+        <div class="ti-ico" style="background:rgba(26,240,96,.08);">🎵</div>
+        <div class="ti-body"><div class="ti-title">"Yëkël" — Saliou K.</div><div class="ti-meta">24 800 Dafa neex · Chart #1</div></div>
+        <div class="ti-right"><div class="ti-count" style="color:var(--G);">+2.1k</div><div class="ti-lbl">cette heure</div></div>
+        <div class="hot-badge">🔥</div>
+      </div>
+      <div class="trend-item">
+        <div class="ti-rank r2">2</div>
+        <div class="ti-ico" style="background:rgba(232,25,44,.08);">📰</div>
+        <div class="ti-body"><div class="ti-title">#CAN2026Lions</div><div class="ti-meta">News nationale · 8 400 posts</div></div>
+        <div class="ti-right"><div class="ti-count" style="color:var(--SR);">8.4k</div><div class="ti-lbl">posts</div></div>
+      </div>
+      <div class="trend-item">
+        <div class="ti-rank r3">3</div>
+        <div class="ti-ico" style="background:rgba(250,216,54,.08);">✊</div>
+        <div class="ti-body"><div class="ti-title">Wifi UCAD Pétition</div><div class="ti-meta">73k signatures · Cause</div></div>
+        <div class="ti-right"><div class="ti-count" style="color:var(--SY);">+420</div><div class="ti-lbl">aujourd'hui</div></div>
+      </div>
+      <div class="trend-item">
+        <div class="ti-rank" style="color:var(--w30);">4</div>
+        <div class="ti-ico" style="background:rgba(255,100,34,.08);">📍</div>
+        <div class="ti-body"><div class="ti-title">Marché Sandaga rénové</div><div class="ti-meta">News locale · Dakar</div></div>
+        <div class="ti-right"><div class="ti-count" style="color:var(--O);">2.1k</div><div class="ti-lbl">vues</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ══════════ DISCOVER ══════════ -->
+<div class="sec">04 — Discover</div>
+<div class="sec-s">Pills carousel · Grid layout · Live events · Exciting</div>
+<div class="row">
+<div class="col">
+<div class="cl">Discover</div>
+<div class="phone">
+  <div class="wax"></div>
+  <div class="sb"><span style="font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;color:var(--O);">Explorer</span><span style="font-size:10px;color:var(--w30);">📶 🔋</span></div>
+  <div class="sc">
+    <div class="disc-hero">
+      <div class="disc-title-row">
+        <div class="disc-search">🔍 <span>Chercher...</span></div>
+      </div>
+      <!-- Pills carousel -->
+      <div class="disc-pills">
+        <div class="dp on" style="background:var(--O);">🔥 Tout</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">🎵 Musique</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">🍖 Eat</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">🎉 Events</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">💼 Gigs</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">✊ Causes</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">📰 News</div>
+      </div>
+    </div>
+    <div class="disc-grid">
+      <div class="dg-item wide" style="background:linear-gradient(135deg,#0a1f0a,#020a02);">
+        <div class="dg-bg">🎤</div>
+        <div class="dg-overlay"></div>
+        <div class="dg-live-dot"></div>
+        <div class="dg-body">
+          <div class="dg-cat" style="color:var(--SR);">🔴 EN DIRECT</div>
+          <div class="dg-title">Ataya Room : Politique Médina</div>
+          <div class="dg-meta">342 auditeurs · @saliou_medina</div>
+        </div>
+      </div>
+      <div class="dg-item" style="background:linear-gradient(135deg,#1a1000,#0a0800);">
+        <div class="dg-bg">🎵</div>
+        <div class="dg-overlay"></div>
+        <div class="dg-body">
+          <div class="dg-cat" style="color:var(--SY);">Chart 221</div>
+          <div class="dg-title">"Yëkël" #1</div>
+          <div class="dg-meta">Saliou K. 🪸</div>
+        </div>
+      </div>
+      <div class="dg-item" style="background:linear-gradient(135deg,#001a08,#000a04);">
+        <div class="dg-bg">🍖</div>
+        <div class="dg-overlay"></div>
+        <div class="dg-body">
+          <div class="dg-cat" style="color:var(--G);">Flash deal</div>
+          <div class="dg-title">-30% Dibiterie</div>
+          <div class="dg-meta">Expire dans 2h ⏱️</div>
+        </div>
+      </div>
+      <div class="dg-item" style="background:linear-gradient(135deg,#1a0008,#0a0004);">
+        <div class="dg-bg">🏆</div>
+        <div class="dg-overlay"></div>
+        <div class="dg-live-dot"></div>
+        <div class="dg-body">
+          <div class="dg-cat" style="color:var(--SR);">Défi</div>
+          <div class="dg-title">1M CFA Prix</div>
+          <div class="dg-meta">4j restants</div>
+        </div>
+      </div>
+      <div class="dg-item" style="background:linear-gradient(135deg,#0a0a1a,#04040a);">
+        <div class="dg-bg">✊</div>
+        <div class="dg-overlay"></div>
+        <div class="dg-body">
+          <div class="dg-cat" style="color:var(--SY);">Cause</div>
+          <div class="dg-title">Wifi UCAD</div>
+          <div class="dg-meta">73k signé</div>
+        </div>
+      </div>
+      <div class="dg-item" style="background:linear-gradient(135deg,#1a0800,#0a0400);">
+        <div class="dg-bg">🌙</div>
+        <div class="dg-overlay"></div>
+        <div class="dg-body">
+          <div class="dg-cat" style="color:var(--O);">Event</div>
+          <div class="dg-title">Concert ce soir</div>
+          <div class="dg-meta">Médina · Gratuit</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ══════════ EAT ══════════ -->
+<div class="sec">05 — Eat</div>
+<div class="sec-s">Flash deals carousel · Restaurant grid</div>
+<div class="row">
+<div class="col">
+<div class="cl">Eat</div>
+<div class="phone">
+  <div class="wax"></div>
+  <div class="sb"><span style="font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;color:var(--SY);">Manger 🍖</span><span style="font-size:10px;color:var(--w30);">📶 🔋</span></div>
+  <div class="sc">
+    <div class="eat-hero">
+      <div class="eat-title">Eat</div>
+      <div class="disc-pills">
+        <div class="dp on" style="background:var(--SY);color:var(--ink);">🍖 Tout</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">⚡ Flash</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">🍽️ Resto</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">🥡 Livraison</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">☕ Café</div>
+      </div>
+    </div>
+    <!-- Flash deals -->
+    <div class="flash-label">
+      <div class="fl-title">⚡ FLASH DEALS <div class="fl-timer">02:14:33</div></div>
+    </div>
+    <div class="flash-carousel">
+      <div class="flash-card">
+        <div class="fc-img" style="background:linear-gradient(135deg,#1a0800,#0a0400);">🍖<div class="fc-discount">-30%</div></div>
+        <div class="fc-body"><div class="fc-name">Dibiterie Papa</div><div class="fc-price"><span class="fc-new">1 400 F</span><span class="fc-old">2 000 F</span></div><div class="fc-time">⏱ 2h restantes</div></div>
+      </div>
+      <div class="flash-card">
+        <div class="fc-img" style="background:linear-gradient(135deg,#001a0a,#000a05);">🍚<div class="fc-discount">-20%</div></div>
+        <div class="fc-body"><div class="fc-name">Thiébou Yassa</div><div class="fc-price"><span class="fc-new">2 000 F</span><span class="fc-old">2 500 F</span></div><div class="fc-time">⏱ 4h restantes</div></div>
+      </div>
+      <div class="flash-card">
+        <div class="fc-img" style="background:linear-gradient(135deg,#1a1a00,#0a0a00);">☕<div class="fc-discount">-15%</div></div>
+        <div class="fc-body"><div class="fc-name">Café Touba</div><div class="fc-price"><span class="fc-new">425 F</span><span class="fc-old">500 F</span></div><div class="fc-time">⏱ Toute la journée</div></div>
+      </div>
+      <div class="flash-card">
+        <div class="fc-img" style="background:linear-gradient(135deg,#1a001a,#0a000a);">🥗<div class="fc-discount">-25%</div></div>
+        <div class="fc-body"><div class="fc-name">Salade Médina</div><div class="fc-price"><span class="fc-new">1 500 F</span><span class="fc-old">2 000 F</span></div><div class="fc-time">⏱ 1h restante</div></div>
+      </div>
+    </div>
+    <!-- Restaurant grid -->
+    <div class="rest-section">
+      <div class="rest-label">Restaurants près de toi</div>
+      <div class="rest-grid">
+        <div class="rg-item"><div class="rg-img" style="background:linear-gradient(135deg,#1a0800,#0a0400);">🍖</div><div class="rg-body"><div class="rg-name">Chez Papa</div><div class="rg-meta">Dibiterie · 200m</div><div class="rg-rating">⭐ 4.8</div></div></div>
+        <div class="rg-item"><div class="rg-img" style="background:linear-gradient(135deg,#001a0a,#000a05);">🍚</div><div class="rg-body"><div class="rg-name">Mame Coura</div><div class="rg-meta">Thiébou · 350m</div><div class="rg-rating">⭐ 4.6</div></div></div>
+        <div class="rg-item"><div class="rg-img" style="background:linear-gradient(135deg,#1a0a00,#0a0500);">🌯</div><div class="rg-body"><div class="rg-name">Yassa House</div><div class="rg-meta">Poulet · 500m</div><div class="rg-rating">⭐ 4.5</div></div></div>
+        <div class="rg-item"><div class="rg-img" style="background:linear-gradient(135deg,#0a001a,#05000a);">☕</div><div class="rg-body"><div class="rg-name">Salon Ataya</div><div class="rg-meta">Café · 100m</div><div class="rg-rating">⭐ 4.9</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ══════════ EVENTS ══════════ -->
+<div class="sec">06 — Events</div>
+<div class="sec-s">Hero card · Date boxes · Going button</div>
+<div class="row">
+<div class="col">
+<div class="cl">Events</div>
+<div class="phone">
+  <div class="wax"></div>
+  <div class="sb"><span style="font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;color:var(--G);">Events 🎉</span><span style="font-size:10px;color:var(--w30);">📶 🔋</span></div>
+  <div class="sc">
+    <div class="events-hero">
+      <div class="ev-title">Events</div>
+      <div class="disc-pills">
+        <div class="dp on" style="background:var(--G);color:var(--ink);">🔥 Tout</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">🎵 Concerts</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">🏆 Sport</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">🎓 Culture</div>
+        <div class="dp" style="background:var(--w08);color:var(--w55);">📍 Gratuits</div>
+      </div>
+    </div>
+    <div class="event-hero-card">
+      <div class="ehc-bg">🎤</div>
+      <div class="ehc-overlay"></div>
+      <div class="ehc-live"><div class="ld"></div>CE SOIR</div>
+      <div class="ehc-body">
+        <div class="ehc-cat">Concert · Médina</div>
+        <div class="ehc-title">Soirée Mbalax — Saliou K. en live</div>
+        <div class="ehc-meta">
+          <span>🕗 20h · Place de l'Obélisque</span>
+          <span class="ehc-price">Gratuit K21</span>
+        </div>
+      </div>
+    </div>
+    <div class="event-list">
+      <div class="ev-item">
+        <div class="ev-date-box"><div class="evd-day">15</div><div class="evd-mon">Mar</div></div>
+        <div class="ev-body">
+          <div class="ev-title">Défis Freestyle Grand Prix</div>
+          <div class="ev-meta">🏆 UCAD · 14h · 2 847 participants</div>
+          <div class="ev-price">Participer — Gratuit K21</div>
+        </div>
+        <div class="ev-going">🎟️</div>
+      </div>
+      <div class="ev-item">
+        <div class="ev-date-box"><div class="evd-day">18</div><div class="evd-mon">Mar</div></div>
+        <div class="ev-body">
+          <div class="ev-title">Match Sénégal vs Mali · AFCON 2026</div>
+          <div class="ev-meta">⚽ Léopold Sédar Senghor · 17h</div>
+          <div class="ev-price">Billets — 5 000 F via K21</div>
+        </div>
+        <div class="ev-going">🎟️</div>
+      </div>
+      <div class="ev-item">
+        <div class="ev-date-box"><div class="evd-day">22</div><div class="evd-mon">Mar</div></div>
+        <div class="ev-body">
+          <div class="ev-title">Nuit du Mbalax — Parcelles</div>
+          <div class="ev-meta">🎵 Espace Lamantin · 21h</div>
+          <div class="ev-price">3 000 F · -20% K21 Pass</div>
+        </div>
+        <div class="ev-going">🎟️</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ══════════ NOTIFICATIONS ══════════ -->
+<div class="sec">07 — Notifications</div>
+<div class="sec-s">Colorful left borders · Celebratory glows · Action buttons</div>
+<div class="row">
+<div class="col">
+<div class="cl">Notifications</div>
+<div class="phone">
+  <div class="wax"></div>
+  <div class="sb"><span style="font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;color:var(--G);">Notifs</span><span style="font-size:10px;color:var(--w30);">📶 🔋</span></div>
+  <div class="sc">
+    <div class="notif-hero">
+      <div class="notif-title">Notifications <span class="notif-count">7</span></div>
+    </div>
+    <div class="notif-list">
+      <!-- Cauris celebration -->
+      <div class="notif-item celebrate">
+        <div class="ni-ico-wrap" style="background:rgba(250,216,54,.1);">🪸</div>
+        <div class="ni-body">
+          <div class="ni-text"><b>"Yëkël" vient d'obtenir la certification Cauris</b> — tu y as contribué !</div>
+          <div class="ni-time">Il y a 5 min 🎉</div>
+        </div>
+        <div class="ni-action"><button class="ni-btn ni-btn-g">Voir</button></div>
+      </div>
+      <!-- Money received -->
+      <div class="notif-item unread ni-g">
+        <div class="ni-ico-wrap" style="background:rgba(26,240,96,.1);">💸</div>
+        <div class="ni-body">
+          <div class="ni-text"><b>+5 000 F</b> reçu de <b>Papa Diallo</b></div>
+          <div class="ni-time">Il y a 12 min</div>
+        </div>
+        <div class="ni-action"><button class="ni-btn ni-btn-g">✓</button></div>
+      </div>
+      <!-- Défi -->
+      <div class="notif-item unread ni-o">
+        <div class="ni-ico-wrap" style="background:rgba(255,100,34,.1);">🏆</div>
+        <div class="ni-body">
+          <div class="ni-text"><b>Ibou</b> a voté pour toi dans le <b>Défi Freestyle</b> — tu passes à la 2e place !</div>
+          <div class="ni-time">Il y a 28 min</div>
+        </div>
+        <div class="ni-action"><button class="ni-btn ni-btn-o">Voir</button></div>
+      </div>
+      <!-- Mboolo -->
+      <div class="notif-item unread ni-r">
+        <div class="ni-ico-wrap" style="background:rgba(232,92,26,.1);">💬</div>
+        <div class="ni-body">
+          <div class="ni-text"><b>4 messages</b> dans <b>Médina Squad</b> — Ibou : Ñu lekk 18h bi 🍖</div>
+          <div class="ni-time">Il y a 35 min</div>
+        </div>
+        <div class="ni-action"><button class="ni-btn ni-btn-o">Répondre</button></div>
+      </div>
+      <!-- Wakhna -->
+      <div class="notif-item unread ni-g">
+        <div class="ni-ico-wrap" style="background:rgba(26,240,96,.08);">✦</div>
+        <div class="ni-body">
+          <div class="ni-text">Ton <b>Wakhna passe à 840</b> — tu es dans le top 12% de Médina 🏅</div>
+          <div class="ni-time">Il y a 1h</div>
+        </div>
+      </div>
+      <!-- Tontine -->
+      <div class="notif-item ni-y">
+        <div class="ni-ico-wrap" style="background:rgba(250,216,54,.08);">🏦</div>
+        <div class="ni-body">
+          <div class="ni-text"><b>Tontine Médina Squad</b> — collecte de mars confirmée. Ton tour en <b>Avril</b> !</div>
+          <div class="ni-time">Hier</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ══════════ PROFILE ══════════ -->
+<div class="sec">08 — Profile</div>
+<div class="sec-s">Status cards · Pinned photos · Highlights · What they're doing now · K21 Junior ID</div>
+<div class="row">
+<div class="col">
+<div class="cl">Profile</div>
+<div class="phone tall">
+  <div class="wax"></div>
+  <div class="sb"><span style="font-size:10px;color:var(--w30);">9:41</span><span style="font-size:10px;color:var(--w30);">📶 🔋</span></div>
+  <div class="sc">
+    <!-- Hero -->
+    <div class="prof-hero">
+      <div class="ph-wax"></div>
+      <div class="ph-content">
+        <div class="ph-top-row">
+          <div class="ph-left">
+            <div class="ph-avatar">👨🏿<div class="ph-verified">✓</div></div>
+            <div class="ph-info">
+              <div class="ph-name-row">
+                <div class="ph-name">Saliou</div>
+                <!-- Pinned photos -->
+                <div class="ph-pin-photos">
+                  <div class="pp-img">🌅</div>
+                  <div class="pp-img">🎤</div>
+                  <div class="pp-img">🏖️</div>
+                </div>
+              </div>
+              <div class="ph-handle">@saliou_medina</div>
+              <div class="ph-arr">📍 Médina · Dakar</div>
+            </div>
+          </div>
+          <button style="height:30px;padding:0 12px;border-radius:100px;background:var(--w08);border:1px solid var(--w12);color:var(--w55);font-size:10px;font-weight:700;cursor:pointer;">Modifier</button>
+        </div>
+        <!-- Live status cards -->
+        <div class="status-cards">
+          <div class="sc-item">
+            <span class="sc-ico">🎵</span>
+            <span class="sc-text music">Écoute "Yëkël"</span>
+          </div>
+          <div class="sc-item">
+            <span class="sc-ico">📍</span>
+            <span class="sc-text">À Médina</span>
+          </div>
+          <div class="sc-item">
+            <span class="sc-ico">☕</span>
+            <span class="sc-text">En ataya</span>
+          </div>
+          <div class="sc-item" style="background:rgba(26,240,96,.1);border-color:rgba(26,240,96,.2);">
+            <span class="sc-ico">✦</span>
+            <span class="sc-text" style="color:rgba(26,240,96,.9);">Wakhna 840</span>
+          </div>
+        </div>
+        <div style="height:12px;"></div>
+      </div>
+      <!-- Flag stripe -->
+      <div class="prof-stripe"><div class="psg"></div><div class="psy"></div><div class="psr"></div></div>
+    </div>
+    <!-- Stats -->
+    <div class="prof-stats">
+      <div class="ps-i"><div class="ps-n" style="color:var(--G);">840</div><div class="ps-l">Wakhna</div></div>
+      <div class="ps-i"><div class="ps-n">247</div><div class="ps-l">Mboolo</div></div>
+      <div class="ps-i"><div class="ps-n" style="color:var(--SY);">12</div><div class="ps-l">Défis</div></div>
+      <div class="ps-i"><div class="ps-n" style="color:var(--SR);">3</div><div class="ps-l">Cauris</div></div>
+    </div>
+    <!-- Wakhna mini -->
+    <div class="wakhna-mini">
+      <div class="wm-s">840</div>
+      <div class="wm-b">
+        <div class="wm-l">Wakhna Score</div>
+        <div class="wm-r">Top <b>12%</b> Médina · Rang #47</div>
+        <div class="wm-bar"><div class="wm-fill"></div></div>
+      </div>
+      <div style="font-size:20px;animation:star-spin 3s ease-in-out infinite;">✦</div>
+    </div>
+    <!-- Highlights -->
+    <div class="highlights">
+      <div class="hi-lbl">Highlights</div>
+      <div class="hi-row">
+        <div class="hi-item"><div class="hi-ring"><div class="hi-inner">🎤</div></div><div class="hi-name">Concerts</div></div>
+        <div class="hi-item"><div class="hi-ring" style="background:linear-gradient(135deg,var(--G),var(--SY));"><div class="hi-inner">🏆</div></div><div class="hi-name">Défis</div></div>
+        <div class="hi-item"><div class="hi-ring" style="background:linear-gradient(135deg,var(--SY),var(--SG));"><div class="hi-inner">🌴</div></div><div class="hi-name">Vacances</div></div>
+        <div class="hi-item"><div class="hi-ring" style="background:linear-gradient(135deg,var(--SG),var(--SR));"><div class="hi-inner">+</div></div><div class="hi-name">Nouveau</div></div>
+      </div>
+    </div>
+    <!-- K21 Junior ID -->
+    <div class="junior-section">
+      <div class="jr-top">
+        <div class="jr-icon">🎓</div>
+        <div class="jr-info">
+          <div class="jr-title">K21 Junior</div>
+          <div class="jr-sub">Étudiant UCAD · Compte vérifié</div>
+        </div>
+        <div class="jr-badge">ACTIF</div>
+      </div>
+      <div class="jr-id-card">
+        <div class="jr-id-ico">🪪</div>
+        <div class="jr-id-body">
+          <div class="jr-id-title">Carte Étudiant Numérique</div>
+          <div class="jr-id-sub">Scanner pour -15% chez les marchands partenaires</div>
+        </div>
+        <div class="jr-id-scan">📲</div>
+      </div>
+      <div class="jr-features">
+        <div class="jr-feat"><span class="jr-feat-ico">🎓</span>ID étudiant vérifié via carte universitaire</div>
+        <div class="jr-feat"><span class="jr-feat-ico">💸</span><b>-15%</b> chez les marchands partenaires K21</div>
+        <div class="jr-feat"><span class="jr-feat-ico">🎁</span>Deals exclusifs étudiants chaque semaine</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ══════════ RECT SOUND ══════════ -->
+<div class="sec">09 — Rect Sound · Geometric</div>
+<div class="sec-s">Grid background · Sharp angles · Geometric player · Chart squares</div>
+<div class="row">
+<div class="col">
+<div class="cl">Rect Sound</div>
+<div class="phone">
+  <div class="rect-bg"></div>
+  <div class="rect-grid-bg"></div>
+  <div class="sb" style="position:relative;z-index:10;">
+    <div class="rect-brand">
+      <span class="rect-r">R</span><span class="rect-e">E</span><span class="rect-c">C</span><span class="rect-t">T</span>
+      <span class="rect-sub-brand">SOUND</span>
+    </div>
+    <div class="rect-mode">
+      <div class="rm-btn off">Listener</div>
+      <div class="rm-btn on">Artist</div>
+    </div>
+  </div>
+  <div class="sc" style="padding-bottom:10px;">
+    <div class="rect-hero">
+      <!-- Now playing geometric -->
+      <div class="np-geo">
+        <div class="npg-top">
+          <div class="npg-cover">🎵</div>
+          <div class="npg-info">
+            <div class="npg-title">"Yëkël"</div>
+            <div class="npg-artist">Saliou K. · Médina</div>
+            <div class="npg-chart">🪸 Cauris · Chart #1</div>
+          </div>
+          <div class="npg-bars">
+            <div class="npg-bar"></div><div class="npg-bar"></div>
+            <div class="npg-bar"></div><div class="npg-bar"></div>
+            <div class="npg-bar"></div>
+          </div>
+        </div>
+        <div class="npg-progress"><div class="npg-fill"></div></div>
+        <div class="npg-times"><span>1:42</span><span>3:55</span></div>
+        <div class="npg-controls">
+          <div class="npg-ctrl">⏮</div>
+          <div class="npg-ctrl">🔀</div>
+          <div class="npg-play">▶</div>
+          <div class="npg-ctrl">🔁</div>
+          <div class="dafa-geo">🔥</div>
+        </div>
+      </div>
+    </div>
+    <!-- Chart squares -->
+    <div class="chart-squares">
+      <div class="cs-label">Chart 221 Bëgg · Semaine 10</div>
+      <div class="cs-grid">
+        <div class="cs-item top">
+          <div class="csi-rank r1">#1</div>
+          <div class="csi-ico">🎵</div>
+          <div class="csi-title">"Yëkël"</div>
+          <div class="csi-dafa">🔥 24.8k</div>
+        </div>
+        <div class="cs-item">
+          <div class="csi-rank">#2</div>
+          <div class="csi-ico">🌅</div>
+          <div class="csi-title">"Dakar by Night"</div>
+          <div class="csi-dafa">🔥 18.2k</div>
+        </div>
+        <div class="cs-item">
+          <div class="csi-rank">#3</div>
+          <div class="csi-ico">🌙</div>
+          <div class="csi-title">"Teranga"</div>
+          <div class="csi-dafa">🔥 14.1k</div>
+        </div>
+        <div class="cs-item">
+          <div class="csi-rank">#4</div>
+          <div class="csi-ico">☀️</div>
+          <div class="csi-title">"Thiossane"</div>
+          <div class="csi-dafa">🔥 11.4k</div>
+        </div>
+        <div class="cs-item">
+          <div class="csi-rank">#5</div>
+          <div class="csi-ico">🌊</div>
+          <div class="csi-title">"Goorgoorlu"</div>
+          <div class="csi-dafa">🔥 9.8k</div>
+        </div>
+        <div class="cs-item">
+          <div class="csi-rank">#6</div>
+          <div class="csi-ico">🏙️</div>
+          <div class="csi-title">"Médina Love"</div>
+          <div class="csi-dafa">🔥 8.1k</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+</body>
+</html>

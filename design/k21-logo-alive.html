@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K21 — Logo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Outfit:wght@400;600;700&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+
+html,body{
+  width:100%;min-height:100vh;
+  background:#0a0f0a;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  font-family:'Outfit',sans-serif;
+  padding:40px 20px 60px;
+  gap:48px;
+}
+
+/* ═══════════════════════════════════════
+   THE MAIN LOGO LOCKUP
+═══════════════════════════════════════ */
+.logo-wrap{
+  position:relative;
+  width:480px;height:520px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+
+/* ── BACKGROUND CANVAS — Dakar alive ── */
+.bg-canvas{
+  position:absolute;inset:0;
+  border-radius:24px;
+  overflow:hidden;
+}
+
+/* Base warmth — the color of Dakar afternoon */
+.bg-base{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse at 20% 15%, #c4500a 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, #8b2200 0%, transparent 55%),
+    radial-gradient(ellipse at 60% 20%, #e8820a 0%, transparent 40%),
+    radial-gradient(ellipse at 30% 75%, #1a5c10 0%, transparent 45%),
+    radial-gradient(ellipse at 90% 30%, #d4640a 0%, transparent 35%),
+    radial-gradient(ellipse at 10% 60%, #0d3d06 0%, transparent 40%),
+    #6b2800;
+}
+
+/* Textile / fabric pattern — wax print energy */
+.bg-pattern{
+  position:absolute;inset:0;
+  opacity:.18;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      rgba(255,180,30,.4) 0px, rgba(255,180,30,.4) 1px,
+      transparent 1px, transparent 18px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255,100,30,.3) 0px, rgba(255,100,30,.3) 1px,
+      transparent 1px, transparent 18px
+    );
+}
+
+/* Grain — street texture */
+.bg-grain{
+  position:absolute;inset:0;
+  opacity:.06;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Light rays — sun hitting the market */
+.bg-rays{
+  position:absolute;inset:0;
+  background:conic-gradient(
+    from 200deg at 75% 15%,
+    rgba(255,200,80,.12) 0deg,
+    transparent 25deg,
+    rgba(255,160,40,.08) 35deg,
+    transparent 60deg,
+    rgba(255,200,80,.06) 75deg,
+    transparent 100deg
+  );
+}
+
+/* Floating market elements — abstract shapes suggesting life */
+.float-shape{
+  position:absolute;
+  border-radius:50%;
+  animation:float-drift var(--dur) ease-in-out infinite alternate;
+  opacity:.0;
+}
+
+/* Animated market dots — suggests crowd, movement */
+.market-dot{
+  position:absolute;
+  width:var(--s);height:var(--s);
+  border-radius:50%;
+  background:var(--c);
+  opacity:var(--o);
+  animation:market-pulse var(--d) ease-in-out infinite alternate;
+  filter:blur(var(--bl));
+}
+
+/* ── VIGNETTE ── */
+.bg-vignette{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 50%,
+    transparent 30%,
+    rgba(10,8,4,.5) 70%,
+    rgba(6,5,2,.8) 100%
+  );
+}
+
+/* ── CENTER LIGHT ── subtle glow behind the mark */
+.center-glow{
+  position:absolute;
+  width:320px;height:320px;
+  border-radius:50%;
+  background:radial-gradient(circle,
+    rgba(20,20,10,.7) 0%,
+    rgba(10,10,5,.85) 40%,
+    transparent 70%
+  );
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  animation:glow-breathe 4s ease-in-out infinite;
+}
+
+/* ── THE MARK ── */
+.k21-mark{
+  position:relative;
+  z-index:10;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:0;
+  filter:drop-shadow(0 8px 40px rgba(0,0,0,.6));
+}
+
+.k-letter{
+  font-family:'Unbounded',sans-serif;
+  font-size:160px;
+  font-weight:900;
+  color:#1af060;
+  letter-spacing:-8px;
+  line-height:.9;
+  position:relative;
+  /* The notch-cut K feel — clip the top-right arm slightly */
+  -webkit-text-stroke:0px;
+  text-shadow:
+    0 0 60px rgba(26,240,96,.25),
+    0 0 120px rgba(26,240,96,.1);
+  animation:k-breathe 5s ease-in-out infinite;
+}
+
+/* The custom notch on the K */
+.k-letter::after{
+  content:'';
+  position:absolute;
+  top:8px;right:-8px;
+  width:28px;height:28px;
+  background:transparent;
+  /* This creates the diagonal cut feel */
+}
+
+.divider-line{
+  width:220px;height:5px;
+  border-radius:3px;
+  background:linear-gradient(90deg, #1af060 0%, #f7b731 40%, #ff6422 100%);
+  margin:6px 0 8px;
+  box-shadow:0 0 20px rgba(247,183,49,.4), 0 0 40px rgba(255,100,34,.15);
+  animation:line-pulse 3s ease-in-out infinite;
+}
+
+.nums-row{
+  display:flex;
+  align-items:flex-start;
+  gap:4px;
+  line-height:.85;
+}
+
+.num-2{
+  font-family:'Unbounded',sans-serif;
+  font-size:160px;
+  font-weight:900;
+  color:#f7b731;
+  letter-spacing:-6px;
+  text-shadow:
+    0 0 60px rgba(247,183,49,.2),
+    0 0 100px rgba(247,183,49,.08);
+  animation:num-breathe 5s ease-in-out infinite .5s;
+}
+
+.num-1{
+  font-family:'Unbounded',sans-serif;
+  font-size:160px;
+  font-weight:900;
+  color:#ff6422;
+  letter-spacing:0;
+  text-shadow:
+    0 0 60px rgba(255,100,34,.2),
+    0 0 100px rgba(255,100,34,.08);
+  animation:num-breathe 5s ease-in-out infinite 1s;
+}
+
+/* ═══════════════════════════════════════
+   USAGE VARIANTS — below the main logo
+═══════════════════════════════════════ */
+.variants-row{
+  display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;justify-content:center;
+}
+.variant{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+}
+.v-label{
+  font-size:9px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:rgba(255,255,255,.25);
+}
+
+/* App icon */
+.app-icon{
+  border-radius:var(--r,18px);
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+  border:var(--bd,none);
+}
+.app-icon::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 40% 20%, var(--glow,transparent) 0%, transparent 60%);
+}
+
+.ai-text{
+  font-family:'Unbounded',sans-serif;font-weight:900;
+  display:flex;flex-direction:column;align-items:center;
+  position:relative;z-index:1;
+}
+.ai-k{color:#1af060;line-height:.9;}
+.ai-line{background:linear-gradient(90deg,#1af060,#f7b731,#ff6422);border-radius:2px;margin:2px 0 3px;}
+.ai-21{display:flex;gap:1px;}
+.ai-2{color:#f7b731;}
+.ai-1{color:#ff6422;}
+
+/* on white */
+.on-white{
+  background:#f5f2ee;
+  border-radius:16px;
+  padding:24px 32px;
+  display:flex;align-items:center;justify-content:center;
+}
+.ow-k{font-family:'Unbounded',sans-serif;font-size:36px;font-weight:900;color:#0e8a36;letter-spacing:-2px;line-height:.9;}
+.ow-line{width:64px;height:3px;background:linear-gradient(90deg,#0e8a36,#c48a00,#cc4a10);border-radius:2px;margin:4px 0 5px;}
+.ow-21{display:flex;gap:2px;}
+.ow-2{font-family:'Unbounded',sans-serif;font-size:36px;font-weight:900;color:#c48a00;letter-spacing:-2px;line-height:.85;}
+.ow-1{font-family:'Unbounded',sans-serif;font-size:36px;font-weight:900;color:#cc4a10;letter-spacing:0;line-height:.85;}
+
+/* horizontal lockup */
+.h-lockup{
+  display:flex;align-items:center;gap:14px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:14px 20px;
+}
+.hl-mark{display:flex;flex-direction:column;align-items:center;}
+.hl-k{font-family:'Unbounded',sans-serif;font-size:28px;font-weight:900;color:#1af060;letter-spacing:-1px;line-height:.9;}
+.hl-line{width:50px;height:2.5px;background:linear-gradient(90deg,#1af060,#f7b731,#ff6422);border-radius:2px;margin:3px 0 4px;}
+.hl-21{display:flex;gap:1px;}
+.hl-2{font-family:'Unbounded',sans-serif;font-size:28px;font-weight:900;color:#f7b731;letter-spacing:-1px;line-height:.85;}
+.hl-1{font-family:'Unbounded',sans-serif;font-size:28px;font-weight:900;color:#ff6422;letter-spacing:0;line-height:.85;}
+.hl-sep{width:1px;height:40px;background:rgba(255,255,255,.12);}
+.hl-text{display:flex;flex-direction:column;gap:2px;}
+.hl-name{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.9);letter-spacing:.5px;}
+.hl-sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.5px;}
+
+/* ═══════════════════════════════════════
+   KEYFRAMES
+═══════════════════════════════════════ */
+@keyframes k-breathe{
+  0%,100%{text-shadow:0 0 60px rgba(26,240,96,.25),0 0 120px rgba(26,240,96,.1);}
+  50%{text-shadow:0 0 80px rgba(26,240,96,.4),0 0 160px rgba(26,240,96,.15);}
+}
+@keyframes num-breathe{
+  0%,100%{opacity:1;}
+  50%{opacity:.92;}
+}
+@keyframes line-pulse{
+  0%,100%{box-shadow:0 0 20px rgba(247,183,49,.4),0 0 40px rgba(255,100,34,.15);}
+  50%{box-shadow:0 0 32px rgba(247,183,49,.6),0 0 60px rgba(255,100,34,.25);}
+}
+@keyframes glow-breathe{
+  0%,100%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  50%{opacity:.8;transform:translate(-50%,-50%) scale(1.08);}
+}
+@keyframes market-pulse{
+  from{opacity:var(--o);transform:scale(1);}
+  to{opacity:calc(var(--o) * .4);transform:scale(.7);}
+}
+@keyframes float-drift{
+  from{transform:translateY(0) translateX(0);}
+  to{transform:translateY(-12px) translateX(6px);}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ PRIMARY LOGO ═══ -->
+<div class="logo-wrap">
+  <div class="bg-canvas">
+    <div class="bg-base"></div>
+    <div class="bg-pattern"></div>
+
+    <!-- Market life dots — crowd energy -->
+    <div class="market-dot" style="--s:80px;--c:#ff8c00;--o:.18;--d:3.2s;--bl:20px;top:8%;left:12%;"></div>
+    <div class="market-dot" style="--s:60px;--c:#ffd700;--o:.14;--d:4.1s;--bl:16px;top:15%;right:15%;"></div>
+    <div class="market-dot" style="--s:100px;--c:#1af060;--o:.1;--d:5.3s;--bl:28px;bottom:10%;left:8%;"></div>
+    <div class="market-dot" style="--s:70px;--c:#ff6422;--o:.16;--d:3.8s;--bl:18px;bottom:18%;right:10%;"></div>
+    <div class="market-dot" style="--s:40px;--c:#f7b731;--o:.22;--d:2.9s;--bl:10px;top:40%;left:6%;"></div>
+    <div class="market-dot" style="--s:55px;--c:#ff4500;--o:.12;--d:4.6s;--bl:14px;top:35%;right:8%;"></div>
+    <div class="market-dot" style="--s:90px;--c:#e8820a;--o:.15;--d:6.1s;--bl:24px;top:5%;left:45%;"></div>
+    <div class="market-dot" style="--s:45px;--c:#1af060;--o:.18;--d:3.4s;--bl:12px;bottom:5%;left:40%;"></div>
+
+    <!-- Wax print diamonds — fabric texture feel -->
+    <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.07;" viewBox="0 0 480 520" preserveAspectRatio="xMidYMid slice">
+      <!-- top row -->
+      <polygon points="40,20 70,50 40,80 10,50" fill="#f7b731"/>
+      <polygon points="120,10 150,40 120,70 90,40" fill="#ff6422"/>
+      <polygon points="200,25 230,55 200,85 170,55" fill="#1af060"/>
+      <polygon points="340,15 370,45 340,75 310,45" fill="#f7b731"/>
+      <polygon points="420,30 450,60 420,90 390,60" fill="#ff6422"/>
+      <!-- middle scattered -->
+      <polygon points="60,180 90,210 60,240 30,210" fill="#ff6422"/>
+      <polygon points="400,160 430,190 400,220 370,190" fill="#1af060"/>
+      <polygon points="240,130 270,160 240,190 210,160" fill="#f7b731"/>
+      <!-- bottom row -->
+      <polygon points="30,400 60,430 30,460 0,430" fill="#1af060"/>
+      <polygon points="140,420 170,450 140,480 110,450" fill="#ff6422"/>
+      <polygon points="320,410 350,440 320,470 290,440" fill="#f7b731"/>
+      <polygon points="440,390 470,420 440,450 410,420" fill="#1af060"/>
+    </svg>
+
+    <!-- Horizontal lines — fabric weave -->
+    <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.05;" viewBox="0 0 480 520">
+      <line x1="0" y1="104" x2="480" y2="104" stroke="#f7b731" stroke-width="1.5"/>
+      <line x1="0" y1="208" x2="480" y2="208" stroke="#ff6422" stroke-width="1"/>
+      <line x1="0" y1="312" x2="480" y2="312" stroke="#f7b731" stroke-width="1.5"/>
+      <line x1="0" y1="416" x2="480" y2="416" stroke="#1af060" stroke-width="1"/>
+    </svg>
+
+    <div class="bg-rays"></div>
+    <div class="bg-grain"></div>
+    <div class="bg-vignette"></div>
+    <div class="center-glow"></div>
+  </div>
+
+  <!-- THE MARK -->
+  <div class="k21-mark">
+    <div class="k-letter">K</div>
+    <div class="divider-line"></div>
+    <div class="nums-row">
+      <span class="num-2">2</span>
+      <span class="num-1">1</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ USAGE VARIANTS ═══ -->
+<div class="variants-row">
+
+  <!-- App icon 96px dark -->
+  <div class="variant">
+    <div class="app-icon" style="width:96px;height:96px;--r:22px;--bg:linear-gradient(145deg,#0d1f0a,#060c04);--bd:1.5px solid rgba(26,240,96,.2);--glow:rgba(26,240,96,.12);">
+      <div class="ai-text">
+        <div class="ai-k" style="font-size:36px;letter-spacing:-2px;">K</div>
+        <div class="ai-line" style="width:54px;height:3px;"></div>
+        <div class="ai-21">
+          <span class="ai-2" style="font-size:36px;letter-spacing:-2px;">2</span>
+          <span class="ai-1" style="font-size:36px;letter-spacing:0;">1</span>
+        </div>
+      </div>
+    </div>
+    <div class="v-label">App icon</div>
+  </div>
+
+  <!-- App icon 72px warm -->
+  <div class="variant">
+    <div class="app-icon" style="width:72px;height:72px;--r:17px;--bg:linear-gradient(145deg,#1a0c04,#0a0602);--bd:1.5px solid rgba(255,100,34,.2);--glow:rgba(255,100,34,.1);">
+      <div class="ai-text">
+        <div class="ai-k" style="font-size:26px;letter-spacing:-1.5px;">K</div>
+        <div class="ai-line" style="width:40px;height:2.5px;"></div>
+        <div class="ai-21">
+          <span class="ai-2" style="font-size:26px;letter-spacing:-1.5px;">2</span>
+          <span class="ai-1" style="font-size:26px;letter-spacing:0;">1</span>
+        </div>
+      </div>
+    </div>
+    <div class="v-label">72px</div>
+  </div>
+
+  <!-- App icon 48px -->
+  <div class="variant">
+    <div class="app-icon" style="width:48px;height:48px;--r:11px;--bg:#0d1a08;--bd:1px solid rgba(26,240,96,.2);">
+      <div class="ai-text">
+        <div class="ai-k" style="font-size:17px;letter-spacing:-1px;">K</div>
+        <div class="ai-line" style="width:27px;height:2px;"></div>
+        <div class="ai-21">
+          <span class="ai-2" style="font-size:17px;letter-spacing:-1px;">2</span>
+          <span class="ai-1" style="font-size:17px;letter-spacing:0;">1</span>
+        </div>
+      </div>
+    </div>
+    <div class="v-label">48px</div>
+  </div>
+
+  <!-- On white -->
+  <div class="variant">
+    <div class="on-white">
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="ow-k">K</div>
+        <div class="ow-line"></div>
+        <div class="ow-21">
+          <div class="ow-2">2</div>
+          <div class="ow-1">1</div>
+        </div>
+      </div>
+    </div>
+    <div class="v-label">On light</div>
+  </div>
+
+  <!-- Horizontal lockup -->
+  <div class="variant" style="align-self:center;">
+    <div class="h-lockup">
+      <div class="hl-mark">
+        <div class="hl-k">K</div>
+        <div class="hl-line"></div>
+        <div class="hl-21">
+          <div class="hl-2">2</div>
+          <div class="hl-1">1</div>
+        </div>
+      </div>
+      <div class="hl-sep"></div>
+      <div class="hl-text">
+        <div class="hl-name">K21</div>
+        <div class="hl-sub">African Youth Wallet</div>
+      </div>
+    </div>
+    <div class="v-label">Horizontal lockup</div>
+  </div>
+
+</div>
+
+</body>
+</html>

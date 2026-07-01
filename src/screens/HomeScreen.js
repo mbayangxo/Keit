@@ -1,0 +1,496 @@
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import WaxPattern from '../components/WaxPattern';
+import HomeHeroBackground from '../components/HomeHeroBackground';
+import { colors, fontFamily, radius, spacing, type, motion } from '../theme';
+
+const EASE_OUT_BACK = Easing.bezier(0.175, 0.885, 0.32, 1.275);
+
+// ── Reusable ambient-animation hooks (map 1:1 to the CSS @keyframes they mirror) ──
+
+// `ha-float` / `act-float`: translateY 0 -> -distance -> 0, ease-in-out, infinite, staggered.
+function useFloatLoop(delay, distance = 4, halfDuration = 1500) {
+  const val = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(val, { toValue: -distance, duration: halfDuration, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(val, { toValue: 0, duration: halfDuration, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [val, delay, distance, halfDuration]);
+  return val;
+}
+
+// `dot-blink`: opacity 1 -> .3 -> 1, .8s, infinite.
+function useBlink(periodMs = 800) {
+  const val = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(val, { toValue: 0.3, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(val, { toValue: 1, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [val, periodMs]);
+  return val;
+}
+
+// `badge-bounce` / `score-star`: scale 1 -> 1.15 -> 1, periodMs, infinite.
+function useScalePulse(periodMs = 1500, peak = 1.15) {
+  const val = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(val, { toValue: peak, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(val, { toValue: 1, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [val, periodMs, peak]);
+  return val;
+}
+
+// `mboolo-pulse`: border-color oscillates between two alpha values, 3s, infinite.
+function useColorPulse(from, to, periodMs = 3000) {
+  const val = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(val, { toValue: 1, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+        Animated.timing(val, { toValue: 0, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [val, periodMs]);
+  return val.interpolate({ inputRange: [0, 1], outputRange: [from, to] });
+}
+
+// `rect-glow`: box-shadow none -> visible green glow -> none, 4s, infinite.
+function useGlowPulse(periodMs = 4000, peakOpacity = 0.5) {
+  const val = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(val, { toValue: peakOpacity, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+        Animated.timing(val, { toValue: 0, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [val, periodMs, peakOpacity]);
+  return val;
+}
+
+// `bar-d`: scaleY 1 -> .3 -> 1, .5s, infinite, staggered per bar.
+function useBarLoop(delay) {
+  const val = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(val, { toValue: 0.3, duration: 250, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(val, { toValue: 1, duration: 250, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [val, delay]);
+  return val;
+}
+
+// `cover-spin`: holds still, then flicks a full 360 spin near the end of each 8s cycle.
+function useSpinFlick(cycleMs = 8000, spinMs = 800) {
+  const val = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    let cancelled = false;
+    const run = () => {
+      val.setValue(0);
+      Animated.sequence([
+        Animated.delay(cycleMs - spinMs),
+        Animated.timing(val, { toValue: 360, duration: spinMs, easing: Easing.linear, useNativeDriver: true }),
+      ]).start(({ finished }) => {
+        if (finished && !cancelled) run();
+      });
+    };
+    run();
+    return () => {
+      cancelled = true;
+      val.stopAnimation();
+    };
+  }, [val, cycleMs, spinMs]);
+  return val.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] });
+}
+
+// One-shot entrance: fade + translateY, matching `amount-count-up` / `fade-up`.
+function useEntrance(delay = 0, duration = 1000, distance = 12) {
+  const val = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(val, { toValue: 1, duration, delay, easing: Easing.out(Easing.ease), useNativeDriver: true }).start();
+  }, [val, delay, duration]);
+  return {
+    opacity: val,
+    transform: [{ translateY: val.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] }) }],
+  };
+}
+
+// One-shot pop-in: scale + opacity with back-out easing, matching `score-pop`.
+function usePopIn(delay = 0, duration = 1000, fromScale = 0.7) {
+  const val = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(val, { toValue: 1, duration, delay, easing: EASE_OUT_BACK, useNativeDriver: true }).start();
+  }, [val, delay, duration]);
+  return {
+    opacity: val.interpolate({ inputRange: [0, 1], outputRange: [0, 1], extrapolate: 'clamp' }),
+    transform: [{ scale: val.interpolate({ inputRange: [0, 1], outputRange: [fromScale, 1] }) }],
+  };
+}
+
+// One-shot fill: width 0 -> targetPct, matching `bar-fill` / `wf`.
+function useFillIn(targetPct, delay = 0, duration = 1200) {
+  const val = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(val, { toValue: targetPct, duration, delay, easing: Easing.out(Easing.ease), useNativeDriver: false }).start();
+  }, [val, targetPct, delay, duration]);
+  return val.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
+}
+
+function PressScale({ children, style, onPress, scaleTo = 0.9 }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const pressIn = () => Animated.timing(scale, { toValue: scaleTo, duration: 100, useNativeDriver: true }).start();
+  const pressOut = () => Animated.timing(scale, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+  return (
+    <Pressable onPress={onPress} onPressIn={pressIn} onPressOut={pressOut}>
+      <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>
+    </Pressable>
+  );
+}
+
+const ACTIONS = [
+  { icon: '💸', label: 'Yónnee', bg: colors.greenA12, border: colors.greenA20 },
+  { icon: '📥', label: 'Jël', bg: colors.goldA10, border: colors.goldA20 },
+  { icon: '🏪', label: 'Fey', bg: colors.orangeA10, border: colors.orangeA20 },
+  { icon: '⋯', label: 'Plus', bg: colors.whiteA06, border: colors.whiteA10 },
+];
+
+const NAV_ITEMS = [
+  { icon: '🏠', label: 'Accueil', on: true },
+  { icon: '💬', label: 'Mboolo', on: false },
+  { icon: '🎵', label: 'Rect', on: false },
+  { icon: '🔍', label: 'Explorer', on: false },
+  { icon: '👤', label: 'Moi', on: false },
+];
+
+function ActionButton({ icon, label, bg, border, delay }) {
+  const float = useFloatLoop(delay);
+  return (
+    <View style={styles.haItem}>
+      <PressScale scaleTo={0.9} style={[styles.haBtn, { backgroundColor: bg, borderColor: border }]}>
+        <Animated.View style={{ transform: [{ translateY: float }] }}>
+          <Text style={styles.haIcon}>{icon}</Text>
+        </Animated.View>
+      </PressScale>
+      <Text style={styles.haLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function RectSoundCard() {
+  const glow = useGlowPulse(motion.pulseSlow, 0.35);
+  const spin = useSpinFlick();
+  const dotBlink = useBlink();
+  const bar1 = useBarLoop(0);
+  const bar2 = useBarLoop(80);
+  const bar3 = useBarLoop(160);
+  const bar4 = useBarLoop(240);
+
+  return (
+    <Animated.View
+      style={[
+        styles.rectCard,
+        {
+          shadowColor: colors.green,
+          shadowOffset: { width: 0, height: 0 },
+          shadowRadius: 24,
+          shadowOpacity: glow,
+          elevation: 4,
+        },
+      ]}
+    >
+      <View style={styles.rcTop}>
+        <Text style={styles.rcTag}>Rect Sound · 221 Bëgg</Text>
+        <View style={styles.rcLive}>
+          <Animated.View style={[styles.rcDot, { opacity: dotBlink }]} />
+          <Text style={styles.rcLiveText}>LIVE</Text>
+        </View>
+      </View>
+      <View style={styles.rcSong}>
+        <Animated.View style={[styles.rcCover, { transform: [{ rotate: spin }] }]}>
+          <Text style={{ fontSize: 19 }}>🎵</Text>
+        </Animated.View>
+        <View style={styles.rcInfo}>
+          <Text style={styles.rcTitle} numberOfLines={1}>"Yëkël" — Saliou K.</Text>
+          <Text style={styles.rcArtist}>Chart #1 · Médina</Text>
+          <Text style={styles.rcChart}>🔥 24 800 Dafa neex aujourd'hui</Text>
+        </View>
+        <View style={styles.rcBars}>
+          <Animated.View style={[styles.rcBar, { height: 8, transform: [{ scaleY: bar1 }] }]} />
+          <Animated.View style={[styles.rcBar, { height: 16, transform: [{ scaleY: bar2 }] }]} />
+          <Animated.View style={[styles.rcBar, { height: 10, transform: [{ scaleY: bar3 }] }]} />
+          <Animated.View style={[styles.rcBar, { height: 18, transform: [{ scaleY: bar4 }] }]} />
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+function WakhnaMiniCard() {
+  const pop = usePopIn(300, 1000, 0.7);
+  const fill = useFillIn(72, 500, 1200);
+  const starPulse = useScalePulse(2000, 1.15);
+
+  return (
+    <View style={styles.wakhnaMini}>
+      <Animated.Text style={[styles.wmScore, pop]}>840</Animated.Text>
+      <View style={styles.wmBody}>
+        <Text style={styles.wmLabel}>Wakhna Score</Text>
+        <Text style={styles.wmRank}>Top <Text style={styles.wmRankBold}>12%</Text> Médina · #47</Text>
+        <View style={styles.wmBar}>
+          <Animated.View style={{ width: fill, height: '100%' }}>
+            <LinearGradient
+              colors={[colors.green, colors.flagGold]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ flex: 1, borderRadius: 2 }}
+            />
+          </Animated.View>
+        </View>
+      </View>
+      <Animated.Text style={[styles.wmStar, { transform: [{ scale: starPulse }] }]}>✦</Animated.Text>
+    </View>
+  );
+}
+
+function MbooloPulseCard() {
+  const borderColor = useColorPulse(colors.terracottaA20, colors.terracottaA45, motion.pulse);
+  const badgeScale = useScalePulse(1500, 1.15);
+
+  return (
+    <Animated.View style={[styles.mbooloMini, { borderColor }]}>
+      <View style={styles.mmAvaStack}>
+        <View style={[styles.mmAva, { marginLeft: 0 }]}><Text style={styles.mmAvaText}>👩🏾</Text></View>
+        <View style={styles.mmAva}><Text style={styles.mmAvaText}>👦🏿</Text></View>
+        <View style={styles.mmAva}><Text style={styles.mmAvaText}>👩🏿</Text></View>
+      </View>
+      <View style={styles.mmBody}>
+        <Text style={styles.mmTitle}>Médina Squad</Text>
+        <Text style={styles.mmSub}>Ibou: Ñu lekk 18h bi 🍖</Text>
+      </View>
+      <Animated.View style={[styles.mmBadge, { transform: [{ scale: badgeScale }] }]}>
+        <Text style={styles.mmBadgeText}>4</Text>
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
+function TransactionRow({ icon, iconBg, title, subtitle, amount, amountColor }) {
+  return (
+    <View style={styles.txRow}>
+      <View style={[styles.txIcon, { backgroundColor: iconBg }]}>
+        <Text style={{ fontSize: 16 }}>{icon}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.txTitle}>{title}</Text>
+        <Text style={styles.txSub}>{subtitle}</Text>
+      </View>
+      <Text style={[styles.txAmount, { color: amountColor }]}>{amount}</Text>
+    </View>
+  );
+}
+
+export default function HomeScreen() {
+  const notifBlink = useBlink();
+  const balanceEntrance = useEntrance(0, 1000, 12);
+
+  return (
+    <View style={styles.root}>
+      <WaxPattern color="rgba(255,255,255,0.025)" size={18} durationMs={motion.waxDrift} />
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 70 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Hero */}
+          <View style={styles.hero}>
+            <HomeHeroBackground />
+            <WaxPattern color="rgba(26,240,96,0.04)" size={18} animated={false} />
+            <View style={styles.heroContent}>
+              <View style={styles.heroTopRow}>
+                <View>
+                  <Text style={styles.locationLabel}>📍 Médina · Dakar</Text>
+                  <Text style={styles.greeting}>
+                    Salut <Text style={styles.greetingBold}>Saliou</Text> 👋🏿
+                  </Text>
+                </View>
+                <View style={styles.notifBtn}>
+                  <Text style={{ fontSize: 16 }}>🔔</Text>
+                  <Animated.View style={[styles.notifDot, { opacity: notifBlink }]} />
+                </View>
+              </View>
+
+              <View style={styles.balanceDisplay}>
+                <Text style={styles.balanceEye}>👁 Solde</Text>
+                <Animated.Text style={[styles.balanceAmount, balanceEntrance]}>
+                  47 000 <Text style={styles.balanceCurrency}>F</Text>
+                </Animated.Text>
+                <View style={styles.zeroFeesPill}>
+                  <Text style={styles.zeroFeesText}>✦ Zéro frais sur tous tes envois</Text>
+                </View>
+              </View>
+
+              <View style={styles.homeActions}>
+                {ACTIONS.map((a, i) => (
+                  <ActionButton key={a.label} {...a} delay={i * 300} />
+                ))}
+              </View>
+            </View>
+          </View>
+
+          {/* Flag divider */}
+          <View style={styles.flagDiv}>
+            <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
+            <View style={[styles.flagSeg, { backgroundColor: colors.flagGold }]} />
+            <View style={[styles.flagSeg, { backgroundColor: colors.flagRed }]} />
+          </View>
+
+          <View style={styles.homeCards}>
+            <RectSoundCard />
+            <WakhnaMiniCard />
+            <MbooloPulseCard />
+          </View>
+
+          <View style={styles.txSection}>
+            <Text style={styles.txLabel}>Transactions récentes</Text>
+            <View style={{ gap: spacing.sm }}>
+              <TransactionRow
+                icon="📥"
+                iconBg={colors.greenA08}
+                title="Reçu de Papa"
+                subtitle="Aujourd'hui · 14h22"
+                amount="+5 000 F"
+                amountColor={colors.green}
+              />
+              <TransactionRow
+                icon="🏪"
+                iconBg={colors.orangeA08}
+                title="Dibiterie Chez Papa"
+                subtitle="Hier · 19h04"
+                amount="-2 500 F"
+                amountColor={colors.flagRed}
+              />
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Bottom nav */}
+        <BlurView intensity={40} tint="dark" style={styles.bottomNav}>
+          {NAV_ITEMS.map((item) => (
+            <View key={item.label} style={styles.navItem}>
+              <Text style={styles.navIcon}>{item.icon}</Text>
+              {item.on && <View style={styles.navDot} />}
+              <Text style={[styles.navLabel, item.on && { color: colors.green }]}>{item.label}</Text>
+            </View>
+          ))}
+        </BlurView>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.ink },
+
+  hero: { position: 'relative', overflow: 'hidden', paddingHorizontal: spacing.huge, paddingTop: spacing.giant, paddingBottom: 22 },
+  heroContent: { position: 'relative', zIndex: 2 },
+  heroTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.huge },
+  locationLabel: { ...type.tiny, fontSize: 9, letterSpacing: 1, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: 3 },
+  greeting: { ...type.bodySmall, color: colors.whiteA40 },
+  greetingBold: { color: colors.whiteA70, fontFamily: fontFamily.bodyBold },
+  notifBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
+  notifDot: { position: 'absolute', top: 8, right: 9, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.flagRed, borderWidth: 1.5, borderColor: colors.ink },
+
+  balanceDisplay: { alignItems: 'center', marginBottom: spacing.giant },
+  balanceEye: { ...type.bodySmall, color: colors.whiteA30, marginBottom: spacing.sm },
+  balanceAmount: { ...type.balanceAmount, color: colors.green, textAlign: 'center' },
+  balanceCurrency: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(26,240,96,0.5)' },
+  zeroFeesPill: { marginTop: spacing.md, alignSelf: 'center', backgroundColor: colors.greenA08, borderWidth: 1, borderColor: colors.greenA18, borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: spacing.xs },
+  zeroFeesText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: 'rgba(26,240,96,0.8)' },
+
+  homeActions: { flexDirection: 'row', justifyContent: 'space-between' },
+  haItem: { alignItems: 'center', gap: spacing.xs },
+  haBtn: { width: 52, height: 52, borderRadius: radius.xxl, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  haIcon: { fontSize: 22 },
+  haLabel: { ...type.actionLabel, color: colors.whiteA40, textAlign: 'center' },
+
+  flagDiv: { flexDirection: 'row', height: 2, marginVertical: spacing.xxxl },
+  flagSeg: { flex: 1 },
+
+  homeCards: { paddingHorizontal: spacing.xxxl, paddingBottom: spacing.xxxl, gap: spacing.lg },
+
+  rectCard: { backgroundColor: '#0a1a0c', borderWidth: 1.5, borderColor: colors.greenA20, borderRadius: radius.xxxl, padding: spacing.xxl },
+  rcTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
+  rcTag: { fontFamily: fontFamily.bodyBold, fontSize: 8, letterSpacing: 1, color: 'rgba(26,240,96,0.6)', textTransform: 'uppercase' },
+  rcLive: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  rcDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.flagRed },
+  rcLiveText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.flagRed },
+  rcSong: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  rcCover: { width: 44, height: 44, borderRadius: radius.lg, backgroundColor: '#1a5e30', alignItems: 'center', justifyContent: 'center' },
+  rcInfo: { flex: 1, minWidth: 0 },
+  rcTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white },
+  rcArtist: { ...type.bodySmall, color: colors.whiteA40 },
+  rcChart: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.green, marginTop: 2 },
+  rcBars: { flexDirection: 'row', gap: 2, alignItems: 'flex-end', height: 20 },
+  rcBar: { width: 3, borderRadius: 2, backgroundColor: colors.green },
+
+  wakhnaMini: { backgroundColor: 'rgba(26,240,96,0.07)', borderWidth: 1, borderColor: colors.greenA15, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
+  wmScore: { ...type.wakhnaScore, color: colors.green },
+  wmBody: { flex: 1 },
+  wmLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: 'rgba(26,240,96,0.6)', textTransform: 'uppercase', marginBottom: 3 },
+  wmRank: { ...type.bodySmall, color: colors.whiteA40 },
+  wmRankBold: { fontFamily: fontFamily.bodyBold, color: colors.green },
+  wmBar: { height: 4, backgroundColor: colors.whiteA08, borderRadius: 2, overflow: 'hidden', marginTop: spacing.sm },
+  wmStar: { fontSize: 20, color: colors.green },
+
+  mbooloMini: { backgroundColor: 'rgba(232,92,26,0.1)', borderWidth: 1, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
+  mmAvaStack: { flexDirection: 'row' },
+  mmAva: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.whiteA08, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
+  mmAvaText: { fontSize: 13 },
+  mmBody: { flex: 1 },
+  mmTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: 'rgba(255,180,100,0.9)' },
+  mmSub: { ...type.caption, color: colors.whiteA30 },
+  mmBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.terracotta, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  mmBadgeText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.white },
+
+  txSection: { paddingHorizontal: spacing.huge, paddingBottom: spacing.xxxl },
+  txLabel: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.lg },
+  txRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, paddingHorizontal: spacing.xl, paddingVertical: 9, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg },
+  txIcon: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  txTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
+  txSub: { ...type.caption, color: colors.whiteA30 },
+  txAmount: { fontFamily: fontFamily.bodyBold, fontSize: 13 },
+
+  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', paddingTop: spacing.lg, paddingBottom: spacing.xxxl, borderTopWidth: 1, borderTopColor: colors.whiteA08, overflow: 'hidden' },
+  navItem: { flex: 1, alignItems: 'center', gap: 3 },
+  navIcon: { fontSize: 20 },
+  navDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.green },
+  navLabel: { fontFamily: fontFamily.bodyBold, fontSize: 8, color: colors.whiteA30 },
+});

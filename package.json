@@ -1,0 +1,28 @@
+{
+  "name": "keit",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@expo-google-fonts/outfit": "^0.4.3",
+    "@expo-google-fonts/unbounded": "^0.4.1",
+    "expo": "~57.0.1",
+    "expo-blur": "^57.0.0",
+    "expo-font": "^57.0.0",
+    "expo-linear-gradient": "^57.0.0",
+    "expo-splash-screen": "^57.0.1",
+    "expo-status-bar": "~57.0.0",
+    "react": "19.2.3",
+    "react-dom": "^19.2.3",
+    "react-native": "0.86.0",
+    "react-native-safe-area-context": "^5.8.0",
+    "react-native-svg": "^15.15.5",
+    "react-native-web": "^0.21.2"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "private": true
+}
