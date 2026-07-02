@@ -6,7 +6,8 @@ import PayMerchantScreen from '../screens/PayMerchantScreen';
 import CashScreen from '../screens/CashScreen';
 import MoreActionsScreen from '../screens/MoreActionsScreen';
 import NuLekkScreen from '../screens/NuLekkScreen';
-import ComingSoonScreen from '../screens/ComingSoonScreen';
+import ReceiveScreen from '../screens/ReceiveScreen';
+import TontineScreen from '../screens/TontineScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,16 +27,8 @@ export default function RootNavigator() {
       <Stack.Screen name="Cash" component={CashScreen} />
       <Stack.Screen name="MoreActions" component={MoreActionsScreen} />
       <Stack.Screen name="NuLekk" component={NuLekkScreen} />
-      <Stack.Screen
-        name="Receive"
-        component={ComingSoonScreen}
-        initialParams={{ title: 'Jël', subtitle: 'Demander de l’argent arrive très bientôt.', icon: '📥' }}
-      />
-      <Stack.Screen
-        name="Tontine"
-        component={ComingSoonScreen}
-        initialParams={{ title: 'Tontine Digitale', subtitle: 'L’épargne collective automatique arrive très bientôt.', icon: '🏦' }}
-      />
+      <Stack.Screen name="Receive" component={ReceiveScreen} />
+      <Stack.Screen name="Tontine" component={TontineScreen} />
     </Stack.Navigator>
   );
 }
