@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import WaxPattern from '../components/WaxPattern';
 import HomeHeroBackground from '../components/HomeHeroBackground';
 import PressScale from '../components/PressScale';
+import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type, motion } from '../theme';
 import {
   useFloatLoop,
@@ -24,6 +25,10 @@ const ACTIONS = [
   { icon: '🏪', label: 'Fey', bg: colors.orangeA10, border: colors.orangeA20, route: 'PayMerchant' },
   { icon: '⋯', label: 'Plus', bg: colors.whiteA06, border: colors.whiteA10, route: 'MoreActions' },
 ];
+
+function formatAmount(n) {
+  return Math.round(n).toLocaleString('fr-FR').replace(/ /g, ' ');
+}
 
 function ActionButton({ icon, label, bg, border, delay, onPress }) {
   const float = useFloatLoop(delay);
@@ -155,6 +160,8 @@ function TransactionRow({ icon, iconBg, title, subtitle, amount, amountColor }) 
 export default function HomeScreen({ navigation }) {
   const notifBlink = useBlink();
   const balanceEntrance = useEntrance(0, 1000, 12);
+  const { profile, balance, transactions } = useAppState();
+  const firstName = profile.name.split(' ')[0];
 
   return (
     <View style={styles.root}>
@@ -172,9 +179,9 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.heroContent}>
               <View style={styles.heroTopRow}>
                 <View>
-                  <Text style={styles.locationLabel}>📍 Médina · Dakar</Text>
+                  <Text style={styles.locationLabel}>📍 {profile.arrondissement.name} · Dakar</Text>
                   <Text style={styles.greeting}>
-                    Salut <Text style={styles.greetingBold}>Saliou</Text> 👋🏿
+                    Salut <Text style={styles.greetingBold}>{firstName}</Text> 👋🏿
                   </Text>
                 </View>
                 <PressScale scaleTo={0.9} onPress={() => navigation.navigate('Notifications')} style={styles.notifBtn}>
@@ -186,7 +193,7 @@ export default function HomeScreen({ navigation }) {
               <View style={styles.balanceDisplay}>
                 <Text style={styles.balanceEye}>👁 Solde</Text>
                 <Animated.Text style={[styles.balanceAmount, balanceEntrance]}>
-                  47 000 <Text style={styles.balanceCurrency}>F</Text>
+                  {formatAmount(balance)} <Text style={styles.balanceCurrency}>F</Text>
                 </Animated.Text>
                 <View style={styles.zeroFeesPill}>
                   <Text style={styles.zeroFeesText}>✦ Zéro frais sur tous tes envois</Text>
@@ -216,24 +223,23 @@ export default function HomeScreen({ navigation }) {
 
           <View style={styles.txSection}>
             <Text style={styles.txLabel}>Transactions récentes</Text>
-            <View style={{ gap: spacing.sm }}>
-              <TransactionRow
-                icon="📥"
-                iconBg={colors.greenA08}
-                title="Reçu de Papa"
-                subtitle="Aujourd'hui · 14h22"
-                amount="+5 000 F"
-                amountColor={colors.green}
-              />
-              <TransactionRow
-                icon="🏪"
-                iconBg={colors.orangeA08}
-                title="Dibiterie Chez Papa"
-                subtitle="Hier · 19h04"
-                amount="-2 500 F"
-                amountColor={colors.flagRed}
-              />
-            </View>
+            {transactions.length === 0 ? (
+              <Text style={styles.txEmpty}>Aucune transaction pour l'instant.</Text>
+            ) : (
+              <View style={{ gap: spacing.sm }}>
+                {transactions.slice(0, 5).map((tx) => (
+                  <TransactionRow
+                    key={tx.key}
+                    icon={tx.icon}
+                    iconBg={tx.iconBg}
+                    title={tx.title}
+                    subtitle={tx.subtitle}
+                    amount={`${tx.amount > 0 ? '+' : ''}${formatAmount(tx.amount)} F`}
+                    amountColor={tx.amount > 0 ? colors.green : colors.flagRed}
+                  />
+                ))}
+              </View>
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -307,6 +313,7 @@ const styles = StyleSheet.create({
 
   txSection: { paddingHorizontal: spacing.huge, paddingBottom: spacing.xxxl },
   txLabel: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.lg },
+  txEmpty: { fontSize: 11, color: colors.whiteA30 },
   txRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, paddingHorizontal: spacing.xl, paddingVertical: 9, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg },
   txIcon: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   txTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },

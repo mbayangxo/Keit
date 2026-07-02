@@ -14,6 +14,7 @@ import ReceiveScreen from '../screens/ReceiveScreen';
 import TontineScreen from '../screens/TontineScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ComingSoonScreen from '../screens/ComingSoonScreen';
+import { useAppState } from '../state/AppState';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,8 @@ const Stack = createNativeStackNavigator();
 // so this always runs on cold start; `navigation.reset` on completion
 // clears it all from the back stack.
 export default function RootNavigator() {
+  const { initAccount } = useAppState();
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
       <Stack.Screen name="Splash">
@@ -45,7 +48,12 @@ export default function RootNavigator() {
       </Stack.Screen>
       <Stack.Screen name="SignUp">
         {({ navigation }) => (
-          <SignUpScreen onComplete={(profile) => navigation.replace('Celebration', profile)} />
+          <SignUpScreen
+            onComplete={(profile) => {
+              initAccount(profile);
+              navigation.replace('Celebration', profile);
+            }}
+          />
         )}
       </Stack.Screen>
       <Stack.Screen name="Celebration">

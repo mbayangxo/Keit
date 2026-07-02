@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
+import StepTransition from '../components/StepTransition';
+import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 
@@ -27,8 +29,6 @@ const RECENT_CONTACTS = [
   { name: 'Ibou', emoji: '👦🏿', bg: colors.goldA08, border: 'rgba(250,216,54,0.15)' },
   { name: 'Aminata', emoji: '👩🏿', bg: colors.redA08, border: 'rgba(232,25,44,0.15)' },
 ];
-
-const BALANCE = 47000;
 
 function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ | /g, ' ');
@@ -140,8 +140,8 @@ function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelect
   );
 }
 
-function ConfirmStep({ amount, reason, onConfirm, onCancel }) {
-  const solde = BALANCE - amount;
+function ConfirmStep({ amount, reason, balance, onConfirm, onCancel }) {
+  const solde = balance - amount;
 
   return (
     <View style={{ flex: 1 }}>
@@ -260,6 +260,18 @@ export default function SendMoneyScreen({ navigation }) {
   const [step, setStep] = useState('amount');
   const [amount, setAmount] = useState(5000);
   const [reason, setReason] = useState('Pour le taxi 🚕');
+  const { balance, addTransaction } = useAppState();
+
+  const confirm = () => {
+    addTransaction({
+      icon: '💸',
+      iconBg: colors.greenA08,
+      title: `Envoyé à ${RECIPIENT.name}`,
+      subtitle: "À l'instant",
+      amount: -amount,
+    });
+    setStep('success');
+  };
 
   const finish = () => {
     setStep('amount');
@@ -272,20 +284,28 @@ export default function SendMoneyScreen({ navigation }) {
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'amount' && (
-          <AmountStep
-            amount={amount}
-            setAmount={setAmount}
-            reason={reason}
-            setReason={setReason}
-            onContinue={() => setStep('confirm')}
-            onSelectContact={() => setStep('confirm')}
-            onBack={() => navigation.goBack()}
-          />
+          <StepTransition>
+            <AmountStep
+              amount={amount}
+              setAmount={setAmount}
+              reason={reason}
+              setReason={setReason}
+              onContinue={() => setStep('confirm')}
+              onSelectContact={() => setStep('confirm')}
+              onBack={() => navigation.goBack()}
+            />
+          </StepTransition>
         )}
         {step === 'confirm' && (
-          <ConfirmStep amount={amount} reason={reason} onConfirm={() => setStep('success')} onCancel={() => setStep('amount')} />
+          <StepTransition>
+            <ConfirmStep amount={amount} reason={reason} balance={balance} onConfirm={confirm} onCancel={() => setStep('amount')} />
+          </StepTransition>
         )}
-        {step === 'success' && <SuccessStep amount={amount} reason={reason} onDone={finish} />}
+        {step === 'success' && (
+          <StepTransition>
+            <SuccessStep amount={amount} reason={reason} onDone={finish} />
+          </StepTransition>
+        )}
       </SafeAreaView>
     </View>
   );

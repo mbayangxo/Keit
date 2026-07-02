@@ -3,15 +3,16 @@ import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
+import StepTransition from '../components/StepTransition';
+import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
-import { useBlink, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
+import { useBlink, useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 
 // No HTML prototype exists for Cash In/Out (Julaya agent network) — only
 // mentioned in the brief's Phase 1 scope. Designed to match the established
 // system exactly and mirror Pay Merchant / Send Money's step structure.
 
 const QUICK_AMOUNTS = [2000, 5000, 10000, 25000];
-const BALANCE = 47000;
 
 const AGENTS = [
   { key: 'ndiaye', name: 'Boutique Ndiaye', distance: '250 m', rating: 4.8, open: true },
@@ -43,7 +44,7 @@ function ModeToggle({ mode, setMode }) {
   );
 }
 
-function AmountStep({ mode, setMode, amount, setAmount, onContinue, onBack }) {
+function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onBack }) {
   const label = mode === 'in' ? 'Combien déposer ?' : 'Combien retirer ?';
 
   return (
@@ -79,7 +80,7 @@ function AmountStep({ mode, setMode, amount, setAmount, onContinue, onBack }) {
             ))}
           </View>
 
-          {mode === 'out' && <Text style={styles.balanceNote}>Solde disponible : {formatAmount(BALANCE)} F</Text>}
+          {mode === 'out' && <Text style={styles.balanceNote}>Solde disponible : {formatAmount(balance)} F</Text>}
         </View>
 
         <View style={styles.feeNote}>
@@ -90,7 +91,7 @@ function AmountStep({ mode, setMode, amount, setAmount, onContinue, onBack }) {
       </ScrollView>
 
       <View style={styles.footer}>
-        <GlowButton label="Choisir un agent →" onPress={onContinue} disabled={amount <= 0 || (mode === 'out' && amount > BALANCE)} />
+        <GlowButton label="Choisir un agent →" onPress={onContinue} disabled={amount <= 0 || (mode === 'out' && amount > balance)} />
       </View>
     </View>
   );
@@ -184,13 +185,14 @@ function CodeStep({ mode, amount, agent, onDone }) {
   );
 }
 
-function SuccessStep({ mode, amount, agent, onDone }) {
+function SuccessStep({ mode, amount, agent, oldBalance, newBalance, onDone }) {
   useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.3);
   const title = useEntrance(200, 500, 10);
   const sub = useEntrance(300, 500, 10);
   const receipt = useEntrance(400, 500, 10);
   const fee = agentFee(amount);
+  const balanceCount = useCountUp(oldBalance, newBalance, 700);
 
   return (
     <View style={styles.successRoot}>
@@ -215,6 +217,10 @@ function SuccessStep({ mode, amount, agent, onDone }) {
           <Text style={styles.ssrL}>Frais agent</Text>
           <Text style={styles.ssrR}>{formatAmount(fee)} F</Text>
         </View>
+        <View style={styles.ssrRow}>
+          <Text style={styles.ssrL}>Nouveau solde</Text>
+          <Text style={styles.ssrR}>{formatAmount(balanceCount)} F</Text>
+        </View>
       </Animated.View>
 
       <GlowButton label="Retour à l'accueil" onPress={onDone} />
@@ -227,6 +233,9 @@ export default function CashScreen({ navigation }) {
   const [mode, setMode] = useState('in');
   const [amount, setAmount] = useState(5000);
   const [agent, setAgent] = useState(null);
+  const [oldBalance, setOldBalance] = useState(0);
+  const [newBalance, setNewBalance] = useState(0);
+  const { balance, addTransaction } = useAppState();
 
   const finish = () => {
     setStep('amount');
@@ -235,32 +244,59 @@ export default function CashScreen({ navigation }) {
     navigation.goBack();
   };
 
+  const completeAtAgent = () => {
+    const signedAmount = mode === 'in' ? amount : -amount;
+    addTransaction({
+      icon: '🏬',
+      iconBg: mode === 'in' ? colors.greenA08 : colors.orangeA08,
+      title: mode === 'in' ? `Dépôt · ${agent.name}` : `Retrait · ${agent.name}`,
+      subtitle: "À l'instant",
+      amount: signedAmount,
+    });
+    setOldBalance(balance);
+    setNewBalance(balance + signedAmount);
+    setStep('success');
+  };
+
   return (
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'amount' && (
-          <AmountStep
-            mode={mode}
-            setMode={setMode}
-            amount={amount}
-            setAmount={setAmount}
-            onContinue={() => setStep('agent')}
-            onBack={() => navigation.goBack()}
-          />
+          <StepTransition>
+            <AmountStep
+              mode={mode}
+              setMode={setMode}
+              amount={amount}
+              setAmount={setAmount}
+              balance={balance}
+              onContinue={() => setStep('agent')}
+              onBack={() => navigation.goBack()}
+            />
+          </StepTransition>
         )}
         {step === 'agent' && (
-          <AgentStep
-            mode={mode}
-            amount={amount}
-            onBack={() => setStep('amount')}
-            onSelect={(a) => {
-              setAgent(a);
-              setStep('code');
-            }}
-          />
+          <StepTransition>
+            <AgentStep
+              mode={mode}
+              amount={amount}
+              onBack={() => setStep('amount')}
+              onSelect={(a) => {
+                setAgent(a);
+                setStep('code');
+              }}
+            />
+          </StepTransition>
         )}
-        {step === 'code' && agent && <CodeStep mode={mode} amount={amount} agent={agent} onDone={() => setStep('success')} />}
-        {step === 'success' && agent && <SuccessStep mode={mode} amount={amount} agent={agent} onDone={finish} />}
+        {step === 'code' && agent && (
+          <StepTransition>
+            <CodeStep mode={mode} amount={amount} agent={agent} onDone={completeAtAgent} />
+          </StepTransition>
+        )}
+        {step === 'success' && agent && (
+          <StepTransition>
+            <SuccessStep mode={mode} amount={amount} agent={agent} oldBalance={oldBalance} newBalance={newBalance} onDone={finish} />
+          </StepTransition>
+        )}
       </SafeAreaView>
     </View>
   );

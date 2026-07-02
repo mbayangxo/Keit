@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -203,4 +203,25 @@ export function useFillIn(targetPct, delay = 0, duration = 1200) {
     Animated.timing(val, { toValue: targetPct, duration, delay, easing: Easing.out(Easing.ease), useNativeDriver: false }).start();
   }, [val, targetPct, delay, duration]);
   return val.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
+}
+
+// Counts a number from `from` to `to` once on mount — used for balance
+// figures on success screens so the new total visibly ticks up/down instead
+// of just appearing, matching the brief's "feels alive" requirement.
+export function useCountUp(from, to, duration = 700) {
+  const [display, setDisplay] = useState(from);
+  useEffect(() => {
+    let raf;
+    const start = Date.now();
+    const tick = () => {
+      const t = Math.min(1, (Date.now() - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(from + (to - from) * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return display;
 }

@@ -5,8 +5,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import WaxPattern from '../components/WaxPattern';
+import StepTransition from '../components/StepTransition';
+import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing } from '../theme';
-import { useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
+import { useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 
 // design/k21-four-flows.html, FLOW 4 — MERCHANT QR PAYMENT (Screens M1-M3):
 // Scan QR (merchant card + scanner + amount) -> Confirm payment -> Payment done.
@@ -23,8 +25,6 @@ const MERCHANT = {
   arr: 'Médina · Dakar',
   emoji: '🍖',
 };
-
-const BALANCE = 47000;
 
 function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ /g, ' ');
@@ -51,6 +51,9 @@ const FRAME_SIZE = 200;
 function ScanStep({ amount, setAmount, onBack, onContinue }) {
   const scanY = useScanLine(FRAME_SIZE);
   const entrance = useEntrance(0, 350, 10);
+  const historyEntrance = useEntrance(150, 350, 10);
+  const { transactions } = useAppState();
+  const history = transactions.filter((tx) => tx.title === MERCHANT.name).slice(0, 3);
 
   return (
     <View style={{ flex: 1 }}>
@@ -108,6 +111,28 @@ function ScanStep({ amount, setAmount, onBack, onContinue }) {
             ))}
           </View>
         </View>
+
+        <Animated.View style={[styles.historySection, historyEntrance]}>
+          <Text style={styles.historyLabel}>Historique avec ce marchand</Text>
+          {history.length === 0 ? (
+            <View style={styles.historyEmpty}>
+              <Text style={{ fontSize: 16 }}>🆕</Text>
+              <Text style={styles.historyEmptyText}>Ton premier paiement chez {MERCHANT.name}</Text>
+            </View>
+          ) : (
+            <View style={{ gap: spacing.sm }}>
+              {history.map((tx) => (
+                <View key={tx.key} style={styles.historyRow}>
+                  <View style={styles.historyIcon}>
+                    <Text style={{ fontSize: 14 }}>{tx.icon}</Text>
+                  </View>
+                  <Text style={styles.historySub}>{tx.subtitle}</Text>
+                  <Text style={styles.historyAmount}>{formatAmount(Math.abs(tx.amount))} F</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </Animated.View>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -117,7 +142,7 @@ function ScanStep({ amount, setAmount, onBack, onContinue }) {
   );
 }
 
-function ConfirmStep({ amount, onPay, onCancel }) {
+function ConfirmStep({ amount, balance, onPay, onCancel }) {
   const entrance = useEntrance(0, 350, 10);
 
   return (
@@ -155,7 +180,7 @@ function ConfirmStep({ amount, onPay, onCancel }) {
           </View>
           <View style={[styles.confirmRow, { borderBottomWidth: 0 }]}>
             <Text style={styles.confirmRowLabel}>Ton solde après</Text>
-            <Text style={styles.confirmRowBal}>{formatAmount(BALANCE - amount)} F</Text>
+            <Text style={styles.confirmRowBal}>{formatAmount(balance - amount)} F</Text>
           </View>
         </View>
       </ScrollView>
@@ -174,13 +199,14 @@ function ConfirmStep({ amount, onPay, onCancel }) {
   );
 }
 
-function SuccessStep({ amount, onDone }) {
+function SuccessStep({ amount, oldBalance, newBalance, onDone }) {
   useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.4);
   const title = useEntrance(200, 500, 10);
   const sub = useEntrance(300, 500, 10);
   const receipt = useEntrance(400, 500, 10);
   const bonus = useEntrance(500, 500, 10);
+  const balanceCount = useCountUp(oldBalance, newBalance, 700);
   const reference = 'K21-2603-8F4A';
 
   return (
@@ -209,7 +235,7 @@ function SuccessStep({ amount, onDone }) {
         </View>
         <View style={styles.ssrRow}>
           <Text style={styles.ssrL}>Nouveau solde</Text>
-          <Text style={styles.ssrR}>{formatAmount(BALANCE - amount)} F</Text>
+          <Text style={styles.ssrR}>{formatAmount(balanceCount)} F</Text>
         </View>
         <View style={styles.ssrRow}>
           <Text style={styles.ssrL}>Référence</Text>
@@ -235,6 +261,16 @@ function SuccessStep({ amount, onDone }) {
 export default function PayMerchantScreen({ navigation }) {
   const [step, setStep] = useState('scan');
   const [amount, setAmount] = useState(2500);
+  const [oldBalance, setOldBalance] = useState(0);
+  const [newBalance, setNewBalance] = useState(0);
+  const { balance, addTransaction } = useAppState();
+
+  const pay = () => {
+    addTransaction({ icon: '🏪', iconBg: colors.orangeA08, title: MERCHANT.name, subtitle: "À l'instant", amount: -amount });
+    setOldBalance(balance);
+    setNewBalance(balance - amount);
+    setStep('success');
+  };
 
   const finish = () => {
     setStep('scan');
@@ -246,10 +282,20 @@ export default function PayMerchantScreen({ navigation }) {
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'scan' && (
-          <ScanStep amount={amount} setAmount={setAmount} onBack={() => navigation.goBack()} onContinue={() => setStep('confirm')} />
+          <StepTransition>
+            <ScanStep amount={amount} setAmount={setAmount} onBack={() => navigation.goBack()} onContinue={() => setStep('confirm')} />
+          </StepTransition>
         )}
-        {step === 'confirm' && <ConfirmStep amount={amount} onPay={() => setStep('success')} onCancel={() => setStep('scan')} />}
-        {step === 'success' && <SuccessStep amount={amount} onDone={finish} />}
+        {step === 'confirm' && (
+          <StepTransition>
+            <ConfirmStep amount={amount} balance={balance} onPay={pay} onCancel={() => setStep('scan')} />
+          </StepTransition>
+        )}
+        {step === 'success' && (
+          <StepTransition>
+            <SuccessStep amount={amount} oldBalance={oldBalance} newBalance={newBalance} onDone={finish} />
+          </StepTransition>
+        )}
       </SafeAreaView>
     </View>
   );
@@ -270,7 +316,7 @@ const styles = StyleSheet.create({
   verifiedPill: { backgroundColor: colors.greenA15, borderWidth: 1, borderColor: colors.greenA30, borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 3 },
   verifiedPillText: { fontSize: 8, fontWeight: '700', color: colors.green },
 
-  scannerArea: { marginHorizontal: spacing.xl, marginTop: spacing.lg, borderRadius: radius.xxl, overflow: 'hidden', backgroundColor: '#111', height: 190, alignItems: 'center', justifyContent: 'center' },
+  scannerArea: { marginHorizontal: spacing.xl, marginTop: spacing.lg, borderRadius: radius.xxl, overflow: 'hidden', backgroundColor: '#111', height: 220, alignItems: 'center', justifyContent: 'center' },
   scannerBackdrop: { position: 'absolute', fontSize: 140, opacity: 0.05 },
   viewfinder: { position: 'absolute', top: 18, left: 18, right: 18, bottom: 18 },
   corner: { position: 'absolute', width: 24, height: 24, borderColor: colors.green },
@@ -280,6 +326,15 @@ const styles = StyleSheet.create({
   scannerLabel: { position: 'absolute', bottom: 12, fontSize: 10, color: colors.whiteA55 },
 
   amountSection: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.md },
+
+  historySection: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, paddingBottom: spacing.xxl },
+  historyLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.sm },
+  historyEmpty: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  historyEmptyText: { flex: 1, fontSize: 11, color: colors.whiteA35 },
+  historyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  historyIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.orangeA08, alignItems: 'center', justifyContent: 'center' },
+  historySub: { flex: 1, fontSize: 11, color: colors.whiteA35 },
+  historyAmount: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
   amountSectionLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.sm },
   amountDisplay: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA12, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, marginBottom: spacing.md },
   amountNum: { fontFamily: fontFamily.displayBlack, fontSize: 34, fontWeight: '900', letterSpacing: -1.5, color: colors.white, flex: 1 },

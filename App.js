@@ -7,6 +7,7 @@ import * as ExpoSplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { colors, fontsToLoad } from './src/theme';
 import RootNavigator from './src/navigation/RootNavigator';
+import { AppStateProvider } from './src/state/AppState';
 
 ExpoSplashScreen.preventAutoHideAsync();
 
@@ -31,7 +32,9 @@ export default function App() {
       <View style={styles.root} onLayout={onLayout}>
         <StatusBar style="light" />
         <NavigationContainer theme={navTheme}>
-          <RootNavigator />
+          <AppStateProvider>
+            <RootNavigator />
+          </AppStateProvider>
         </NavigationContainer>
       </View>
     </SafeAreaProvider>

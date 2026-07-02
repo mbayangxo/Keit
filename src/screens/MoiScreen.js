@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import PressScale from '../components/PressScale';
 import WaxPattern from '../components/WaxPattern';
+import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useFloatLoop, useFillIn, useScalePulse } from '../hooks/animations';
 
@@ -131,6 +132,7 @@ export default function MoiScreen({ navigation }) {
   const avatarGlow = useAvatarPulse();
   const wakhnaFill = useFillIn(72, 400, 1200);
   const starSpin = useScalePulse(3000, 1.15);
+  const { profile } = useAppState();
 
   return (
     <View style={styles.root}>
@@ -157,15 +159,15 @@ export default function MoiScreen({ navigation }) {
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={styles.nameRow}>
-                      <Text style={styles.name}>Saliou</Text>
+                      <Text style={styles.name}>{profile.name}</Text>
                       <View style={styles.pinPhotos}>
                         <Text style={styles.ppImg}>🌅</Text>
                         <Text style={[styles.ppImg, { marginLeft: -4 }]}>🎤</Text>
                         <Text style={[styles.ppImg, { marginLeft: -4 }]}>🏖️</Text>
                       </View>
                     </View>
-                    <Text style={styles.handle}>@saliou_medina</Text>
-                    <Text style={styles.location}>📍 Médina · Dakar</Text>
+                    <Text style={styles.handle}>@{profile.handle}</Text>
+                    <Text style={styles.location}>📍 {profile.arrondissement.name} · Dakar</Text>
                   </View>
                 </View>
                 <PressScale

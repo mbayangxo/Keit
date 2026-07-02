@@ -3,6 +3,8 @@ import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
+import StepTransition from '../components/StepTransition';
+import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 
@@ -114,7 +116,7 @@ function RequestStep({ amount, setAmount, reason, setReason, contact, setContact
   );
 }
 
-function SentStep({ amount, reason, contact, onDone }) {
+function SentStep({ amount, reason, contact, name, onDone }) {
   useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.3);
   const title = useEntrance(200, 500, 10);
@@ -138,7 +140,7 @@ function SentStep({ amount, reason, contact, onDone }) {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.previewText}>
-              <Text style={{ fontFamily: fontFamily.bodyBold }}>Saliou</Text> te demande {formatAmount(amount)} F
+              <Text style={{ fontFamily: fontFamily.bodyBold }}>{name}</Text> te demande {formatAmount(amount)} F
             </Text>
             {reason ? <Text style={styles.previewReason}>{reason}</Text> : null}
           </View>
@@ -160,6 +162,7 @@ export default function ReceiveScreen({ navigation }) {
   const [amount, setAmount] = useState(2000);
   const [reason, setReason] = useState('Pour le taxi 🚕');
   const [contact, setContact] = useState(null);
+  const { profile } = useAppState();
 
   const finish = () => {
     setStep('request');
@@ -173,18 +176,24 @@ export default function ReceiveScreen({ navigation }) {
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'request' && (
-          <RequestStep
-            amount={amount}
-            setAmount={setAmount}
-            reason={reason}
-            setReason={setReason}
-            contact={contact}
-            setContact={setContact}
-            onSend={() => setStep('sent')}
-            onBack={() => navigation.goBack()}
-          />
+          <StepTransition>
+            <RequestStep
+              amount={amount}
+              setAmount={setAmount}
+              reason={reason}
+              setReason={setReason}
+              contact={contact}
+              setContact={setContact}
+              onSend={() => setStep('sent')}
+              onBack={() => navigation.goBack()}
+            />
+          </StepTransition>
         )}
-        {step === 'sent' && contact && <SentStep amount={amount} reason={reason} contact={contact} onDone={finish} />}
+        {step === 'sent' && contact && (
+          <StepTransition>
+            <SentStep amount={amount} reason={reason} contact={contact} name={profile.name.split(' ')[0]} onDone={finish} />
+          </StepTransition>
+        )}
       </SafeAreaView>
     </View>
   );

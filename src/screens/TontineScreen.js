@@ -5,6 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import WaxPattern from '../components/WaxPattern';
+import StepTransition from '../components/StepTransition';
+import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useEntrance, useFillIn } from '../hooks/animations';
 
@@ -162,6 +164,30 @@ function HomeStep({ onOpenGroup, onCreate, onBack }) {
           {GROUPS.map((g, i) => (
             <GroupItem key={g.key} item={g} delay={200 + i * 80} onPress={() => onOpenGroup(g)} />
           ))}
+        </View>
+
+        <View style={styles.howItWorks}>
+          <Text style={styles.howLabel}>Comment ça marche</Text>
+          <View style={{ gap: spacing.sm }}>
+            <View style={styles.howRow}>
+              <View style={styles.howIcon}>
+                <Text style={{ fontSize: 15 }}>💳</Text>
+              </View>
+              <Text style={styles.howText}>Chaque membre cotise le même montant, au même rythme</Text>
+            </View>
+            <View style={styles.howRow}>
+              <View style={styles.howIcon}>
+                <Text style={{ fontSize: 15 }}>🔒</Text>
+              </View>
+              <Text style={styles.howText}>K21 collecte automatiquement le jour convenu</Text>
+            </View>
+            <View style={styles.howRow}>
+              <View style={styles.howIcon}>
+                <Text style={{ fontSize: 15 }}>🏆</Text>
+              </View>
+              <Text style={styles.howText}>La cagnotte est versée à tour de rôle, en toute transparence</Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
 
@@ -342,23 +368,45 @@ function ReleaseStep({ onBack, onReceive }) {
 
 export default function TontineScreen({ navigation }) {
   const [step, setStep] = useState('home');
+  const { addTransaction } = useAppState();
+
+  const receivePot = () => {
+    addTransaction({
+      icon: '🏆',
+      iconBg: 'rgba(232,25,44,0.12)',
+      title: 'Médina Squad · Tontine',
+      subtitle: "À l'instant",
+      amount: 200000,
+    });
+    setStep('home');
+  };
 
   return (
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'home' && (
-          <HomeStep
-            onOpenGroup={(g) =>
-              g.releasing
-                ? setStep('release')
-                : navigation.navigate('Info', { title: g.name, subtitle: `${g.members} membres · Ce n'est pas encore ton tour.`, icon: g.icon })
-            }
-            onCreate={() => setStep('create')}
-            onBack={() => navigation.goBack()}
-          />
+          <StepTransition>
+            <HomeStep
+              onOpenGroup={(g) =>
+                g.releasing
+                  ? setStep('release')
+                  : navigation.navigate('Info', { title: g.name, subtitle: `${g.members} membres · Ce n'est pas encore ton tour.`, icon: g.icon })
+              }
+              onCreate={() => setStep('create')}
+              onBack={() => navigation.goBack()}
+            />
+          </StepTransition>
         )}
-        {step === 'create' && <CreateStep onBack={() => setStep('home')} onCreate={() => setStep('home')} />}
-        {step === 'release' && <ReleaseStep onBack={() => setStep('home')} onReceive={() => setStep('home')} />}
+        {step === 'create' && (
+          <StepTransition>
+            <CreateStep onBack={() => setStep('home')} onCreate={() => setStep('home')} />
+          </StepTransition>
+        )}
+        {step === 'release' && (
+          <StepTransition>
+            <ReleaseStep onBack={() => setStep('home')} onReceive={receivePot} />
+          </StepTransition>
+        )}
       </SafeAreaView>
     </View>
   );
@@ -383,6 +431,12 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 9, color: colors.whiteA30, marginTop: 2, textAlign: 'center' },
 
   groupsList: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.md, gap: spacing.md },
+
+  howItWorks: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.xxl },
+  howLabel: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.md },
+  howRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  howIcon: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.greenA08, alignItems: 'center', justifyContent: 'center' },
+  howText: { flex: 1, fontSize: 11, color: colors.whiteA40, lineHeight: 16 },
   groupItem: { borderRadius: radius.xl, overflow: 'hidden', borderWidth: 1, borderColor: colors.whiteA08 },
   groupItemReleasing: { borderColor: 'rgba(232,25,44,0.3)' },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, backgroundColor: 'rgba(255,255,255,0.03)' },
