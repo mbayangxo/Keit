@@ -3,8 +3,9 @@ import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
+import GlowButton from '../components/GlowButton';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
-import { useBlink, useEntrance, useGlowPulse, usePopIn } from '../hooks/animations';
+import { useBlink, useEntrance, usePopIn } from '../hooks/animations';
 
 // design/k21-remaining-flows.html, Flow 02 (Send Money) — three steps in one
 // screen: amount entry -> confirm/safety -> success. The safety screen is
@@ -36,15 +37,6 @@ function formatAmount(n) {
 function AmountCursor() {
   const blink = useBlink(1000, 0);
   return <Animated.View style={[styles.ahCursor, { opacity: blink }]} />;
-}
-
-function GlowButton({ label, onPress, style }) {
-  const glow = useGlowPulse(2500, 0.25);
-  return (
-    <PressScale scaleTo={0.96} onPress={onPress} style={[styles.btnG, style, { shadowOpacity: Animated.add(0.3, glow) }]}>
-      <Text style={styles.btnGText}>{label}</Text>
-    </PressScale>
-  );
 }
 
 function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelectContact }) {
@@ -334,8 +326,6 @@ const styles = StyleSheet.create({
   contactAva: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   contactLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.whiteA40 },
 
-  btnG: { width: '100%', height: 52, borderRadius: radius.xl, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center', shadowColor: colors.green, shadowOffset: { width: 0, height: 4 }, shadowRadius: 20, elevation: 6 },
-  btnGText: { fontFamily: fontFamily.displayBlack, fontSize: 11, letterSpacing: 0.5, color: colors.ink },
 
   // Confirm step
   csHero: { paddingHorizontal: spacing.giant, paddingTop: spacing.giant + 4, paddingBottom: spacing.giant, alignItems: 'center', position: 'relative', overflow: 'hidden', borderBottomWidth: 1, borderBottomColor: colors.greenA12 },
