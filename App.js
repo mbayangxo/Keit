@@ -2,12 +2,18 @@ import { useCallback, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { colors, fontsToLoad } from './src/theme';
-import HomeScreen from './src/screens/HomeScreen';
+import RootNavigator from './src/navigation/RootNavigator';
 
 SplashScreen.preventAutoHideAsync();
+
+const navTheme = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, background: colors.ink, card: colors.ink, border: colors.whiteA08 },
+};
 
 export default function App() {
   const [fontsLoaded] = useFonts(fontsToLoad);
@@ -26,7 +32,11 @@ export default function App() {
     <SafeAreaProvider>
       <View style={styles.root} onLayout={onLayout}>
         <StatusBar style="light" />
-        {ready && <HomeScreen />}
+        {ready && (
+          <NavigationContainer theme={navTheme}>
+            <RootNavigator />
+          </NavigationContainer>
+        )}
       </View>
     </SafeAreaProvider>
   );

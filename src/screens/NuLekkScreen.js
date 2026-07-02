@@ -74,7 +74,7 @@ function MemberRow({ item, delay }) {
   );
 }
 
-export default function NuLekkScreen() {
+export default function NuLekkScreen({ navigation }) {
   const plate = usePlateSpin();
   const poolEntrance = useEntrance(0, 800, 6);
   const progressFill = useFillIn(66, 200, 1500);
@@ -87,7 +87,7 @@ export default function NuLekkScreen() {
           <LinearGradient colors={['#ffe08a', '#ffb347', '#ff8c52']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={styles.hero}>
             <WaxPattern color="rgba(255,255,255,0.08)" size={14} durationMs={25000} />
             <View style={styles.heroBackRow}>
-              <PressScale scaleTo={0.9} style={styles.heroBack}>
+              <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.heroBack}>
                 <Text style={{ fontSize: 14, color: '#fff' }}>←</Text>
               </PressScale>
               <Text style={styles.heroTitle}>Ñu Lekk 🍖</Text>

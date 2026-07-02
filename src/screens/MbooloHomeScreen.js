@@ -168,7 +168,7 @@ function NowPlayingBar() {
   );
 }
 
-function ConversationRow({ item, delay }) {
+function ConversationRow({ item, delay, onPress }) {
   const entrance = useEntrance(delay, 350, 10);
   const ripple = useRipple(2000, 1.18);
   const badgePulse = useScalePulse(1500, 1.1);
@@ -180,7 +180,7 @@ function ConversationRow({ item, delay }) {
 
   return (
     <Animated.View style={entrance}>
-      <View style={[styles.convItem, item.unread && styles.convItemUnread]}>
+      <PressScale scaleTo={0.98} onPress={onPress} style={[styles.convItem, item.unread && styles.convItemUnread]}>
         <View style={styles.ciAvaWrap}>
           {item.unread && (
             <Animated.View
@@ -223,12 +223,12 @@ function ConversationRow({ item, delay }) {
             <Text style={styles.ciBadgeText}>{item.badge}</Text>
           </Animated.View>
         )}
-      </View>
+      </PressScale>
     </Animated.View>
   );
 }
 
-export default function MbooloHomeScreen() {
+export default function MbooloHomeScreen({ navigation }) {
   const logoBounce = useScalePulse(3000, 1.03);
 
   return (
@@ -269,7 +269,7 @@ export default function MbooloHomeScreen() {
 
           {CONVERSATIONS.map((c, i) => (
             <View key={c.key}>
-              <ConversationRow item={c} delay={i * 60} />
+              <ConversationRow item={c} delay={i * 60} onPress={() => navigation.navigate('MbooloChat', { conversation: c })} />
               {i < CONVERSATIONS.length - 1 && <View style={styles.convSep} />}
             </View>
           ))}

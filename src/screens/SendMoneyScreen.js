@@ -39,7 +39,7 @@ function AmountCursor() {
   return <Animated.View style={[styles.ahCursor, { opacity: blink }]} />;
 }
 
-function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelectContact }) {
+function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelectContact, onBack }) {
   const inputRef = useRef(null);
   const [focused, setFocused] = useState(false);
   const popIn = usePopIn(0, 400, 0.8);
@@ -50,9 +50,9 @@ function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelect
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.sendHero}>
           <View style={styles.shTop}>
-            <View style={styles.backBtn}>
+            <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
               <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
-            </View>
+            </PressScale>
             <Text style={styles.shTitle}>Envoyer</Text>
           </View>
 
@@ -255,15 +255,16 @@ function SuccessStep({ amount, reason, onDone }) {
   );
 }
 
-export default function SendMoneyScreen() {
+export default function SendMoneyScreen({ navigation }) {
   const [step, setStep] = useState('amount');
   const [amount, setAmount] = useState(5000);
   const [reason, setReason] = useState('Pour le taxi 🚕');
 
-  const reset = () => {
+  const finish = () => {
     setStep('amount');
     setAmount(5000);
     setReason('Pour le taxi 🚕');
+    navigation.goBack();
   };
 
   return (
@@ -277,12 +278,13 @@ export default function SendMoneyScreen() {
             setReason={setReason}
             onContinue={() => setStep('confirm')}
             onSelectContact={() => setStep('confirm')}
+            onBack={() => navigation.goBack()}
           />
         )}
         {step === 'confirm' && (
           <ConfirmStep amount={amount} reason={reason} onConfirm={() => setStep('success')} onCancel={() => setStep('amount')} />
         )}
-        {step === 'success' && <SuccessStep amount={amount} reason={reason} onDone={reset} />}
+        {step === 'success' && <SuccessStep amount={amount} reason={reason} onDone={finish} />}
       </SafeAreaView>
     </View>
   );

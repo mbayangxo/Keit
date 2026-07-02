@@ -64,16 +64,16 @@ function Corner({ style }) {
   return <View style={[styles.corner, style]} />;
 }
 
-function ScanStep({ onScan }) {
+function ScanStep({ onScan, onBack }) {
   const scanY = useScanLine(FRAME_SIZE - 3);
   const cornerOpacity = useCornerPulse();
 
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.scanHeader}>
-        <View style={styles.scanBackBtn}>
+        <PressScale scaleTo={0.9} onPress={onBack} style={styles.scanBackBtn}>
           <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
-        </View>
+        </PressScale>
         <Text style={styles.scanTitle}>Scanner</Text>
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
           <View style={styles.scanIconBtn}>
@@ -211,23 +211,24 @@ function SuccessStep({ amount, onDone }) {
   );
 }
 
-export default function PayMerchantScreen() {
+export default function PayMerchantScreen({ navigation }) {
   const [step, setStep] = useState('scan');
   const [amount, setAmount] = useState(1000);
 
-  const reset = () => {
+  const finish = () => {
     setStep('scan');
     setAmount(1000);
+    navigation.goBack();
   };
 
   return (
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        {step === 'scan' && <ScanStep onScan={() => setStep('confirm')} />}
+        {step === 'scan' && <ScanStep onScan={() => setStep('confirm')} onBack={() => navigation.goBack()} />}
         {step === 'confirm' && (
           <ConfirmStep amount={amount} setAmount={setAmount} onPay={() => setStep('success')} onCancel={() => setStep('scan')} />
         )}
-        {step === 'success' && <SuccessStep amount={amount} onDone={reset} />}
+        {step === 'success' && <SuccessStep amount={amount} onDone={finish} />}
       </SafeAreaView>
     </View>
   );

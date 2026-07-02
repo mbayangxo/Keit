@@ -172,7 +172,7 @@ function usePopMsg(delay = 0) {
   };
 }
 
-export default function MbooloChatScreen() {
+export default function MbooloChatScreen({ navigation }) {
   const sendPulse = useGlowShadow();
 
   return (
@@ -180,7 +180,7 @@ export default function MbooloChatScreen() {
       <WaxPattern color="rgba(232,92,26,0.04)" size={14} durationMs={25000} animated={false} />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.chatHead}>
-          <PressScale scaleTo={0.9} style={styles.chBack}>
+          <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.chBack}>
             <Text style={{ fontSize: 15, color: '#fff' }}>←</Text>
           </PressScale>
           <View style={styles.chAvaStack}>
@@ -228,9 +228,9 @@ export default function MbooloChatScreen() {
         </ScrollView>
 
         <View style={styles.inputRow}>
-          <View style={styles.ciAttach}>
+          <PressScale scaleTo={0.9} onPress={() => navigation.navigate('NuLekk')} style={styles.ciAttach}>
             <Text style={{ fontSize: 16 }}>📎</Text>
-          </View>
+          </PressScale>
           <View style={styles.ciField}>
             <Text style={{ color: colors.mboolo.ink2, fontSize: 13 }}>Ok yes je viens</Text>
             <Cursor />

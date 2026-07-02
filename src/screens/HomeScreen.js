@@ -1,6 +1,5 @@
 import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import WaxPattern from '../components/WaxPattern';
 import HomeHeroBackground from '../components/HomeHeroBackground';
@@ -20,25 +19,17 @@ import {
 } from '../hooks/animations';
 
 const ACTIONS = [
-  { icon: '💸', label: 'Yónnee', bg: colors.greenA12, border: colors.greenA20 },
-  { icon: '📥', label: 'Jël', bg: colors.goldA10, border: colors.goldA20 },
-  { icon: '🏪', label: 'Fey', bg: colors.orangeA10, border: colors.orangeA20 },
-  { icon: '⋯', label: 'Plus', bg: colors.whiteA06, border: colors.whiteA10 },
+  { icon: '💸', label: 'Yónnee', bg: colors.greenA12, border: colors.greenA20, route: 'SendMoney' },
+  { icon: '📥', label: 'Jël', bg: colors.goldA10, border: colors.goldA20, route: 'Receive' },
+  { icon: '🏪', label: 'Fey', bg: colors.orangeA10, border: colors.orangeA20, route: 'PayMerchant' },
+  { icon: '⋯', label: 'Plus', bg: colors.whiteA06, border: colors.whiteA10, route: 'MoreActions' },
 ];
 
-const NAV_ITEMS = [
-  { icon: '🏠', label: 'Accueil', on: true },
-  { icon: '💬', label: 'Mboolo', on: false },
-  { icon: '🎵', label: 'Rect', on: false },
-  { icon: '🔍', label: 'Explorer', on: false },
-  { icon: '👤', label: 'Moi', on: false },
-];
-
-function ActionButton({ icon, label, bg, border, delay }) {
+function ActionButton({ icon, label, bg, border, delay, onPress }) {
   const float = useFloatLoop(delay);
   return (
     <View style={styles.haItem}>
-      <PressScale scaleTo={0.9} style={[styles.haBtn, { backgroundColor: bg, borderColor: border }]}>
+      <PressScale scaleTo={0.9} onPress={onPress} style={[styles.haBtn, { backgroundColor: bg, borderColor: border }]}>
         <Animated.View style={{ transform: [{ translateY: float }] }}>
           <Text style={styles.haIcon}>{icon}</Text>
         </Animated.View>
@@ -97,13 +88,13 @@ function RectSoundCard() {
   );
 }
 
-function WakhnaMiniCard() {
+function WakhnaMiniCard({ onPress }) {
   const pop = usePopIn(300, 1000, 0.7);
   const fill = useFillIn(72, 500, 1200);
   const starPulse = useScalePulse(2000, 1.15);
 
   return (
-    <View style={styles.wakhnaMini}>
+    <PressScale onPress={onPress} scaleTo={0.98} style={styles.wakhnaMini}>
       <Animated.Text style={[styles.wmScore, pop]}>840</Animated.Text>
       <View style={styles.wmBody}>
         <Text style={styles.wmLabel}>Wakhna Score</Text>
@@ -120,16 +111,16 @@ function WakhnaMiniCard() {
         </View>
       </View>
       <Animated.Text style={[styles.wmStar, { transform: [{ scale: starPulse }] }]}>✦</Animated.Text>
-    </View>
+    </PressScale>
   );
 }
 
-function MbooloPulseCard() {
+function MbooloPulseCard({ onPress }) {
   const borderColor = useColorPulse(colors.terracottaA20, colors.terracottaA45, motion.pulse);
   const badgeScale = useScalePulse(1500, 1.15);
 
   return (
-    <Animated.View style={[styles.mbooloMini, { borderColor }]}>
+    <PressScale onPress={onPress} scaleTo={0.98} style={[styles.mbooloMini, { borderColor }]}>
       <View style={styles.mmAvaStack}>
         <View style={[styles.mmAva, { marginLeft: 0 }]}><Text style={styles.mmAvaText}>👩🏾</Text></View>
         <View style={styles.mmAva}><Text style={styles.mmAvaText}>👦🏿</Text></View>
@@ -142,7 +133,7 @@ function MbooloPulseCard() {
       <Animated.View style={[styles.mmBadge, { transform: [{ scale: badgeScale }] }]}>
         <Text style={styles.mmBadgeText}>4</Text>
       </Animated.View>
-    </Animated.View>
+    </PressScale>
   );
 }
 
@@ -161,7 +152,7 @@ function TransactionRow({ icon, iconBg, title, subtitle, amount, amountColor }) 
   );
 }
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   const notifBlink = useBlink();
   const balanceEntrance = useEntrance(0, 1000, 12);
 
@@ -204,7 +195,7 @@ export default function HomeScreen() {
 
               <View style={styles.homeActions}>
                 {ACTIONS.map((a, i) => (
-                  <ActionButton key={a.label} {...a} delay={i * 300} />
+                  <ActionButton key={a.label} {...a} delay={i * 300} onPress={() => navigation.navigate(a.route)} />
                 ))}
               </View>
             </View>
@@ -219,8 +210,8 @@ export default function HomeScreen() {
 
           <View style={styles.homeCards}>
             <RectSoundCard />
-            <WakhnaMiniCard />
-            <MbooloPulseCard />
+            <WakhnaMiniCard onPress={() => navigation.navigate('MoiTab')} />
+            <MbooloPulseCard onPress={() => navigation.navigate('MbooloTab')} />
           </View>
 
           <View style={styles.txSection}>
@@ -245,17 +236,6 @@ export default function HomeScreen() {
             </View>
           </View>
         </ScrollView>
-
-        {/* Bottom nav */}
-        <BlurView intensity={40} tint="dark" style={styles.bottomNav}>
-          {NAV_ITEMS.map((item) => (
-            <View key={item.label} style={styles.navItem}>
-              <Text style={styles.navIcon}>{item.icon}</Text>
-              {item.on && <View style={styles.navDot} />}
-              <Text style={[styles.navLabel, item.on && { color: colors.green }]}>{item.label}</Text>
-            </View>
-          ))}
-        </BlurView>
       </SafeAreaView>
     </View>
   );
@@ -332,10 +312,4 @@ const styles = StyleSheet.create({
   txTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
   txSub: { ...type.caption, color: colors.whiteA30 },
   txAmount: { fontFamily: fontFamily.bodyBold, fontSize: 13 },
-
-  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', paddingTop: spacing.lg, paddingBottom: spacing.xxxl, borderTopWidth: 1, borderTopColor: colors.whiteA08, overflow: 'hidden' },
-  navItem: { flex: 1, alignItems: 'center', gap: 3 },
-  navIcon: { fontSize: 20 },
-  navDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.green },
-  navLabel: { fontFamily: fontFamily.bodyBold, fontSize: 8, color: colors.whiteA30 },
 });
