@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
-import { useBlink, useEntrance, usePopIn } from '../hooks/animations';
+import { useBlink, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 
 // No HTML prototype exists for Receive (Jël) — only the Home Dashboard
 // action label. Designed to mirror Send Money's structure per brief §05:
@@ -115,6 +115,7 @@ function RequestStep({ amount, setAmount, reason, setReason, contact, setContact
 }
 
 function SentStep({ amount, reason, contact, onDone }) {
+  useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.3);
   const title = useEntrance(200, 500, 10);
   const previewEntrance = useEntrance(400, 500, 10);

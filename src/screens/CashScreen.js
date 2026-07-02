@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
-import { useBlink, useEntrance, usePopIn } from '../hooks/animations';
+import { useBlink, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 
 // No HTML prototype exists for Cash In/Out (Julaya agent network) — only
 // mentioned in the brief's Phase 1 scope. Designed to match the established
@@ -185,6 +185,7 @@ function CodeStep({ mode, amount, agent, onDone }) {
 }
 
 function SuccessStep({ mode, amount, agent, onDone }) {
+  useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.3);
   const title = useEntrance(200, 500, 10);
   const sub = useEntrance(300, 500, 10);

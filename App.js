@@ -3,12 +3,13 @@ import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
-import * as SplashScreen from 'expo-splash-screen';
+import * as ExpoSplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { colors, fontsToLoad } from './src/theme';
 import RootNavigator from './src/navigation/RootNavigator';
+import BrandSplashScreen from './src/screens/SplashScreen';
 
-SplashScreen.preventAutoHideAsync();
+ExpoSplashScreen.preventAutoHideAsync();
 
 const navTheme = {
   ...DarkTheme,
@@ -17,12 +18,11 @@ const navTheme = {
 
 export default function App() {
   const [fontsLoaded] = useFonts(fontsToLoad);
-  const [ready, setReady] = useState(false);
+  const [brandSplashDone, setBrandSplashDone] = useState(false);
 
   const onLayout = useCallback(async () => {
     if (fontsLoaded) {
-      setReady(true);
-      await SplashScreen.hideAsync();
+      await ExpoSplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
 
@@ -32,7 +32,9 @@ export default function App() {
     <SafeAreaProvider>
       <View style={styles.root} onLayout={onLayout}>
         <StatusBar style="light" />
-        {ready && (
+        {!brandSplashDone ? (
+          <BrandSplashScreen onFinish={() => setBrandSplashDone(true)} />
+        ) : (
           <NavigationContainer theme={navTheme}>
             <RootNavigator />
           </NavigationContainer>

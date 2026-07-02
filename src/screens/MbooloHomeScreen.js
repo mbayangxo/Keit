@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import WaxPattern from '../components/WaxPattern';
@@ -230,6 +230,11 @@ function ConversationRow({ item, delay, onPress }) {
 
 export default function MbooloHomeScreen({ navigation }) {
   const logoBounce = useScalePulse(3000, 1.03);
+  const [query, setQuery] = useState('');
+  const searchRef = useRef(null);
+  const filteredConversations = CONVERSATIONS.filter(
+    (c) => c.name.toLowerCase().includes(query.trim().toLowerCase()) || c.preview.toLowerCase().includes(query.trim().toLowerCase())
+  );
 
   return (
     <View style={styles.root}>
@@ -241,10 +246,14 @@ export default function MbooloHomeScreen({ navigation }) {
         <View style={styles.topBar}>
           <Animated.Text style={[styles.logo, { transform: [{ scale: logoBounce }] }]}>Mboolo</Animated.Text>
           <View style={{ flexDirection: 'row', gap: spacing.md }}>
-            <PressScale scaleTo={0.9} style={styles.mbIcon}>
+            <PressScale
+              scaleTo={0.9}
+              onPress={() => navigation.navigate('Info', { title: 'Nouvelle conversation', subtitle: 'Bientôt disponible.', icon: '✏️' })}
+              style={styles.mbIcon}
+            >
               <Text style={{ fontSize: 17 }}>✏️</Text>
             </PressScale>
-            <PressScale scaleTo={0.9} style={styles.mbIcon}>
+            <PressScale scaleTo={0.9} onPress={() => searchRef.current?.focus()} style={styles.mbIcon}>
               <Text style={{ fontSize: 17 }}>🔍</Text>
             </PressScale>
           </View>
@@ -252,7 +261,7 @@ export default function MbooloHomeScreen({ navigation }) {
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
           <View style={{ paddingHorizontal: spacing.huge, paddingTop: spacing.lg }}>
-            <SearchBar />
+            <SearchBar query={query} setQuery={setQuery} inputRef={searchRef} />
           </View>
 
           <View style={styles.storyRow}>
@@ -267,10 +276,13 @@ export default function MbooloHomeScreen({ navigation }) {
 
           <Text style={styles.convDivider}>Messages</Text>
 
-          {CONVERSATIONS.map((c, i) => (
+          {filteredConversations.length === 0 && (
+            <Text style={styles.noResults}>Aucune conversation pour "{query}"</Text>
+          )}
+          {filteredConversations.map((c, i) => (
             <View key={c.key}>
               <ConversationRow item={c} delay={i * 60} onPress={() => navigation.navigate('MbooloChat', { conversation: c })} />
-              {i < CONVERSATIONS.length - 1 && <View style={styles.convSep} />}
+              {i < filteredConversations.length - 1 && <View style={styles.convSep} />}
             </View>
           ))}
         </ScrollView>
@@ -280,15 +292,22 @@ export default function MbooloHomeScreen({ navigation }) {
 }
 
 // `search-glow`: border-color oscillates rgba(232,92,26,.15) <-> .35, 4s, infinite.
-function SearchBar() {
+const SearchBar = ({ query, setQuery, inputRef }) => {
   const borderColor = useColorPulse('rgba(232,92,26,0.15)', 'rgba(232,92,26,0.35)', 4000);
   return (
     <Animated.View style={[styles.searchBar, { borderColor }]}>
       <Text style={{ fontSize: 14, color: colors.mboolo.ink3 }}>🔍</Text>
-      <Text style={{ fontSize: 13, color: colors.mboolo.ink3 }}>Rechercher...</Text>
+      <TextInput
+        ref={inputRef}
+        style={styles.searchInput}
+        placeholder="Rechercher..."
+        placeholderTextColor={colors.mboolo.ink3}
+        value={query}
+        onChangeText={setQuery}
+      />
     </Animated.View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.mboolo.bg },
@@ -298,6 +317,8 @@ const styles = StyleSheet.create({
   mbIcon: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.mboolo.terraPale, borderWidth: 1.5, borderColor: colors.mboolo.border, alignItems: 'center', justifyContent: 'center' },
 
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: '#fff', borderWidth: 2, borderColor: colors.mboolo.border, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, height: 42, marginBottom: spacing.xxxl, shadowColor: '#b43c0a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 2 },
+  searchInput: { flex: 1, fontSize: 13, color: colors.mboolo.ink },
+  noResults: { textAlign: 'center', fontSize: 12, color: colors.mboolo.ink3, paddingVertical: spacing.giant },
 
   storyRow: { flexDirection: 'row', gap: spacing.lg, paddingHorizontal: spacing.huge, paddingBottom: spacing.xxxl },
   storyItem: { alignItems: 'center', gap: spacing.xs },

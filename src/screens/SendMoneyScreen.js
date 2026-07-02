@@ -5,7 +5,7 @@ import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
-import { useBlink, useEntrance, usePopIn } from '../hooks/animations';
+import { useBlink, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 
 // design/k21-remaining-flows.html, Flow 02 (Send Money) — three steps in one
 // screen: amount entry -> confirm/safety -> success. The safety screen is
@@ -127,7 +127,7 @@ function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelect
                 <Text style={styles.contactLabel}>{c.name}</Text>
               </PressScale>
             ))}
-            <PressScale scaleTo={0.9} style={styles.contactItem}>
+            <PressScale scaleTo={0.9} onPress={onSelectContact} style={styles.contactItem}>
               <View style={[styles.contactAva, { backgroundColor: colors.whiteA08, borderColor: colors.whiteA12, borderStyle: 'dashed' }]}>
                 <Text style={{ fontSize: 20, color: colors.whiteA30 }}>+</Text>
               </View>
@@ -200,6 +200,7 @@ function ConfirmStep({ amount, reason, onConfirm, onCancel }) {
 }
 
 function SuccessStep({ amount, reason, onDone }) {
+  useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.3);
   const title = useEntrance(200, 500, 10);
   const sub = useEntrance(300, 500, 10);

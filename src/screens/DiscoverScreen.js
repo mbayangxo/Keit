@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
@@ -14,12 +14,12 @@ import { useEntrance, useBlink, useScalePulse } from '../hooks/animations';
 const TABS = ['Tout', 'Culture', 'Eat', 'Gigs', 'Events'];
 
 const DISCOVER_GRID = [
-  { key: 'concert', wide: true, bg: ['#0a1f0a', '#020a02'], icon: '🎤', cat: 'CE SOIR', catColor: colors.green, title: 'Soirée Mbalax — Saliou K.', meta: 'Place de l’Obélisque · Gratuit K21', live: true },
-  { key: 'chart', bg: ['#1a1000', '#0a0800'], icon: '🎵', cat: 'Chart 221', catColor: colors.flagGold, title: '"Yëkël" #1', meta: 'Saliou K.' },
-  { key: 'flash', bg: ['#001a08', '#000a04'], icon: '🍖', cat: 'Flash deal', catColor: colors.green, title: '-30% Dibiterie', meta: 'Expire dans 2h ⏱️' },
-  { key: 'merchant', bg: ['#1a0008', '#0a0004'], icon: '🏬', cat: 'Marchand', catColor: colors.flagRed, title: 'Sandaga Market', meta: '1 200 K21 payments', live: true },
-  { key: 'gig', bg: ['#0a0a1a', '#04040a'], icon: '💼', cat: 'Gig', catColor: colors.flagGold, title: 'Livreur weekend', meta: '5 000 F/jour' },
-  { key: 'event', bg: ['#1a0800', '#0a0400'], icon: '🌙', cat: 'Event', catColor: colors.orange, title: 'Concert ce soir', meta: 'Médina · Gratuit' },
+  { key: 'concert', wide: true, bg: ['#0a1f0a', '#020a02'], icon: '🎤', cat: 'CE SOIR', catColor: colors.green, title: 'Soirée Mbalax — Saliou K.', meta: 'Place de l’Obélisque · Gratuit K21', live: true, tab: 'Events' },
+  { key: 'chart', bg: ['#1a1000', '#0a0800'], icon: '🎵', cat: 'Chart 221', catColor: colors.flagGold, title: '"Yëkël" #1', meta: 'Saliou K.', info: true },
+  { key: 'flash', bg: ['#001a08', '#000a04'], icon: '🍖', cat: 'Flash deal', catColor: colors.green, title: '-30% Dibiterie', meta: 'Expire dans 2h ⏱️', tab: 'Eat' },
+  { key: 'merchant', bg: ['#1a0008', '#0a0004'], icon: '🏬', cat: 'Marchand', catColor: colors.flagRed, title: 'Sandaga Market', meta: '1 200 K21 payments', live: true, tab: 'Eat' },
+  { key: 'gig', bg: ['#0a0a1a', '#04040a'], icon: '💼', cat: 'Gig', catColor: colors.flagGold, title: 'Livreur weekend', meta: '5 000 F/jour', tab: 'Gigs' },
+  { key: 'event', bg: ['#1a0800', '#0a0400'], icon: '🌙', cat: 'Event', catColor: colors.orange, title: 'Concert ce soir', meta: 'Médina · Gratuit', tab: 'Events' },
 ];
 
 const FLASH_DEALS = [
@@ -64,11 +64,11 @@ function Pill({ label, active, onPress }) {
   );
 }
 
-function GridTile({ item, delay }) {
+function GridTile({ item, delay, onPress }) {
   const entrance = useEntrance(delay, 350, 8);
   const liveDot = useBlink(1000, 0.3);
   return (
-    <Animated.View style={[styles.dgItem, item.wide && styles.dgItemWide, entrance, { backgroundColor: item.bg[0] }]}>
+    <PressScale scaleTo={0.96} onPress={onPress} style={[styles.dgItem, item.wide && styles.dgItemWide, entrance, { backgroundColor: item.bg[0] }]}>
       <Text style={styles.dgBg}>{item.icon}</Text>
       <View style={styles.dgOverlay} />
       {item.live && <Animated.View style={[styles.dgLiveDot, { opacity: liveDot }]} />}
@@ -77,15 +77,22 @@ function GridTile({ item, delay }) {
         <Text style={styles.dgTitle} numberOfLines={2}>{item.title}</Text>
         <Text style={styles.dgMeta}>{item.meta}</Text>
       </View>
-    </Animated.View>
+    </PressScale>
   );
 }
 
-function AllTab() {
+function AllTab({ query, onOpenTab, onOpenInfo }) {
+  const filtered = DISCOVER_GRID.filter((item) => item.title.toLowerCase().includes(query.trim().toLowerCase()));
   return (
     <View style={styles.discGrid}>
-      {DISCOVER_GRID.map((item, i) => (
-        <GridTile key={item.key} item={item} delay={i * 50} />
+      {filtered.length === 0 && <Text style={styles.noResults}>Rien pour "{query}"</Text>}
+      {filtered.map((item, i) => (
+        <GridTile
+          key={item.key}
+          item={item}
+          delay={i * 50}
+          onPress={() => (item.info ? onOpenInfo(item) : onOpenTab(item.tab ?? 'Tout'))}
+        />
       ))}
     </View>
   );
@@ -185,6 +192,7 @@ function EventHeroCard() {
 
 function EventRow({ item, delay }) {
   const entrance = useEntrance(delay, 350, 8);
+  const [going, setGoing] = useState(false);
   return (
     <Animated.View style={[styles.evItem, entrance]}>
       <View style={styles.evDateBox}>
@@ -194,10 +202,10 @@ function EventRow({ item, delay }) {
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={styles.evTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.evMeta}>{item.meta}</Text>
-        <Text style={styles.evPrice}>{item.price}</Text>
+        <Text style={styles.evPrice}>{going ? 'Tu y vas ✓' : item.price}</Text>
       </View>
-      <PressScale scaleTo={0.9} style={styles.evGoing}>
-        <Text style={{ fontSize: 12 }}>🎟️</Text>
+      <PressScale scaleTo={0.9} onPress={() => setGoing((v) => !v)} style={[styles.evGoing, going && styles.evGoingOn]}>
+        <Text style={{ fontSize: 12 }}>{going ? '✓' : '🎟️'}</Text>
       </PressScale>
     </Animated.View>
   );
@@ -266,15 +274,23 @@ function GigsTab() {
   );
 }
 
-export default function DiscoverScreen() {
+export default function DiscoverScreen({ navigation }) {
   const [tab, setTab] = useState('Tout');
+  const [query, setQuery] = useState('');
 
   return (
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.hero}>
           <View style={styles.searchRow}>
-            <Text style={styles.searchText}>🔍 Chercher...</Text>
+            <Text style={{ fontSize: 12 }}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Chercher..."
+              placeholderTextColor={colors.whiteA30}
+              value={query}
+              onChangeText={setQuery}
+            />
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsRow}>
             {TABS.map((label) => (
@@ -284,7 +300,13 @@ export default function DiscoverScreen() {
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
-          {tab === 'Tout' && <AllTab />}
+          {tab === 'Tout' && (
+            <AllTab
+              query={query}
+              onOpenTab={setTab}
+              onOpenInfo={(item) => navigation.navigate('Info', { title: item.title, subtitle: `${item.cat} — bientôt disponible.`, icon: item.icon })}
+            />
+          )}
           {tab === 'Culture' && <CultureTab />}
           {tab === 'Eat' && <EatTab />}
           {tab === 'Gigs' && <GigsTab />}
@@ -299,8 +321,10 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
 
   hero: { paddingHorizontal: 15, paddingTop: spacing.xl, backgroundColor: 'rgba(255,100,34,0.06)', borderBottomWidth: 1, borderBottomColor: colors.orangeA10 },
-  searchRow: { height: 36, maxWidth: 180, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, borderRadius: radius.round, justifyContent: 'center', paddingHorizontal: spacing.xl, marginBottom: spacing.xl },
+  searchRow: { height: 36, maxWidth: 180, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, borderRadius: radius.round, paddingHorizontal: spacing.xl, marginBottom: spacing.xl },
   searchText: { fontSize: 11, color: colors.whiteA30 },
+  searchInput: { flex: 1, fontSize: 11, color: colors.white },
+  noResults: { width: '100%', textAlign: 'center', fontSize: 12, color: colors.whiteA30, paddingVertical: spacing.giant },
   pillsRow: { gap: 7, paddingBottom: spacing.xl },
 
   pill: { height: 32, paddingHorizontal: spacing.xxl, borderRadius: radius.round, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
@@ -367,6 +391,7 @@ const styles = StyleSheet.create({
   evMeta: { fontSize: 9, color: colors.whiteA35, marginTop: 2 },
   evPrice: { fontSize: 10, fontWeight: '700', color: colors.flagGold, marginTop: 3 },
   evGoing: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.greenA10, borderWidth: 1.5, borderColor: colors.greenA25, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
+  evGoingOn: { backgroundColor: colors.green },
 
   sectionLabel: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.sm },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg, padding: spacing.xl },

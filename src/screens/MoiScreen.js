@@ -84,9 +84,9 @@ function HighlightRing({ item }) {
   );
 }
 
-function SettingsRow({ item }) {
+function SettingsRow({ item, onPress }) {
   return (
-    <PressScale scaleTo={0.98} style={styles.settingsRow}>
+    <PressScale scaleTo={0.98} onPress={onPress} style={styles.settingsRow}>
       <View style={styles.settingsIcon}>
         <Text style={{ fontSize: 18 }}>{item.icon}</Text>
       </View>
@@ -127,7 +127,7 @@ function K21PassCard() {
   );
 }
 
-export default function MoiScreen() {
+export default function MoiScreen({ navigation }) {
   const avatarGlow = useAvatarPulse();
   const wakhnaFill = useFillIn(72, 400, 1200);
   const starSpin = useScalePulse(3000, 1.15);
@@ -168,7 +168,11 @@ export default function MoiScreen() {
                     <Text style={styles.location}>📍 Médina · Dakar</Text>
                   </View>
                 </View>
-                <PressScale scaleTo={0.94} style={styles.editBtn}>
+                <PressScale
+                  scaleTo={0.94}
+                  onPress={() => navigation.navigate('Info', { title: 'Modifier le profil', subtitle: 'L’édition du profil arrive bientôt.', icon: '✏️' })}
+                  style={styles.editBtn}
+                >
                   <Text style={styles.editBtnText}>Modifier</Text>
                 </PressScale>
               </View>
@@ -228,7 +232,7 @@ export default function MoiScreen() {
           <View style={{ paddingHorizontal: spacing.huge, gap: spacing.sm }}>
             <Text style={styles.sectionLabel}>Paramètres</Text>
             {SETTINGS.map((s) => (
-              <SettingsRow key={s.key} item={s} />
+              <SettingsRow key={s.key} item={s} onPress={() => navigation.navigate('Info', { title: s.title, subtitle: `${s.subtitle} — bientôt disponible.`, icon: s.icon })} />
             ))}
           </View>
         </ScrollView>

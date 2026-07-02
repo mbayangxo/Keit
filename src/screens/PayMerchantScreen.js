@@ -5,7 +5,7 @@ import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import WaxPattern from '../components/WaxPattern';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
-import { useEntrance, usePopIn } from '../hooks/animations';
+import { useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 
 // No HTML prototype exists for the Pay Merchant QR (Fey) flow — only the
 // "Fey" action label appears on the Home Dashboard. Designed to match the
@@ -64,9 +64,10 @@ function Corner({ style }) {
   return <View style={[styles.corner, style]} />;
 }
 
-function ScanStep({ onScan, onBack }) {
+function ScanStep({ onScan, onBack, onImportImage }) {
   const scanY = useScanLine(FRAME_SIZE - 3);
   const cornerOpacity = useCornerPulse();
+  const [torchOn, setTorchOn] = useState(false);
 
   return (
     <View style={{ flex: 1 }}>
@@ -76,12 +77,16 @@ function ScanStep({ onScan, onBack }) {
         </PressScale>
         <Text style={styles.scanTitle}>Scanner</Text>
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
-          <View style={styles.scanIconBtn}>
+          <PressScale scaleTo={0.9} onPress={() => setTorchOn((v) => !v)} style={[styles.scanIconBtn, torchOn && styles.scanIconBtnOn]}>
             <Text style={{ fontSize: 15 }}>🔦</Text>
-          </View>
-          <View style={styles.scanIconBtn}>
+          </PressScale>
+          <PressScale
+            scaleTo={0.9}
+            onPress={() => onImportImage()}
+            style={styles.scanIconBtn}
+          >
             <Text style={{ fontSize: 15 }}>🖼️</Text>
-          </View>
+          </PressScale>
         </View>
       </View>
 
@@ -165,6 +170,7 @@ function ConfirmStep({ amount, setAmount, onPay, onCancel }) {
 }
 
 function SuccessStep({ amount, onDone }) {
+  useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.3);
   const title = useEntrance(200, 500, 10);
   const sub = useEntrance(300, 500, 10);
@@ -224,7 +230,13 @@ export default function PayMerchantScreen({ navigation }) {
   return (
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        {step === 'scan' && <ScanStep onScan={() => setStep('confirm')} onBack={() => navigation.goBack()} />}
+        {step === 'scan' && (
+          <ScanStep
+            onScan={() => setStep('confirm')}
+            onBack={() => navigation.goBack()}
+            onImportImage={() => navigation.navigate('Info', { title: 'Importer un QR', subtitle: 'Scanner depuis une image arrive bientôt.', icon: '🖼️' })}
+          />
+        )}
         {step === 'confirm' && (
           <ConfirmStep amount={amount} setAmount={setAmount} onPay={() => setStep('success')} onCancel={() => setStep('scan')} />
         )}
@@ -242,6 +254,7 @@ const styles = StyleSheet.create({
   scanBackBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
   scanTitle: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.white },
   scanIconBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
+  scanIconBtnOn: { backgroundColor: colors.greenA20, borderColor: colors.greenA30 },
 
   scanBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.giant },
   scanBackdrop: { position: 'absolute', fontSize: 220, opacity: 0.04 },

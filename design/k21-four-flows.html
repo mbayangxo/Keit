@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>K21 — Four Flows</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --ink:#050805;
+  --G:#1af060;   /* Senegal green */
+  --Y:#f7b731;   /* K21 gold */
+  --SY:#fad836;  /* Senegal flag yellow — brighter */
+  --SR:#e8192c;  /* Senegal flag red — true red */
+  --O:#ff6422;
+  --w:#fff;
+  --w04:rgba(255,255,255,.04);
+  --w06:rgba(255,255,255,.06);
+  --w08:rgba(255,255,255,.08);
+  --w12:rgba(255,255,255,.12);
+  --w20:rgba(255,255,255,.20);
+  --w30:rgba(255,255,255,.30);
+  --w40:rgba(255,255,255,.40);
+  --w55:rgba(255,255,255,.55);
+  --w70:rgba(255,255,255,.70);
+}
+html,body{
+  background:#020302;font-family:'Outfit',sans-serif;color:var(--w);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:32px 16px 80px;
+}
+.page-h{
+  font-family:'Unbounded',sans-serif;font-size:8px;font-weight:700;
+  letter-spacing:4px;color:rgba(255,255,255,.18);text-transform:uppercase;
+  margin-bottom:6px;text-align:center;
+}
+.page-sub{font-size:11px;color:rgba(255,255,255,.22);margin-bottom:10px;text-align:center;}
+
+/* Senegal flag stripe accent */
+.flag-stripe{
+  display:flex;height:3px;border-radius:2px;overflow:hidden;margin-bottom:36px;
+  width:120px;
+}
+.fs-g{flex:1;background:var(--G);}
+.fs-y{flex:1;background:var(--SY);}
+.fs-r{flex:1;background:var(--SR);}
+
+.section-title{
+  font-family:'Unbounded',sans-serif;font-size:10px;font-weight:900;
+  letter-spacing:3px;color:rgba(255,255,255,.25);text-transform:uppercase;
+  margin-bottom:6px;text-align:center;
+}
+.section-sub{font-size:11px;color:rgba(255,255,255,.18);margin-bottom:20px;text-align:center;}
+
+.row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-start;margin-bottom:56px;}
+.col{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.col-l{
+  font-size:9px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.2);
+  text-transform:uppercase;text-align:center;
+}
+.arrow{color:rgba(255,255,255,.12);font-size:18px;padding-top:50px;align-self:flex-start;flex-shrink:0;}
+
+/* PHONE */
+.phone{
+  width:320px;height:680px;background:var(--ink);border-radius:38px;
+  overflow:hidden;position:relative;flex-shrink:0;
+  box-shadow:0 0 0 1px rgba(255,255,255,.06),0 40px 80px rgba(0,0,0,.85);
+}
+.phone.tall{height:720px;}
+.sb{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:relative;z-index:10;flex-shrink:0;}
+.sb-t{font-size:11px;font-weight:700;letter-spacing:-.3px;}
+.sb-r{font-size:10px;color:var(--w30);}
+
+/* Wax diamond pattern */
+.wax{
+  position:absolute;inset:0;pointer-events:none;
+  background-image:
+    repeating-linear-gradient(45deg,rgba(255,255,255,.06) 0px,rgba(255,255,255,.06) 1px,transparent 1px,transparent 18px),
+    repeating-linear-gradient(-45deg,rgba(255,255,255,.06) 0px,rgba(255,255,255,.06) 1px,transparent 1px,transparent 18px);
+  background-size:18px 18px;
+}
+
+/* Shared UI */
+.back-btn{width:36px;height:36px;border-radius:12px;background:var(--w08);border:1px solid var(--w12);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;flex-shrink:0;}
+.btn-g{width:100%;height:52px;border-radius:14px;border:none;background:var(--G);color:var(--ink);font-family:'Unbounded',sans-serif;font-size:11px;font-weight:900;letter-spacing:.5px;cursor:pointer;box-shadow:0 4px 20px rgba(26,240,96,.3);}
+.btn-y{width:100%;height:52px;border-radius:14px;border:none;background:var(--SY);color:var(--ink);font-family:'Unbounded',sans-serif;font-size:11px;font-weight:900;letter-spacing:.5px;cursor:pointer;box-shadow:0 4px 20px rgba(250,216,54,.3);}
+.btn-r{width:100%;height:52px;border-radius:14px;border:none;background:var(--SR);color:var(--w);font-family:'Unbounded',sans-serif;font-size:11px;font-weight:900;letter-spacing:.5px;cursor:pointer;box-shadow:0 4px 20px rgba(232,25,44,.3);}
+.screen-scroll{position:absolute;top:44px;left:0;right:0;bottom:0;overflow-y:auto;scrollbar-width:none;}
+.screen-scroll::-webkit-scrollbar{display:none;}
+.pad{padding:0 20px;}
+.sec-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:6px;}
+.headline{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;letter-spacing:-.5px;line-height:1.15;margin-bottom:6px;}
+.subline{font-size:12px;color:var(--w40);line-height:1.6;margin-bottom:20px;}
+.field{width:100%;height:50px;border-radius:13px;background:var(--w08);border:1.5px solid var(--w12);padding:0 16px;font-family:'Outfit',sans-serif;font-size:14px;color:var(--w);outline:none;}
+.field:focus{border-color:rgba(26,240,96,.35);box-shadow:0 0 0 3px rgba(26,240,96,.06);}
+
+/* ═══════════════════════════════════════════
+   FLOW 1 — TONTINE DIGITALE
+   Bold green header, red accents for pot release
+═══════════════════════════════════════════ */
+
+/* Screen T1 — Tontine home */
+.t-hero{
+  background:linear-gradient(160deg,rgba(26,240,96,.18) 0%,rgba(26,240,96,.04) 50%,transparent 100%);
+  border-bottom:1px solid rgba(26,240,96,.15);
+  padding:20px 20px 22px;position:relative;overflow:hidden;
+}
+.t-hero .wax{opacity:.4;}
+.th-flag{display:flex;height:2px;border-radius:1px;overflow:hidden;width:48px;margin-bottom:12px;}
+.th-flag .g{flex:1;background:var(--G);}
+.th-flag .y{flex:1;background:var(--SY);}
+.th-flag .r{flex:1;background:var(--SR);}
+.th-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--G);text-transform:uppercase;margin-bottom:6px;}
+.th-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;letter-spacing:-.8px;margin-bottom:4px;}
+.th-sub{font-size:12px;color:var(--w40);}
+.th-stats{display:flex;gap:10px;margin-top:16px;}
+.ths{flex:1;background:rgba(0,0,0,.3);border:1px solid rgba(26,240,96,.15);border-radius:12px;padding:10px;text-align:center;}
+.ths-n{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:var(--G);letter-spacing:-.5px;}
+.ths-l{font-size:9px;color:var(--w30);margin-top:2px;}
+
+.t-groups{padding:14px 16px;display:flex;flex-direction:column;gap:8px;}
+.tg-item{
+  border-radius:16px;overflow:hidden;cursor:pointer;
+  border:1px solid var(--w08);
+  transition:transform .15s;
+}
+.tg-item:active{transform:scale(.98);}
+.tg-header{
+  padding:12px 14px 10px;
+  display:flex;align-items:center;gap:10px;
+}
+.tg-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.tg-body{flex:1;}
+.tg-name{font-size:13px;font-weight:700;margin-bottom:2px;}
+.tg-meta{font-size:10px;color:var(--w35);}
+.tg-amount{text-align:right;}
+.tg-a{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;}
+.tg-a-l{font-size:9px;color:var(--w30);}
+
+/* progress bar */
+.tg-progress{height:3px;background:var(--w08);}
+.tg-prog-fill{height:100%;border-radius:0;transition:width .4s;}
+
+/* pot release highlight — BOLD RED */
+.tg-item.releasing .tg-header{background:linear-gradient(135deg,rgba(232,25,44,.15),rgba(232,25,44,.05));}
+.tg-item.releasing{border-color:rgba(232,25,44,.3);}
+.release-badge{background:var(--SR);color:var(--w);font-size:8px;font-weight:700;letter-spacing:.5px;border-radius:6px;padding:3px 8px;text-transform:uppercase;}
+
+.t-create-btn{
+  margin:4px 16px 20px;
+  height:48px;border-radius:13px;border:none;
+  background:rgba(26,240,96,.08);border:1.5px solid rgba(26,240,96,.2);
+  color:var(--G);font-family:'Unbounded',sans-serif;font-size:10px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+  letter-spacing:.5px;
+}
+
+/* Screen T2 — Create tontine */
+.t-create{position:absolute;top:44px;left:0;right:0;bottom:0;overflow-y:auto;scrollbar-width:none;padding:16px 18px 20px;}
+.t-create::-webkit-scrollbar{display:none;}
+
+.tc-head{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.tc-title{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;}
+
+.tc-field-group{margin-bottom:14px;}
+.tcf-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:6px;}
+.tcf-input{width:100%;height:50px;border-radius:13px;background:var(--w08);border:1.5px solid var(--w12);padding:0 16px;font-family:'Outfit',sans-serif;font-size:14px;color:var(--w);outline:none;}
+.tcf-input.filled{border-color:rgba(26,240,96,.25);}
+
+/* amount chips */
+.amount-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:4px;}
+.ac{height:36px;padding:0 14px;border-radius:100px;background:var(--w06);border:1.5px solid var(--w10);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;transition:all .15s;}
+.ac.on{background:rgba(26,240,96,.1);border-color:rgba(26,240,96,.3);color:var(--G);}
+
+/* frequency selector */
+.freq-row{display:flex;gap:7px;}
+.freq-opt{flex:1;height:44px;border-radius:12px;background:var(--w06);border:1.5px solid var(--w10);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;}
+.freq-opt.on{background:rgba(250,216,54,.1);border-color:rgba(250,216,54,.3);color:var(--SY);}
+
+/* members */
+.member-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
+.m-item{display:flex;align-items:center;gap:10px;background:var(--w06);border-radius:11px;padding:9px 12px;}
+.m-ava{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.m-name{flex:1;font-size:12px;font-weight:600;}
+.m-order{font-size:9px;font-weight:700;color:var(--G);background:rgba(26,240,96,.1);border-radius:6px;padding:2px 7px;}
+.m-add{display:flex;align-items:center;gap:10px;background:transparent;border:1.5px dashed var(--w12);border-radius:11px;padding:9px 12px;cursor:pointer;}
+.ma-ico{width:32px;height:32px;border-radius:50%;background:var(--w08);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.ma-text{font-size:12px;color:var(--w35);}
+
+/* preview card */
+.tontine-preview{
+  background:linear-gradient(145deg,rgba(26,240,96,.08),rgba(26,240,96,.02));
+  border:1px solid rgba(26,240,96,.2);border-radius:16px;padding:14px;margin-bottom:14px;
+}
+.tp-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.tp-l{font-size:10px;color:var(--w30);}
+.tp-r{font-size:12px;font-weight:700;}
+.tp-r.g{color:var(--G);}
+.tp-divider{height:1px;background:var(--w08);margin:8px 0;}
+
+/* Screen T3 — Active tontine / pot release */
+.pot-release-hero{
+  background:linear-gradient(160deg,rgba(232,25,44,.22) 0%,rgba(232,25,44,.06) 55%,transparent 100%);
+  border-bottom:1px solid rgba(232,25,44,.2);
+  padding:20px;position:relative;overflow:hidden;text-align:center;
+}
+.prh-wax{position:absolute;inset:0;opacity:.3;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.06) 0px,rgba(255,255,255,.06) 1px,transparent 1px,transparent 18px),repeating-linear-gradient(-45deg,rgba(255,255,255,.06) 0px,rgba(255,255,255,.06) 1px,transparent 1px,transparent 18px);background-size:18px 18px;}
+.prh-badge{display:inline-flex;align-items:center;gap:5px;background:var(--SR);border-radius:100px;padding:4px 12px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:14px;}
+.prh-dot{width:5px;height:5px;border-radius:50%;background:#fff;animation:blink .8s ease-in-out infinite;}
+.prh-name{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;margin-bottom:8px;}
+.prh-amount{font-family:'Unbounded',sans-serif;font-size:44px;font-weight:900;letter-spacing:-2px;color:var(--SR);line-height:1;text-shadow:0 0 40px rgba(232,25,44,.3);}
+.prh-curr{font-size:16px;font-weight:400;color:rgba(232,25,44,.5);}
+.prh-recipient{font-size:12px;color:var(--w40);margin-top:8px;}
+.prh-recipient b{color:var(--w);font-weight:700;}
+
+.pot-members{padding:12px 16px;display:flex;flex-direction:column;gap:6px;}
+.pm-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--w04);border-radius:12px;border:1px solid var(--w06);}
+.pm-item.current{background:rgba(26,240,96,.06);border-color:rgba(26,240,96,.2);}
+.pm-order{width:24px;height:24px;border-radius:50%;background:var(--w08);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--w30);flex-shrink:0;}
+.pm-order.done{background:rgba(26,240,96,.15);color:var(--G);}
+.pm-order.now{background:var(--G);color:var(--ink);}
+.pm-ava{font-size:18px;flex-shrink:0;}
+.pm-name{flex:1;font-size:12px;font-weight:600;}
+.pm-status{font-size:9px;font-weight:700;border-radius:6px;padding:2px 7px;}
+.pm-s-done{color:var(--G);background:rgba(26,240,96,.1);}
+.pm-s-now{color:var(--ink);background:var(--G);}
+.pm-s-wait{color:var(--w30);background:var(--w06);}
+
+/* ═══════════════════════════════════════════
+   FLOW 2 — RECT SOUND ARTIST OS
+   Bold Senegal yellow header, dark art screens
+═══════════════════════════════════════════ */
+
+/* Artist OS — hero dashboard */
+.artist-hero{
+  padding:0;position:relative;overflow:hidden;
+}
+.ah-bg{
+  background:linear-gradient(160deg,rgba(250,216,54,.2) 0%,rgba(250,216,54,.04) 50%,transparent 100%);
+  border-bottom:1px solid rgba(250,216,54,.15);
+  padding:18px 18px 16px;position:relative;
+}
+.ah-bg .wax{opacity:.35;}
+.ah-toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.ah-mode{
+  display:flex;gap:2px;background:rgba(0,0,0,.3);
+  border:1px solid var(--w12);border-radius:10px;padding:3px;
+}
+.ahm-btn{padding:5px 12px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;}
+.ahm-btn.on{background:var(--SY);color:var(--ink);}
+.ahm-btn.off{color:var(--w35);}
+.ah-notif{width:34px;height:34px;border-radius:12px;background:var(--w08);border:1px solid var(--w12);display:flex;align-items:center;justify-content:center;font-size:15px;position:relative;}
+.ah-notif-dot{position:absolute;top:7px;right:8px;width:6px;height:6px;border-radius:50%;background:var(--SR);border:1.5px solid var(--ink);}
+
+.ah-artist-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.ah-ava{width:48px;height:48px;border-radius:50%;background:linear-gradient(145deg,rgba(250,216,54,.2),rgba(250,216,54,.05));border:2px solid rgba(250,216,54,.4);display:flex;align-items:center;justify-content:center;font-size:22px;}
+.ah-info{}
+.ah-name{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:900;letter-spacing:-.3px;}
+.ah-handle{font-size:11px;color:rgba(250,216,54,.6);}
+.ah-cert{display:inline-flex;align-items:center;gap:4px;background:rgba(250,216,54,.1);border:1px solid rgba(250,216,54,.2);border-radius:100px;padding:3px 10px;font-size:9px;font-weight:700;color:var(--SY);}
+
+/* stats grid */
+.ah-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ah-stat{background:rgba(0,0,0,.3);border:1px solid rgba(250,216,54,.12);border-radius:12px;padding:11px 12px;}
+.ahs-n{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;letter-spacing:-.8px;color:var(--SY);}
+.ahs-l{font-size:9px;color:var(--w30);margin-top:2px;}
+.ahs-delta{font-size:9px;color:var(--G);margin-top:2px;}
+
+/* artist nav tabs */
+.artist-tabs{display:flex;background:var(--w04);border-bottom:1px solid var(--w08);overflow-x:auto;scrollbar-width:none;}
+.artist-tabs::-webkit-scrollbar{display:none;}
+.at-tab{padding:11px 14px;font-size:10px;font-weight:700;color:var(--w30);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0;transition:all .2s;}
+.at-tab.on{color:var(--SY);border-bottom-color:var(--SY);}
+
+/* revenue section */
+.rev-section{padding:14px 16px;}
+.rev-card{background:linear-gradient(145deg,rgba(250,216,54,.08),rgba(250,216,54,.02));border:1px solid rgba(250,216,54,.15);border-radius:16px;padding:14px;margin-bottom:12px;}
+.rc-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.rc-label{font-size:10px;color:var(--w35);}
+.rc-val{font-size:13px;font-weight:700;}
+.rc-val.big{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:var(--SY);letter-spacing:-1px;}
+.rc-divider{height:1px;background:rgba(250,216,54,.1);margin:10px 0;}
+.rev-breakdown{display:flex;flex-direction:column;gap:7px;}
+.rb-item{display:flex;align-items:center;gap:8px;}
+.rb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.rb-label{flex:1;font-size:11px;color:var(--w40);}
+.rb-val{font-size:11px;font-weight:700;}
+
+/* song list in artist OS */
+.artist-songs{padding:0 16px 20px;display:flex;flex-direction:column;gap:8px;}
+.as-item{display:flex;align-items:center;gap:10px;background:var(--w06);border:1px solid var(--w08);border-radius:13px;padding:10px 12px;cursor:pointer;}
+.asi-cover{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
+.asi-body{flex:1;min-width:0;}
+.asi-title{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.asi-meta{font-size:10px;color:var(--w30);margin-top:1px;}
+.asi-right{text-align:right;}
+.asi-plays{font-size:12px;font-weight:700;color:var(--SY);}
+.asi-dafa{font-size:10px;color:var(--w30);}
+.asi-chart{font-size:9px;font-weight:700;background:rgba(26,240,96,.1);color:var(--G);border-radius:5px;padding:2px 6px;margin-top:2px;display:inline-block;}
+
+/* Screen — Upload track */
+.upload-screen{position:absolute;top:44px;left:0;right:0;bottom:0;overflow-y:auto;scrollbar-width:none;}
+.upload-screen::-webkit-scrollbar{display:none;}
+.upload-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--w08);}
+.upload-title{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;}
+
+/* drop zone — bold yellow */
+.drop-zone{
+  margin:16px 18px;border-radius:18px;
+  border:2px dashed rgba(250,216,54,.35);
+  background:linear-gradient(145deg,rgba(250,216,54,.06),rgba(250,216,54,.02));
+  padding:28px 16px;text-align:center;cursor:pointer;
+  transition:all .2s;
+}
+.drop-zone:hover{border-color:rgba(250,216,54,.6);background:rgba(250,216,54,.08);}
+.dz-icon{font-size:40px;margin-bottom:10px;}
+.dz-title{font-size:14px;font-weight:700;margin-bottom:4px;}
+.dz-sub{font-size:11px;color:var(--w30);}
+.dz-formats{margin-top:8px;font-size:9px;color:var(--w20);letter-spacing:.5px;}
+
+/* upload file — uploaded state */
+.uploaded-file{
+  margin:0 18px;border-radius:14px;
+  background:rgba(26,240,96,.06);border:1.5px solid rgba(26,240,96,.25);
+  padding:12px 14px;display:flex;align-items:center;gap:12px;
+  margin-bottom:14px;
+}
+.uf-icon{font-size:22px;flex-shrink:0;}
+.uf-body{flex:1;min-width:0;}
+.uf-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.uf-size{font-size:10px;color:var(--w30);}
+.uf-check{width:22px;height:22px;border-radius:50%;background:var(--G);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:var(--ink);flex-shrink:0;}
+
+.upload-fields{padding:0 18px 20px;display:flex;flex-direction:column;gap:12px;}
+.uf-group{}
+.ufg-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:6px;}
+.ufg-field{width:100%;height:48px;border-radius:12px;background:var(--w08);border:1.5px solid var(--w12);padding:0 14px;font-family:'Outfit',sans-serif;font-size:13px;color:var(--w);outline:none;}
+.ufg-field.filled{border-color:rgba(250,216,54,.25);}
+
+/* genre chips */
+.genre-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.genre-chip{height:32px;padding:0 12px;border-radius:100px;background:var(--w06);border:1.5px solid var(--w10);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;transition:all .15s;}
+.genre-chip.on{background:rgba(250,216,54,.1);border-color:rgba(250,216,54,.3);color:var(--SY);}
+
+/* split toggle */
+.split-row{display:flex;align-items:center;justify-content:space-between;background:var(--w06);border:1px solid var(--w08);border-radius:12px;padding:12px 14px;}
+.sr-body{}
+.sr-title{font-size:13px;font-weight:700;}
+.sr-sub{font-size:10px;color:var(--w30);}
+.toggle{width:42px;height:24px;border-radius:12px;background:var(--G);position:relative;cursor:pointer;flex-shrink:0;}
+.toggle-dot{width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;right:3px;top:3px;}
+
+/* ═══════════════════════════════════════════
+   FLOW 3 — WAKHNA SCORE + PROFILE
+   Subtle green glow, bold red for top badges
+═══════════════════════════════════════════ */
+
+/* Profile hero */
+.profile-hero{
+  position:relative;overflow:hidden;
+  padding-bottom:0;
+}
+.ph-bg{
+  background:linear-gradient(160deg,rgba(232,25,44,.16) 0%,rgba(26,240,96,.06) 60%,transparent 100%);
+  padding:20px 18px 0;position:relative;
+}
+.ph-bg .wax{opacity:.25;}
+.ph-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
+.ph-edit{width:34px;height:34px;border-radius:11px;background:var(--w08);border:1px solid var(--w12);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;}
+.ph-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(145deg,rgba(232,25,44,.2),rgba(232,25,44,.05));border:3px solid rgba(232,25,44,.4);display:flex;align-items:center;justify-content:center;font-size:32px;position:relative;}
+.ph-verified{position:absolute;bottom:0;right:0;width:20px;height:20px;border-radius:50%;background:var(--G);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:var(--ink);}
+.ph-name{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;letter-spacing:-.5px;margin-bottom:2px;}
+.ph-handle{font-size:12px;color:var(--G);margin-bottom:4px;}
+.ph-arr{font-size:11px;color:var(--w35);}
+
+/* flag stripe divider */
+.ph-stripe{display:flex;height:2px;border-radius:0;overflow:hidden;margin:16px 0 0;}
+.phs-g{flex:1;background:var(--G);}
+.phs-y{flex:1;background:var(--SY);}
+.phs-r{flex:1;background:var(--SR);}
+
+/* profile stats */
+.profile-stats{display:flex;background:var(--w04);border-bottom:1px solid var(--w08);}
+.ps-item{flex:1;padding:12px 6px;text-align:center;cursor:pointer;}
+.ps-n{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;letter-spacing:-.5px;}
+.ps-l{font-size:9px;color:var(--w30);margin-top:2px;}
+
+/* wakhna card — main feature */
+.wakhna-card{
+  margin:14px 16px;
+  background:linear-gradient(145deg,rgba(26,240,96,.1),rgba(26,240,96,.03));
+  border:1.5px solid rgba(26,240,96,.2);
+  border-radius:20px;overflow:hidden;
+}
+.wc-top{
+  padding:16px;
+  background:linear-gradient(135deg,rgba(26,240,96,.12),transparent);
+  display:flex;align-items:center;gap:14px;
+}
+.wct-icon{font-size:28px;}
+.wct-body{flex:1;}
+.wct-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:rgba(26,240,96,.7);text-transform:uppercase;margin-bottom:4px;}
+.wct-score{font-family:'Unbounded',sans-serif;font-size:38px;font-weight:900;color:var(--G);letter-spacing:-2px;line-height:1;}
+.wct-rank{font-size:11px;color:var(--w40);margin-top:3px;}
+.wct-rank b{color:var(--G);font-weight:700;}
+
+/* score bar */
+.score-bar{padding:0 16px 14px;}
+.sb-label{display:flex;justify-content:space-between;font-size:9px;color:var(--w30);margin-bottom:5px;}
+.sb-track{height:6px;background:var(--w08);border-radius:3px;overflow:hidden;}
+.sb-fill{height:100%;background:linear-gradient(to right,var(--G),var(--SY));border-radius:3px;width:72%;}
+
+/* breakdown */
+.wakhna-breakdown{padding:0 16px 16px;display:flex;flex-direction:column;gap:6px;}
+.wb-item{display:flex;align-items:center;gap:10px;}
+.wb-ico{font-size:14px;width:24px;text-align:center;flex-shrink:0;}
+.wb-label{flex:1;font-size:11px;color:var(--w40);}
+.wb-bar{width:80px;height:4px;background:var(--w08);border-radius:2px;overflow:hidden;flex-shrink:0;}
+.wb-fill{height:100%;border-radius:2px;}
+.wb-pts{font-size:10px;font-weight:700;color:var(--G);width:30px;text-align:right;flex-shrink:0;}
+
+/* badges */
+.badges-section{padding:0 16px 14px;}
+.badges-title{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--w30);text-transform:uppercase;margin-bottom:10px;}
+.badges-grid{display:flex;gap:8px;flex-wrap:wrap;}
+.badge-item{
+  background:var(--w06);border:1.5px solid var(--w10);
+  border-radius:12px;padding:10px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  width:68px;cursor:pointer;transition:all .15s;
+}
+.badge-item.earned{background:rgba(250,216,54,.06);border-color:rgba(250,216,54,.25);}
+.badge-item.top{background:rgba(232,25,44,.08);border-color:rgba(232,25,44,.25);}
+.bi-icon{font-size:22px;}
+.bi-label{font-size:8px;font-weight:700;text-align:center;color:var(--w30);line-height:1.3;}
+.bi-label.earned{color:var(--SY);}
+.bi-label.top{color:var(--SR);}
+
+/* cauris certification on profile */
+.cauris-card{
+  margin:0 16px 16px;
+  background:linear-gradient(145deg,rgba(232,25,44,.1),rgba(232,25,44,.03));
+  border:1px solid rgba(232,25,44,.2);
+  border-radius:16px;padding:14px;
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+}
+.cc-icon{font-size:28px;flex-shrink:0;}
+.cc-body{flex:1;}
+.cc-title{font-size:12px;font-weight:700;color:rgba(232,25,44,.9);margin-bottom:2px;}
+.cc-sub{font-size:10px;color:var(--w30);}
+.cc-arrow{font-size:14px;color:rgba(232,25,44,.5);}
+
+/* Screen — Wakhna detail */
+.wakhna-detail-hero{
+  background:linear-gradient(160deg,rgba(26,240,96,.15) 0%,transparent 70%);
+  border-bottom:1px solid rgba(26,240,96,.12);
+  padding:18px;
+}
+.wdh-score-big{
+  font-family:'Unbounded',sans-serif;font-size:64px;font-weight:900;
+  color:var(--G);letter-spacing:-4px;line-height:1;
+  text-shadow:0 0 60px rgba(26,240,96,.3);
+}
+.wdh-label{font-size:11px;color:var(--w35);margin-top:4px;}
+.wdh-rank-badge{
+  display:inline-flex;align-items:center;gap:5px;margin-top:10px;
+  background:rgba(232,25,44,.15);border:1px solid rgba(232,25,44,.3);
+  border-radius:100px;padding:5px 12px;font-size:10px;font-weight:700;color:var(--SR);
+}
+
+.wakhna-activities{padding:12px 16px;display:flex;flex-direction:column;gap:6px;}
+.wa-item{display:flex;align-items:center;gap:10px;background:var(--w04);border:1px solid var(--w06);border-radius:12px;padding:10px 12px;}
+.wa-ico{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.wa-body{flex:1;}
+.wa-title{font-size:12px;font-weight:600;}
+.wa-sub{font-size:10px;color:var(--w30);}
+.wa-pts{font-size:12px;font-weight:700;color:var(--G);}
+
+/* ═══════════════════════════════════════════
+   FLOW 4 — MERCHANT QR PAYMENT
+   Bold flag gradient header, confirmation green
+═══════════════════════════════════════════ */
+
+/* Merchant pay hero — FULL FLAG GRADIENT */
+.pay-hero{
+  position:relative;overflow:hidden;
+  padding:20px 18px 18px;
+}
+.pay-hero-bg{
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,
+    rgba(26,240,96,.18) 0%,
+    rgba(250,216,54,.12) 40%,
+    rgba(232,25,44,.1) 100%
+  );
+}
+.pay-hero .wax{opacity:.3;}
+.ph-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--w55);text-transform:uppercase;margin-bottom:10px;position:relative;z-index:2;}
+
+/* Merchant info */
+.merchant-card{
+  position:relative;z-index:2;
+  background:rgba(0,0,0,.3);backdrop-filter:blur(10px);
+  border:1px solid var(--w12);border-radius:16px;padding:14px;
+  display:flex;align-items:center;gap:12px;
+}
+.mc-icon{width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.mc-body{flex:1;}
+.mc-name{font-size:14px;font-weight:700;margin-bottom:2px;}
+.mc-arr{font-size:10px;color:var(--w40);}
+.mc-verified{background:rgba(26,240,96,.15);border:1px solid rgba(26,240,96,.3);border-radius:6px;padding:3px 8px;font-size:8px;font-weight:700;color:var(--G);}
+
+/* QR scanner view */
+.qr-scanner-area{
+  margin:14px 16px;border-radius:20px;overflow:hidden;
+  background:#000;position:relative;height:200px;
+}
+.qsa-viewfinder{
+  position:absolute;inset:20px;
+  border:2px solid transparent;
+  border-radius:12px;
+}
+/* Corner brackets */
+.qsa-viewfinder::before,.qsa-viewfinder::after{
+  content:'';position:absolute;width:24px;height:24px;
+  border-color:var(--G);border-style:solid;border-radius:3px;
+}
+.qsa-viewfinder::before{top:-2px;left:-2px;border-width:3px 0 0 3px;}
+.qsa-viewfinder::after{bottom:-2px;right:-2px;border-width:0 3px 3px 0;}
+.qsa-scan-line{
+  position:absolute;left:20px;right:20px;height:2px;
+  background:linear-gradient(to right,transparent,var(--G),transparent);
+  animation:scan-move 2s ease-in-out infinite;
+  box-shadow:0 0 8px var(--G);top:50%;
+}
+.qsa-label{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:10px;color:rgba(255,255,255,.5);}
+.qsa-corners-br{
+  position:absolute;bottom:20px;left:20px;width:24px;height:24px;
+  border-left:3px solid var(--G);border-bottom:3px solid var(--G);
+  border-radius:0 0 0 3px;
+}
+.qsa-corners-tl{
+  position:absolute;top:20px;right:20px;width:24px;height:24px;
+  border-right:3px solid var(--G);border-top:3px solid var(--G);
+  border-radius:0 3px 0 0;
+}
+
+/* Camera gradient overlay */
+.qsa-scene{
+  width:100%;height:100%;
+  background:
+    radial-gradient(ellipse at 50% 50%,rgba(26,240,96,.04) 0%,transparent 60%),
+    linear-gradient(to bottom,#111 0%,#1a1a1a 100%);
+  display:flex;align-items:center;justify-content:center;
+}
+.qsa-qr-preview{
+  width:80px;height:80px;
+  background:rgba(255,255,255,.05);border-radius:8px;
+  display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px;
+}
+.qr-cell{border-radius:1px;}
+.qr-b{background:rgba(255,255,255,.6);}
+.qr-w{background:transparent;}
+
+/* Amount input */
+.amount-input-section{padding:12px 16px;}
+.ais-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:8px;}
+.amount-display{
+  background:var(--w06);border:1.5px solid var(--w12);border-radius:14px;
+  padding:14px 16px;display:flex;align-items:baseline;gap:8px;
+  margin-bottom:10px;
+}
+.ad-amount{font-family:'Unbounded',sans-serif;font-size:36px;font-weight:900;letter-spacing:-2px;flex:1;}
+.ad-curr{font-size:14px;color:var(--w30);}
+.ad-cursor{width:2px;height:32px;background:var(--G);border-radius:1px;animation:cursor-blink 1s ease-in-out infinite;}
+.quick-amounts{display:flex;gap:7px;}
+.qa-chip{height:34px;padding:0 13px;border-radius:100px;background:var(--w06);border:1.5px solid var(--w10);font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;transition:all .15s;}
+.qa-chip.on{background:rgba(26,240,96,.1);border-color:rgba(26,240,96,.3);color:var(--G);}
+
+/* Confirm payment screen — BOLD GREEN */
+.confirm-pay{position:absolute;top:44px;left:0;right:0;bottom:0;display:flex;flex-direction:column;}
+.cp-hero{
+  padding:24px 20px 20px;
+  background:linear-gradient(160deg,rgba(26,240,96,.18) 0%,rgba(26,240,96,.04) 60%,transparent 100%);
+  border-bottom:1px solid rgba(26,240,96,.15);
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  position:relative;overflow:hidden;
+}
+.cp-hero .wax{opacity:.3;}
+.cp-merchant-ava{width:64px;height:64px;border-radius:18px;background:var(--w08);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:10px;border:2px solid rgba(26,240,96,.25);position:relative;z-index:2;}
+.cp-merchant-name{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;position:relative;z-index:2;}
+.cp-merchant-arr{font-size:11px;color:var(--w35);position:relative;z-index:2;}
+.cp-amount{font-family:'Unbounded',sans-serif;font-size:52px;font-weight:900;color:var(--G);letter-spacing:-3px;line-height:1;margin:14px 0 4px;text-shadow:0 0 40px rgba(26,240,96,.3);position:relative;z-index:2;}
+.cp-curr{font-size:16px;font-weight:400;color:rgba(26,240,96,.5);}
+.cp-free{display:inline-flex;align-items:center;gap:5px;background:rgba(26,240,96,.1);border:1px solid rgba(26,240,96,.2);border-radius:100px;padding:4px 12px;font-size:10px;font-weight:700;color:var(--G);margin-top:8px;position:relative;z-index:2;}
+
+.cp-body{padding:16px 20px;display:flex;flex-direction:column;gap:10px;flex:1;}
+.cp-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--w06);}
+.cp-row:last-child{border-bottom:none;}
+.cpr-label{font-size:11px;color:var(--w35);}
+.cpr-val{font-size:12px;font-weight:700;}
+.cpr-bal{font-size:11px;color:var(--w30);}
+
+.cp-actions{padding:12px 20px 20px;display:flex;flex-direction:column;gap:8px;margin-top:auto;}
+.cp-warn{display:flex;gap:8px;background:var(--w04);border:1px solid var(--w08);border-radius:11px;padding:10px 12px;margin-bottom:4px;}
+.cpw-ico{font-size:13px;flex-shrink:0;}
+.cpw-text{font-size:10px;color:var(--w30);line-height:1.5;}
+
+/* Success screen */
+.pay-success{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;}
+.ps-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 35%,rgba(26,240,96,.12) 0%,transparent 60%),#050805;}
+.ps-wax{position:absolute;inset:0;opacity:.03;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,1) 0px,rgba(255,255,255,1) 1px,transparent 1px,transparent 18px),repeating-linear-gradient(-45deg,rgba(255,255,255,1) 0px,rgba(255,255,255,1) 1px,transparent 1px,transparent 18px);background-size:18px 18px;}
+.ps-content{position:relative;z-index:2;text-align:center;width:100%;}
+.ps-ring{width:88px;height:88px;border-radius:50%;background:rgba(26,240,96,.1);border:3px solid var(--G);display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 18px;box-shadow:0 0 50px rgba(26,240,96,.2);animation:pop .5s cubic-bezier(.175,.885,.32,1.275) both;}
+.ps-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;letter-spacing:-.8px;margin-bottom:6px;}
+.ps-sub{font-size:12px;color:var(--w40);margin-bottom:22px;line-height:1.6;}
+.ps-receipt{width:100%;background:var(--w06);border:1px solid var(--w10);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.psr-row{display:flex;justify-content:space-between;}
+.psr-l{font-size:11px;color:var(--w30);}
+.psr-r{font-size:12px;font-weight:700;}
+.psr-r.g{color:var(--G);}
+.ps-share{width:100%;height:44px;border-radius:12px;border:1px solid var(--w12);background:transparent;color:var(--w55);font-size:12px;font-weight:600;cursor:pointer;margin-bottom:8px;}
+
+/* KEYFRAMES */
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+@keyframes scan-move{0%,100%{top:25%;}50%{top:70%;}}
+@keyframes cursor-blink{0%,100%{opacity:1;}50%{opacity:0;}}
+@keyframes pop{from{transform:scale(.4);opacity:0;}to{transform:scale(1);opacity:1;}}
+</style>
+</head>
+<body>
+
+<div class="page-h">K21 — UX/UI Design System</div>
+<div class="page-sub">Four Complete Flows · Senegal Flag Colors · Mixed Bold & Subtle</div>
+<div style="display:flex;justify-content:center;">
+  <div class="flag-stripe"><div class="fs-g"></div><div class="fs-y"></div><div class="fs-r"></div></div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     FLOW 1 — TONTINE DIGITALE
+═══════════════════════════════════════ -->
+<div class="section-title">Flow 01 — Tontine Digitale</div>
+<div class="section-sub">Digital rotating savings · Green opens, Red releases the pot</div>
+<div class="row">
+
+  <!-- T1: Tontine home -->
+  <div class="col">
+    <div class="col-l">My Tontines</div>
+    <div class="phone">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="screen-scroll">
+        <div class="t-hero">
+          <div class="wax"></div>
+          <div class="th-flag"><div class="g"></div><div class="y"></div><div class="r"></div></div>
+          <div class="th-label">Tontine Digitale</div>
+          <div class="th-title">Mes groupes</div>
+          <div class="th-sub">Épargne collective · Automatique</div>
+          <div class="th-stats">
+            <div class="ths"><div class="ths-n">3</div><div class="ths-l">Tontines actives</div></div>
+            <div class="ths"><div class="ths-n" style="color:var(--SR);">Ce mois</div><div class="ths-l">75 000 F reçu</div></div>
+            <div class="ths"><div class="ths-n">24</div><div class="ths-l">Membres total</div></div>
+          </div>
+        </div>
+        <div class="t-groups">
+          <!-- Group 1 — releasing THIS month -->
+          <div class="tg-item releasing">
+            <div class="tg-header" >
+              <div class="tg-icon" style="background:rgba(232,25,44,.12);">🏆</div>
+              <div class="tg-body">
+                <div class="tg-name">Médina Squad</div>
+                <div class="tg-meta">8 membres · 25 000 F/mois <span class="release-badge">TON TOUR !</span></div>
+              </div>
+              <div class="tg-amount">
+                <div class="tg-a" style="color:var(--SR);">200 000</div>
+                <div class="tg-a-l">F ce mois</div>
+              </div>
+            </div>
+            <div class="tg-progress"><div class="tg-prog-fill" style="width:100%;background:var(--SR);"></div></div>
+          </div>
+          <!-- Group 2 — in progress -->
+          <div class="tg-item">
+            <div class="tg-header" style="background:rgba(255,255,255,.03);">
+              <div class="tg-icon" style="background:rgba(26,240,96,.08);">🎓</div>
+              <div class="tg-body">
+                <div class="tg-name">UCAD Promo 2025</div>
+                <div class="tg-meta">10 membres · 15 000 F/mois</div>
+              </div>
+              <div class="tg-amount">
+                <div class="tg-a" style="color:var(--G);">150 000</div>
+                <div class="tg-a-l">F total</div>
+              </div>
+            </div>
+            <div class="tg-progress"><div class="tg-prog-fill" style="width:60%;background:var(--G);"></div></div>
+          </div>
+          <!-- Group 3 -->
+          <div class="tg-item">
+            <div class="tg-header" style="background:rgba(255,255,255,.03);">
+              <div class="tg-icon" style="background:rgba(250,216,54,.08);">👨‍👩‍👧‍👦</div>
+              <div class="tg-body">
+                <div class="tg-name">Famille Diallo</div>
+                <div class="tg-meta">6 membres · 50 000 F/mois</div>
+              </div>
+              <div class="tg-amount">
+                <div class="tg-a" style="color:var(--SY);">300 000</div>
+                <div class="tg-a-l">F total</div>
+              </div>
+            </div>
+            <div class="tg-progress"><div class="tg-prog-fill" style="width:33%;background:var(--SY);"></div></div>
+          </div>
+        </div>
+        <button class="t-create-btn">＋ Créer une tontine</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- T2: Create tontine -->
+  <div class="col">
+    <div class="col-l">Create Group</div>
+    <div class="phone">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="t-create">
+        <div class="tc-head">
+          <div class="back-btn">←</div>
+          <div class="tc-title">Nouvelle tontine</div>
+        </div>
+        <div class="tc-field-group">
+          <div class="tcf-label">Nom du groupe</div>
+          <input class="tcf-input filled" value="Médina Squad 2"/>
+        </div>
+        <div class="tc-field-group">
+          <div class="tcf-label">Montant par personne</div>
+          <div class="amount-chips">
+            <div class="ac">10k F</div><div class="ac on">25k F</div>
+            <div class="ac">50k F</div><div class="ac">100k F</div>
+          </div>
+        </div>
+        <div class="tc-field-group">
+          <div class="tcf-label">Fréquence</div>
+          <div class="freq-row">
+            <div class="freq-opt">Hebdo</div>
+            <div class="freq-opt on">Mensuel</div>
+            <div class="freq-opt">Bi-mensuel</div>
+          </div>
+        </div>
+        <div class="tc-field-group">
+          <div class="tcf-label">Membres (6)</div>
+          <div class="member-list">
+            <div class="m-item"><div class="m-ava" style="background:rgba(26,240,96,.1);">👩🏾</div><div class="m-name">Fatou</div><div class="m-order">1er</div></div>
+            <div class="m-item"><div class="m-ava" style="background:rgba(232,25,44,.1);">👦🏿</div><div class="m-name">Ibou</div><div class="m-order">2e</div></div>
+            <div class="m-item"><div class="m-ava" style="background:rgba(250,216,54,.1);">👩🏿</div><div class="m-name">Aminata</div><div class="m-order">3e</div></div>
+          </div>
+          <div class="m-add"><div class="ma-ico">+</div><div class="ma-text">Inviter un membre</div></div>
+        </div>
+        <div class="tontine-preview">
+          <div class="tp-row"><span class="tp-l">Pot mensuel</span><span class="tp-r g">150 000 F</span></div>
+          <div class="tp-row"><span class="tp-l">Ton tour</span><span class="tp-r">Mois 1 (Janv.)</span></div>
+          <div class="tp-divider"></div>
+          <div class="tp-row"><span class="tp-l">Collecte auto</span><span class="tp-r" style="color:var(--G);">✓ Activée</span></div>
+        </div>
+        <button class="btn-g">Créer et inviter les membres →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- T3: Pot release — BOLD RED -->
+  <div class="col">
+    <div class="col-l">Pot Release 🏆</div>
+    <div class="phone">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="screen-scroll">
+        <div class="pot-release-hero">
+          <div class="prh-wax"></div>
+          <div class="prh-badge"><div class="prh-dot"></div>C'est ton tour !</div>
+          <div class="prh-name">Médina Squad · Mars 2026</div>
+          <div class="prh-amount">200 000 <span class="prh-curr">F</span></div>
+          <div class="prh-recipient">Envoyé à <b>Saliou @saliou_medina</b></div>
+        </div>
+        <div class="pot-members">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--w25);text-transform:uppercase;padding:8px 0 4px;">Ordre de rotation</div>
+          <div class="pm-item current">
+            <div class="pm-order now">1</div>
+            <span class="pm-ava">👨🏿</span>
+            <div class="pm-name">Saliou (toi)</div>
+            <div class="pm-status pm-s-now">Ce mois</div>
+          </div>
+          <div class="pm-item">
+            <div class="pm-order">2</div>
+            <span class="pm-ava">👩🏾</span>
+            <div class="pm-name">Fatou</div>
+            <div class="pm-status pm-s-wait">Avril</div>
+          </div>
+          <div class="pm-item">
+            <div class="pm-order">3</div>
+            <span class="pm-ava">👦🏿</span>
+            <div class="pm-name">Ibou</div>
+            <div class="pm-status pm-s-wait">Mai</div>
+          </div>
+          <div class="pm-item">
+            <div class="pm-order done">✓</div>
+            <span class="pm-ava">👩🏿</span>
+            <div class="pm-name">Aminata</div>
+            <div class="pm-status pm-s-done">Reçu</div>
+          </div>
+        </div>
+        <div style="padding:0 16px 20px;">
+          <button class="btn-r" style="margin-bottom:8px;">Recevoir 200 000 F →</button>
+          <div style="text-align:center;font-size:11px;color:var(--w30);">Tous les membres ont contribué · Automatique</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     FLOW 2 — RECT SOUND ARTIST OS
+═══════════════════════════════════════ -->
+<div class="section-title">Flow 02 — Rect Sound Artist OS</div>
+<div class="section-sub">Artist dashboard + upload · Senegal yellow throughout</div>
+<div class="row">
+
+  <!-- A1: Artist dashboard -->
+  <div class="col">
+    <div class="col-l">Artist Dashboard</div>
+    <div class="phone">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="screen-scroll">
+        <div class="artist-hero">
+          <div class="ah-bg">
+            <div class="wax"></div>
+            <div class="ah-toggle-row">
+              <div class="ah-mode">
+                <div class="ahm-btn off">Auditeur</div>
+                <div class="ahm-btn on">Artiste OS</div>
+              </div>
+              <div class="ah-notif">🔔<div class="ah-notif-dot"></div></div>
+            </div>
+            <div class="ah-artist-row">
+              <div class="ah-ava">🎤</div>
+              <div class="ah-info">
+                <div class="ah-name">Saliou K.</div>
+                <div class="ah-handle">@saliou_k · Médina</div>
+                <div class="ah-cert" style="margin-top:4px;">🪸 Cauris · 24 800 Dafa neex</div>
+              </div>
+            </div>
+            <div class="ah-stats">
+              <div class="ah-stat"><div class="ahs-n">48.2k</div><div class="ahs-l">Écoutes ce mois</div><div class="ahs-delta">▲ +23% vs mois dernier</div></div>
+              <div class="ah-stat"><div class="ahs-n">24.8k</div><div class="ahs-l">Dafa neex total</div><div class="ahs-delta">▲ +12% cette semaine</div></div>
+              <div class="ah-stat"><div class="ahs-n">14</div><div class="ahs-l">Arrondissements</div><div class="ahs-delta">Dakar + Saint-Louis</div></div>
+              <div class="ah-stat"><div class="ahs-n" style="color:var(--G);">87 200</div><div class="ahs-l">Revenus F CFA</div><div class="ahs-delta">Stickers + streams</div></div>
+            </div>
+          </div>
+          <div class="artist-tabs">
+            <div class="at-tab on">Dashboard</div>
+            <div class="at-tab">Titres</div>
+            <div class="at-tab">Fans</div>
+            <div class="at-tab">Revenus</div>
+            <div class="at-tab">Publishing</div>
+          </div>
+        </div>
+        <div class="rev-section">
+          <div class="rev-card">
+            <div class="rc-row"><span class="rc-label">Revenus Mars 2026</span></div>
+            <div class="rc-row"><span class="rc-val big">87 200 F</span></div>
+            <div class="rc-divider"></div>
+            <div class="rev-breakdown">
+              <div class="rb-item"><div class="rb-dot" style="background:var(--SY);"></div><div class="rb-label">Stickers fans</div><div class="rb-val">52 400 F</div></div>
+              <div class="rb-item"><div class="rb-dot" style="background:var(--G);"></div><div class="rb-label">Streams (Artist Pass)</div><div class="rb-val">28 800 F</div></div>
+              <div class="rb-item"><div class="rb-dot" style="background:var(--SR);"></div><div class="rb-label">Ataya room gifts</div><div class="rb-val">6 000 F</div></div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:0 16px 6px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--w25);text-transform:uppercase;">Tes titres</div>
+        <div class="artist-songs">
+          <div class="as-item">
+            <div class="asi-cover" style="background:linear-gradient(145deg,#1a5e30,#0a2a14);">🎵</div>
+            <div class="asi-body"><div class="asi-title">"Yëkël"</div><div class="asi-meta">Sorti · Fév 2026</div></div>
+            <div class="asi-right"><div class="asi-plays" >48.2k</div><div class="asi-dafa">24.8k 🔥</div><div class="asi-chart">Chart #1</div></div>
+          </div>
+          <div class="as-item">
+            <div class="asi-cover" style="background:linear-gradient(145deg,#2a1800,#120a00);">🌅</div>
+            <div class="asi-body"><div class="asi-title">"Thiossane"</div><div class="asi-meta">Sorti · Jan 2026</div></div>
+            <div class="asi-right"><div class="asi-plays">22.1k</div><div class="asi-dafa">11.2k 🔥</div><div class="asi-chart">Chart #4</div></div>
+          </div>
+        </div>
+        <div style="padding:0 16px 20px;">
+          <button class="btn-y">+ Uploader un nouveau titre</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- A2: Upload track -->
+  <div class="col">
+    <div class="col-l">Upload Track</div>
+    <div class="phone">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="upload-screen">
+        <div class="upload-head">
+          <div class="back-btn">←</div>
+          <div class="upload-title">Uploader un titre</div>
+        </div>
+        <!-- Uploaded state — file ready -->
+        <div class="uploaded-file">
+          <span class="uf-icon">🎵</span>
+          <div class="uf-body"><div class="uf-name">yekkel_master_v3.wav</div><div class="uf-size">48.2 MB · WAV 44.1kHz</div></div>
+          <div class="uf-check">✓</div>
+        </div>
+        <div class="upload-fields">
+          <div class="uf-group">
+            <div class="ufg-label">Titre du morceau</div>
+            <input class="ufg-field filled" value="Yëkël"/>
+          </div>
+          <div class="uf-group">
+            <div class="ufg-label">Artistes feat.</div>
+            <input class="ufg-field" placeholder="Optionnel — @handle"/>
+          </div>
+          <div class="uf-group">
+            <div class="ufg-label">Genre</div>
+            <div class="genre-chips">
+              <div class="genre-chip on">Mbalax</div>
+              <div class="genre-chip">Afrobeats</div>
+              <div class="genre-chip">Hip-hop</div>
+              <div class="genre-chip">Acoustique</div>
+            </div>
+          </div>
+          <div class="uf-group">
+            <div class="ufg-label">Crédits (parolier, producteur)</div>
+            <input class="ufg-field" placeholder="Saliou K. — prod. DJ Lamine"/>
+          </div>
+          <div class="split-row">
+            <div class="sr-body">
+              <div class="sr-title">Splits de revenus</div>
+              <div class="sr-sub">Définir les parts entre artistes</div>
+            </div>
+            <div class="toggle"><div class="toggle-dot"></div></div>
+          </div>
+          <div class="split-row" style="margin-top:0;">
+            <div class="sr-body">
+              <div class="sr-title">Publier sur Chart 221 Bëgg</div>
+              <div class="sr-sub">Visible dès la mise en ligne</div>
+            </div>
+            <div class="toggle"><div class="toggle-dot"></div></div>
+          </div>
+          <button class="btn-y">Publier "Yëkël" →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     FLOW 3 — WAKHNA + PROFILE
+═══════════════════════════════════════ -->
+<div class="section-title">Flow 03 — Wakhna Score + Profile</div>
+<div class="section-sub">Cultural reputation · Red for top status, green for growth</div>
+<div class="row">
+
+  <!-- W1: Profile page -->
+  <div class="col">
+    <div class="col-l">Profile</div>
+    <div class="phone">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="screen-scroll">
+        <div class="profile-hero">
+          <div class="ph-bg">
+            <div class="wax"></div>
+            <div class="ph-top">
+              <div>
+                <div class="ph-avatar">👨🏿<div class="ph-verified">✓</div></div>
+              </div>
+              <div class="ph-edit">✏️</div>
+            </div>
+            <div class="ph-name">Saliou Diallo</div>
+            <div class="ph-handle">@saliou_medina</div>
+            <div class="ph-arr">📍 Médina · Dakar</div>
+            <div class="ph-stripe"><div class="phs-g"></div><div class="phs-y"></div><div class="phs-r"></div></div>
+          </div>
+          <div class="profile-stats">
+            <div class="ps-item"><div class="ps-n" style="color:var(--G);">840</div><div class="ps-l">Wakhna</div></div>
+            <div class="ps-item"><div class="ps-n">247</div><div class="ps-l">Mboolo</div></div>
+            <div class="ps-item"><div class="ps-n" style="color:var(--SY);">12</div><div class="ps-l">Défis</div></div>
+            <div class="ps-item"><div class="ps-n" style="color:var(--SR);">3</div><div class="ps-l">Cauris</div></div>
+          </div>
+        </div>
+        <!-- Wakhna card -->
+        <div class="wakhna-card">
+          <div class="wc-top">
+            <div class="wct-icon">✦</div>
+            <div class="wct-body">
+              <div class="wct-label">Score Wakhna</div>
+              <div class="wct-score">840</div>
+              <div class="wct-rank">Top <b>12%</b> de Médina · Rang #47</div>
+            </div>
+          </div>
+          <div class="score-bar">
+            <div class="sb-label"><span>0</span><span>Prochain niveau · 1 000</span></div>
+            <div class="sb-track"><div class="sb-fill"></div></div>
+          </div>
+          <div class="wakhna-breakdown">
+            <div class="wb-item"><span class="wb-ico">🔥</span><span class="wb-label">Dafa neex donnés</span><div class="wb-bar"><div class="wb-fill" style="width:90%;background:var(--G);"></div></div><span class="wb-pts">+280</span></div>
+            <div class="wb-item"><span class="wb-ico">💬</span><span class="wb-label">Streaks Mboolo</span><div class="wb-bar"><div class="wb-fill" style="width:70%;background:var(--SY);"></div></div><span class="wb-pts">+210</span></div>
+            <div class="wb-item"><span class="wb-ico">🏆</span><span class="wb-label">Défis gagnés</span><div class="wb-bar"><div class="wb-fill" style="width:55%;background:var(--SR);"></div></div><span class="wb-pts">+180</span></div>
+            <div class="wb-item"><span class="wb-ico">🎵</span><span class="wb-label">Découvertes musique</span><div class="wb-bar"><div class="wb-fill" style="width:40%;background:var(--O);"></div></div><span class="wb-pts">+110</span></div>
+          </div>
+        </div>
+        <!-- Badges -->
+        <div class="badges-section">
+          <div class="badges-title">Badges obtenus</div>
+          <div class="badges-grid">
+            <div class="badge-item earned"><div class="bi-icon">🪸</div><div class="bi-label earned">Cauris Fan</div></div>
+            <div class="badge-item top"><div class="bi-icon">🔥</div><div class="bi-label top">Top Médina</div></div>
+            <div class="badge-item earned"><div class="bi-icon">📸</div><div class="bi-label earned">30j Streak</div></div>
+            <div class="badge-item"><div class="bi-icon">🎤</div><div class="bi-label">Ataya Host</div></div>
+          </div>
+        </div>
+        <!-- Cauris contributed to -->
+        <div class="cauris-card">
+          <div class="cc-icon">🪸</div>
+          <div class="cc-body">
+            <div class="cc-title">Tu as fait partie de l'histoire</div>
+            <div class="cc-sub">3 certifications Cauris — tu y as contribué</div>
+          </div>
+          <div class="cc-arrow">→</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- W2: Wakhna detail -->
+  <div class="col">
+    <div class="col-l">Wakhna Detail</div>
+    <div class="phone">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="screen-scroll">
+        <div class="wakhna-detail-hero">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <div class="back-btn">←</div>
+            <div style="font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;">Mon Wakhna</div>
+          </div>
+          <div class="wdh-score-big">840</div>
+          <div class="wdh-label">Score Wakhna · Mars 2026</div>
+          <div class="wdh-rank-badge">🏆 Top 12% de Médina · Rang #47</div>
+        </div>
+        <div style="padding:12px 16px 6px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--w25);text-transform:uppercase;">Activités récentes</div>
+        <div class="wakhna-activities">
+          <div class="wa-item">
+            <div class="wa-ico" style="background:rgba(26,240,96,.1);">🔥</div>
+            <div class="wa-body"><div class="wa-title">Dafa neex "Yëkël"</div><div class="wa-sub">Chart 221 · Il y a 2h</div></div>
+            <div class="wa-pts">+15</div>
+          </div>
+          <div class="wa-item">
+            <div class="wa-ico" style="background:rgba(250,216,54,.1);">📸</div>
+            <div class="wa-body"><div class="wa-title">Snapshot streak — Jour 30</div><div class="wa-sub">Avec Fatou · Bonus x2</div></div>
+            <div class="wa-pts">+40</div>
+          </div>
+          <div class="wa-item">
+            <div class="wa-ico" style="background:rgba(232,25,44,.1);">🏆</div>
+            <div class="wa-body"><div class="wa-title">Défi Cuisine gagné</div><div class="wa-sub">2 847 Dafa neex</div></div>
+            <div class="wa-pts">+80</div>
+          </div>
+          <div class="wa-item">
+            <div class="wa-ico" style="background:rgba(255,100,34,.1);">☕</div>
+            <div class="wa-body"><div class="wa-title">Ataya room — 45 min</div><div class="wa-sub">Médina politique · 234 auditeurs</div></div>
+            <div class="wa-pts">+25</div>
+          </div>
+          <div class="wa-item">
+            <div class="wa-ico" style="background:rgba(26,240,96,.08);">💸</div>
+            <div class="wa-body"><div class="wa-title">Tontine contribution</div><div class="wa-sub">Médina Squad · Automatique</div></div>
+            <div class="wa-pts">+20</div>
+          </div>
+        </div>
+        <div style="padding:12px 16px 20px;">
+          <div style="background:var(--w04);border:1px solid var(--w08);border-radius:14px;padding:13px;text-align:center;">
+            <div style="font-size:12px;color:var(--w35);line-height:1.7;">160 points pour le prochain niveau<br><span style="color:var(--G);font-weight:700;">Continue comme ça ✦</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     FLOW 4 — MERCHANT QR PAYMENT
+═══════════════════════════════════════ -->
+<div class="section-title">Flow 04 — Merchant QR Payment</div>
+<div class="section-sub">Scan · Amount · Confirm · Done · Full flag gradient on hero</div>
+<div class="row">
+
+  <!-- M1: Scan QR -->
+  <div class="col">
+    <div class="col-l">Scan QR</div>
+    <div class="phone">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="screen-scroll">
+        <div class="pay-hero">
+          <div class="pay-hero-bg"></div>
+          <div class="wax"></div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;position:relative;z-index:2;">
+            <div class="back-btn" style="background:rgba(0,0,0,.3);">←</div>
+            <div style="font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;">Payer un marchand</div>
+          </div>
+          <div class="merchant-card">
+            <div class="mc-icon">🍖</div>
+            <div class="mc-body">
+              <div class="mc-name">Dibiterie Chez Papa</div>
+              <div class="mc-arr">📍 Médina · Dakar</div>
+            </div>
+            <div class="mc-verified">✓ K21</div>
+          </div>
+        </div>
+        <div class="qr-scanner-area">
+          <div class="qsa-scene">
+            <div class="qsa-qr-preview">
+              <div class="qr-cell qr-b"></div><div class="qr-cell qr-b"></div><div class="qr-cell qr-b"></div><div class="qr-cell qr-w"></div><div class="qr-cell qr-b"></div>
+              <div class="qr-cell qr-b"></div><div class="qr-cell qr-w"></div><div class="qr-cell qr-b"></div><div class="qr-cell qr-b"></div><div class="qr-cell qr-w"></div>
+              <div class="qr-cell qr-w"></div><div class="qr-cell qr-b"></div><div class="qr-cell qr-w"></div><div class="qr-cell qr-b"></div><div class="qr-cell qr-b"></div>
+              <div class="qr-cell qr-b"></div><div class="qr-cell qr-w"></div><div class="qr-cell qr-b"></div><div class="qr-cell qr-w"></div><div class="qr-cell qr-b"></div>
+              <div class="qr-cell qr-b"></div><div class="qr-cell qr-b"></div><div class="qr-cell qr-w"></div><div class="qr-cell qr-b"></div><div class="qr-cell qr-b"></div>
+            </div>
+          </div>
+          <div class="qsa-viewfinder"></div>
+          <div class="qsa-corners-br"></div>
+          <div class="qsa-corners-tl"></div>
+          <div class="qsa-scan-line"></div>
+          <div class="qsa-label">Pointe vers le QR code du marchand</div>
+        </div>
+        <div class="amount-input-section">
+          <div class="ais-label">Montant à payer</div>
+          <div class="amount-display">
+            <div class="ad-amount">2 500</div>
+            <div class="ad-curr">F CFA</div>
+            <div class="ad-cursor"></div>
+          </div>
+          <div class="quick-amounts">
+            <div class="qa-chip">500 F</div>
+            <div class="qa-chip">1k F</div>
+            <div class="qa-chip on">2 500 F</div>
+            <div class="qa-chip">5k F</div>
+          </div>
+        </div>
+        <div style="padding:14px 16px 20px;">
+          <button class="btn-g">Continuer →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- M2: Confirm payment -->
+  <div class="col">
+    <div class="col-l">Confirm</div>
+    <div class="phone">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="confirm-pay">
+        <div class="cp-hero">
+          <div class="wax"></div>
+          <div class="cp-merchant-ava">🍖</div>
+          <div class="cp-merchant-name">Dibiterie Chez Papa</div>
+          <div class="cp-merchant-arr">📍 Médina · Marchand vérifié K21</div>
+          <div class="cp-amount">2 500 <span class="cp-curr">F</span></div>
+          <div class="cp-free">✦ Zéro frais sur ce paiement</div>
+        </div>
+        <div class="cp-body">
+          <div class="cp-row"><span class="cpr-label">Marchand</span><span class="cpr-val">Dibiterie Chez Papa</span></div>
+          <div class="cp-row"><span class="cpr-label">Montant</span><span class="cpr-val" style="color:var(--G);">2 500 F CFA</span></div>
+          <div class="cp-row"><span class="cpr-label">Frais</span><span class="cpr-val" style="color:var(--G);">0 F ✦</span></div>
+          <div class="cp-row"><span class="cpr-label">Ton solde après</span><span class="cpr-bal">44 500 F</span></div>
+        </div>
+        <div class="cp-actions">
+          <div class="cp-warn">
+            <span class="cpw-ico">🔒</span>
+            <div class="cpw-text">Paiement sécurisé K21. Marchand vérifié. Transaction irréversible une fois confirmée.</div>
+          </div>
+          <button class="btn-g">Confirmer · Payer 2 500 F →</button>
+          <button style="width:100%;height:42px;border-radius:12px;border:1px solid var(--w12);background:transparent;color:var(--w40);font-size:12px;cursor:pointer;">Annuler</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- M3: Success -->
+  <div class="col">
+    <div class="col-l">Payment Done ✓</div>
+    <div class="phone">
+      <div class="sb" style="position:relative;z-index:10;"><span class="sb-t" style="color:rgba(255,255,255,.5);">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="pay-success">
+        <div class="ps-bg"></div>
+        <div class="ps-wax"></div>
+        <div class="ps-content">
+          <div class="ps-ring">✓</div>
+          <div class="ps-title">Payé !</div>
+          <div class="ps-sub">Dibiterie Chez Papa a reçu<br>ton paiement instantanément.</div>
+          <div class="ps-receipt">
+            <div class="psr-row"><span class="psr-l">Marchand</span><span class="psr-r">Chez Papa</span></div>
+            <div class="psr-row"><span class="psr-l">Montant</span><span class="psr-r g">2 500 F CFA</span></div>
+            <div class="psr-row"><span class="psr-l">Frais</span><span class="psr-r g">0 F ✦</span></div>
+            <div class="psr-row"><span class="psr-l">Nouveau solde</span><span class="psr-r">44 500 F</span></div>
+            <div class="psr-row"><span class="psr-l">Référence</span><span class="psr-r" style="font-size:9px;color:var(--w30);">K21-2603-8F4A</span></div>
+          </div>
+          <!-- Wakhna bonus -->
+          <div style="background:rgba(26,240,96,.06);border:1px solid rgba(26,240,96,.18);border-radius:12px;padding:10px 13px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:16px;">✦</span>
+            <div style="flex:1;font-size:11px;color:var(--w40);"><b style="color:var(--G);">+5 points Wakhna</b> pour ce paiement marchand</div>
+          </div>
+          <button class="ps-share">📤 Partager le reçu</button>
+          <button class="btn-g" style="width:100%;">Retour à l'accueil</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

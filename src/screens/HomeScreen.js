@@ -177,10 +177,10 @@ export default function HomeScreen({ navigation }) {
                     Salut <Text style={styles.greetingBold}>Saliou</Text> 👋🏿
                   </Text>
                 </View>
-                <View style={styles.notifBtn}>
+                <PressScale scaleTo={0.9} onPress={() => navigation.navigate('Notifications')} style={styles.notifBtn}>
                   <Text style={{ fontSize: 16 }}>🔔</Text>
                   <Animated.View style={[styles.notifDot, { opacity: notifBlink }]} />
-                </View>
+                </PressScale>
               </View>
 
               <View style={styles.balanceDisplay}>

@@ -192,9 +192,13 @@ export default function MbooloChatScreen({ navigation }) {
             <Text style={styles.chName}>Médina Squad</Text>
             <Text style={styles.chSub}>8 membres · 3 en ligne</Text>
           </View>
-          <View style={styles.chCall}>
+          <PressScale
+            scaleTo={0.9}
+            onPress={() => navigation.navigate('Info', { title: 'Appel de groupe', subtitle: 'Les appels vocaux arrivent bientôt.', icon: '📞' })}
+            style={styles.chCall}
+          >
             <Text style={{ fontSize: 15 }}>📞</Text>
-          </View>
+          </PressScale>
         </View>
 
         <View style={styles.statusBar}>

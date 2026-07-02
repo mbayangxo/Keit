@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing } from 'react-native';
+import { Animated, Easing, Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 // Shared animation hooks mapping 1:1 to the @keyframes reused across every
 // K21 prototype file (dot-blink, badge-bounce, ci-in/ti-in entrance, etc).
@@ -7,6 +8,17 @@ import { Animated, Easing } from 'react-native';
 // Home, Mboolo, and every other screen in the HTML source.
 
 export const EASE_OUT_BACK = Easing.bezier(0.175, 0.885, 0.32, 1.275);
+
+// Fires once on mount — the brief's §03 celebration moment (sends,
+// milestones, certifications) gets its own distinct haptic, not just the
+// button-press impact.
+export function useSuccessHaptic() {
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, []);
+}
 
 // `ha-float` / `act-float` / `pill-float` / `sc-float`: translateY 0 -> -distance -> 0, infinite, staggered.
 export function useFloatLoop(delay = 0, distance = 4, halfDuration = 1500) {

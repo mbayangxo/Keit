@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>K21 — Onboarding Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --ink:#050805;
+  --G:#1af060;--Y:#f7b731;--O:#ff6422;--R:#e0364a;
+  --w:#fff;
+  --w04:rgba(255,255,255,.04);
+  --w06:rgba(255,255,255,.06);
+  --w08:rgba(255,255,255,.08);
+  --w12:rgba(255,255,255,.12);
+  --w20:rgba(255,255,255,.20);
+  --w30:rgba(255,255,255,.30);
+  --w40:rgba(255,255,255,.40);
+  --w55:rgba(255,255,255,.55);
+  --w70:rgba(255,255,255,.70);
+  --w85:rgba(255,255,255,.85);
+}
+html,body{
+  background:#020302;
+  font-family:'Outfit',sans-serif;
+  color:var(--w);
+  min-height:100vh;
+  display:flex;flex-direction:column;
+  align-items:center;
+  padding:32px 16px 60px;
+}
+
+/* PAGE HEADER */
+.page-h{
+  font-family:'Unbounded',sans-serif;
+  font-size:8px;font-weight:700;letter-spacing:4px;
+  color:rgba(255,255,255,.18);text-transform:uppercase;
+  margin-bottom:10px;text-align:center;
+}
+.page-sub{
+  font-size:11px;color:rgba(255,255,255,.25);
+  margin-bottom:36px;text-align:center;
+}
+
+/* FLOW LABEL */
+.flow-label{
+  font-family:'Unbounded',sans-serif;
+  font-size:7px;font-weight:700;letter-spacing:3px;
+  color:rgba(255,255,255,.15);text-transform:uppercase;
+  margin-bottom:16px;text-align:center;
+}
+
+/* SCREENS ROW */
+.row{
+  display:flex;gap:16px;flex-wrap:wrap;
+  justify-content:center;align-items:flex-start;
+  margin-bottom:48px;
+}
+
+/* PHONE SHELL */
+.phone{
+  width:320px;height:680px;
+  background:var(--ink);
+  border-radius:38px;
+  overflow:hidden;
+  position:relative;
+  flex-shrink:0;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.06),
+    0 40px 80px rgba(0,0,0,.85),
+    0 0 80px rgba(26,240,96,.02);
+}
+.phone.tall{height:740px;}
+
+/* STATUS BAR */
+.sb{
+  height:44px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  position:relative;z-index:10;flex-shrink:0;
+}
+.sb-t{font-size:11px;font-weight:700;letter-spacing:-.3px;}
+.sb-r{font-size:10px;color:var(--w30);display:flex;align-items:center;gap:4px;}
+
+/* SCREEN LABEL */
+.s-label{
+  position:absolute;bottom:-28px;left:0;right:0;
+  text-align:center;font-size:10px;color:rgba(255,255,255,.3);
+  font-weight:600;
+}
+
+/* ══════════════════════════════════════
+   SCREEN 1 — SPLASH / FIRST OPEN
+══════════════════════════════════════ */
+.splash{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.splash-bg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse at 30% 20%,rgba(255,100,34,.18) 0%,transparent 50%),
+    radial-gradient(ellipse at 70% 80%,rgba(247,183,49,.12) 0%,transparent 50%),
+    radial-gradient(ellipse at 50% 50%,rgba(26,240,96,.06) 0%,transparent 60%),
+    #050805;
+}
+/* Wax print diamond pattern */
+.splash-pattern{
+  position:absolute;inset:0;opacity:.04;
+  background-image:
+    repeating-linear-gradient(45deg,rgba(255,255,255,.8) 0px,rgba(255,255,255,.8) 1px,transparent 1px,transparent 20px),
+    repeating-linear-gradient(-45deg,rgba(255,255,255,.8) 0px,rgba(255,255,255,.8) 1px,transparent 1px,transparent 20px);
+  background-size:20px 20px;
+}
+.splash-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:0;}
+
+/* THE K21 MARK */
+.k21-mark{
+  display:flex;flex-direction:column;
+  align-items:center;gap:0;
+  margin-bottom:28px;
+  animation:mark-arrive 1s cubic-bezier(.175,.885,.32,1.275) both;
+}
+.mark-k{
+  font-family:'Unbounded',sans-serif;
+  font-size:72px;font-weight:900;
+  color:var(--G);
+  line-height:.9;
+  letter-spacing:-4px;
+  text-shadow:0 0 60px rgba(26,240,96,.4);
+  position:relative;
+}
+.mark-k::after{
+  content:'';
+  position:absolute;
+  top:50%;right:-4px;
+  width:18px;height:18px;
+  background:var(--ink);
+  clip-path:polygon(100% 0,0 50%,100% 100%);
+  transform:translateY(-50%);
+}
+.mark-div{
+  width:80px;height:3px;border-radius:2px;
+  background:linear-gradient(to right,var(--G),var(--Y),var(--O));
+  margin:4px 0;
+  box-shadow:0 0 12px rgba(247,183,49,.3);
+}
+.mark-21{
+  font-family:'Unbounded',sans-serif;
+  font-size:52px;font-weight:900;
+  line-height:.95;letter-spacing:-2px;
+  display:flex;gap:2px;
+}
+.mark-2{color:var(--Y);text-shadow:0 0 40px rgba(247,183,49,.3);}
+.mark-1{color:var(--O);text-shadow:0 0 40px rgba(255,100,34,.3);}
+
+.splash-tagline{
+  font-family:'Unbounded',sans-serif;
+  font-size:9px;font-weight:700;
+  letter-spacing:3px;color:var(--w30);
+  text-transform:uppercase;margin-bottom:48px;
+  animation:fade-up .8s .6s both;
+}
+
+.splash-cta{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  width:240px;
+  animation:fade-up .8s .9s both;
+}
+.btn-primary{
+  width:100%;height:50px;border-radius:14px;border:none;
+  background:var(--G);color:var(--ink);
+  font-family:'Unbounded',sans-serif;font-size:11px;font-weight:900;
+  letter-spacing:.5px;cursor:pointer;
+  box-shadow:0 4px 24px rgba(26,240,96,.35);
+  transition:transform .15s,box-shadow .15s;
+}
+.btn-primary:active{transform:scale(.96);}
+.btn-secondary{
+  width:100%;height:44px;border-radius:14px;
+  border:1px solid var(--w12);background:transparent;
+  color:var(--w55);font-size:13px;font-weight:600;cursor:pointer;
+}
+.splash-lang{
+  position:absolute;bottom:20px;
+  display:flex;gap:16px;
+}
+.lang-btn{
+  font-size:11px;color:var(--w30);cursor:pointer;
+  padding:4px 8px;border-radius:6px;transition:color .2s;
+}
+.lang-btn.on{color:var(--G);font-weight:700;}
+
+/* ══════════════════════════════════════
+   SCREEN 2 — ONBOARDING CAROUSEL
+   Screen 2a, 2b, 2c
+══════════════════════════════════════ */
+.onboard{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+}
+.ob-visual{
+  flex:1;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.ob-glow{
+  position:absolute;inset:0;
+  pointer-events:none;
+}
+.ob-icon{
+  font-size:80px;position:relative;z-index:2;
+  filter:drop-shadow(0 0 30px rgba(26,240,96,.3));
+  animation:icon-float 4s ease-in-out infinite;
+}
+.ob-bottom{
+  background:linear-gradient(to top,var(--ink) 85%,transparent);
+  padding:32px 24px 28px;
+  position:relative;z-index:2;
+}
+.ob-dots{display:flex;gap:6px;margin-bottom:18px;}
+.od{width:6px;height:6px;border-radius:3px;background:var(--w12);transition:all .3s;}
+.od.on{width:20px;background:var(--G);}
+.ob-title{
+  font-family:'Unbounded',sans-serif;
+  font-size:20px;font-weight:900;letter-spacing:-.5px;
+  line-height:1.15;margin-bottom:10px;
+}
+.ob-title .accent-g{color:var(--G);}
+.ob-title .accent-y{color:var(--Y);}
+.ob-title .accent-o{color:var(--O);}
+.ob-body{font-size:13px;color:var(--w40);line-height:1.65;margin-bottom:24px;}
+.ob-next{
+  width:100%;height:50px;border-radius:14px;border:none;
+  background:var(--G);color:var(--ink);
+  font-family:'Unbounded',sans-serif;font-size:11px;font-weight:900;
+  cursor:pointer;letter-spacing:.5px;
+  box-shadow:0 4px 20px rgba(26,240,96,.3);
+}
+.ob-skip{
+  position:absolute;top:54px;right:18px;
+  font-size:11px;color:var(--w30);cursor:pointer;
+  background:var(--w06);border:1px solid var(--w08);
+  border-radius:100px;padding:5px 12px;
+}
+
+/* ══════════════════════════════════════
+   SCREEN 3 — PHONE NUMBER ENTRY
+══════════════════════════════════════ */
+.auth-screen{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  padding:0 22px;
+}
+.auth-head{
+  padding-top:8px;
+  display:flex;align-items:center;gap:14px;
+  margin-bottom:28px;
+}
+.back-btn{
+  width:36px;height:36px;border-radius:12px;
+  background:var(--w08);border:1px solid var(--w12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;cursor:pointer;flex-shrink:0;
+}
+.auth-title{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;letter-spacing:-.3px;}
+
+.step-indicator{
+  display:flex;align-items:center;gap:6px;
+  margin-bottom:28px;
+}
+.step{
+  height:3px;flex:1;border-radius:2px;
+  background:var(--w08);overflow:hidden;
+}
+.step-fill{height:100%;border-radius:2px;background:var(--G);transition:width .4s ease;}
+
+.auth-label{
+  font-size:9px;font-weight:700;letter-spacing:1.5px;
+  color:var(--w30);text-transform:uppercase;margin-bottom:8px;
+}
+.auth-headline{
+  font-family:'Unbounded',sans-serif;
+  font-size:22px;font-weight:900;letter-spacing:-.8px;
+  line-height:1.15;margin-bottom:6px;
+}
+.auth-headline .g{color:var(--G);}
+.auth-sub{font-size:12px;color:var(--w35);margin-bottom:28px;line-height:1.6;}
+
+/* Country + phone */
+.phone-input-wrap{
+  display:flex;gap:8px;margin-bottom:12px;
+}
+.country-sel{
+  height:52px;border-radius:13px;
+  background:var(--w08);border:1px solid var(--w12);
+  display:flex;align-items:center;gap:7px;
+  padding:0 12px;cursor:pointer;flex-shrink:0;
+  transition:border-color .2s;
+}
+.cs-flag{font-size:18px;}
+.cs-code{font-size:13px;font-weight:700;}
+.cs-arrow{font-size:9px;color:var(--w30);}
+.phone-field{
+  flex:1;height:52px;border-radius:13px;
+  background:var(--w08);border:1px solid var(--w12);
+  padding:0 16px;
+  font-family:'Outfit',sans-serif;font-size:16px;
+  font-weight:600;letter-spacing:.5px;color:var(--w);
+  outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.phone-field:focus{
+  border-color:rgba(26,240,96,.4);
+  box-shadow:0 0 0 3px rgba(26,240,96,.08);
+}
+.phone-field.filled{border-color:rgba(26,240,96,.3);}
+.phone-field::placeholder{color:var(--w20);font-size:14px;letter-spacing:0;}
+.field-note{font-size:10px;color:var(--w25);margin-bottom:28px;line-height:1.55;}
+.field-note b{color:var(--w55);}
+
+/* Keyboard suggestion row */
+.quick-nums{
+  display:flex;gap:8px;margin-bottom:24px;overflow-x:auto;scrollbar-width:none;
+}
+.quick-nums::-webkit-scrollbar{display:none;}
+.qn{
+  height:34px;padding:0 12px;border-radius:10px;
+  background:var(--w06);border:1px solid var(--w08);
+  font-size:12px;font-weight:600;color:var(--w40);
+  white-space:nowrap;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;
+}
+
+.btn-full{
+  width:100%;height:52px;border-radius:14px;border:none;
+  background:var(--G);color:var(--ink);
+  font-family:'Unbounded',sans-serif;font-size:11px;font-weight:900;
+  letter-spacing:.5px;cursor:pointer;
+  box-shadow:0 4px 20px rgba(26,240,96,.28);
+  transition:transform .15s;
+  margin-top:auto;margin-bottom:8px;
+}
+.btn-full:active{transform:scale(.97);}
+.btn-full:disabled{
+  background:var(--w08);color:var(--w20);
+  box-shadow:none;cursor:not-allowed;
+}
+
+/* Sécurité note */
+.sec-note{
+  display:flex;align-items:center;gap:8px;
+  background:var(--w04);border:1px solid var(--w08);
+  border-radius:11px;padding:10px 12px;margin-bottom:20px;
+}
+.sec-ico{font-size:14px;flex-shrink:0;}
+.sec-text{font-size:10px;color:var(--w30);line-height:1.5;}
+
+/* ══════════════════════════════════════
+   SCREEN 4 — OTP VERIFICATION
+══════════════════════════════════════ */
+.otp-digits{
+  display:flex;gap:10px;
+  justify-content:center;
+  margin:32px 0 20px;
+}
+.otp-d{
+  width:46px;height:56px;border-radius:13px;
+  background:var(--w08);border:1.5px solid var(--w12);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;
+  transition:border-color .2s,background .2s;
+}
+.otp-d.filled{
+  background:rgba(26,240,96,.06);
+  border-color:rgba(26,240,96,.35);
+  color:var(--G);
+}
+.otp-d.active{
+  border-color:var(--G);
+  box-shadow:0 0 0 3px rgba(26,240,96,.1);
+}
+.otp-sent-to{
+  font-size:12px;color:var(--w35);text-align:center;
+  margin-bottom:8px;line-height:1.6;
+}
+.otp-sent-to b{color:var(--w70);font-weight:700;}
+.otp-resend{
+  text-align:center;font-size:11px;color:var(--w30);
+  margin-bottom:28px;
+}
+.otp-resend span{color:var(--G);font-weight:700;cursor:pointer;}
+
+/* ══════════════════════════════════════
+   SCREEN 5 — CREATE PROFILE
+══════════════════════════════════════ */
+.profile-avatar-pick{
+  display:flex;flex-direction:column;align-items:center;
+  margin-bottom:24px;
+}
+.pap-circle{
+  width:80px;height:80px;border-radius:50%;
+  background:linear-gradient(145deg,rgba(26,240,96,.12),rgba(26,240,96,.04));
+  border:2px dashed rgba(26,240,96,.25);
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;cursor:pointer;position:relative;
+  margin-bottom:8px;
+  transition:border-color .2s,background .2s;
+}
+.pap-circle:hover{border-color:rgba(26,240,96,.5);}
+.pap-add{
+  position:absolute;bottom:0;right:0;
+  width:22px;height:22px;border-radius:50%;
+  background:var(--G);border:2px solid var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:900;color:var(--ink);
+}
+.pap-hint{font-size:10px;color:var(--G);cursor:pointer;}
+
+.input-group{margin-bottom:14px;}
+.ig-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:6px;}
+.ig-field{
+  width:100%;height:50px;border-radius:13px;
+  background:var(--w08);border:1.5px solid var(--w12);
+  padding:0 16px;
+  font-family:'Outfit',sans-serif;font-size:14px;color:var(--w);
+  outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.ig-field:focus{
+  border-color:rgba(26,240,96,.35);
+  box-shadow:0 0 0 3px rgba(26,240,96,.06);
+}
+.handle-wrap{position:relative;}
+.handle-at{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  font-size:14px;font-weight:700;color:var(--G);
+}
+.handle-field{padding-left:28px !important;}
+.handle-avail{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  font-size:9px;font-weight:700;background:rgba(26,240,96,.1);
+  border:1px solid rgba(26,240,96,.2);color:var(--G);
+  border-radius:6px;padding:2px 7px;
+}
+
+/* ══════════════════════════════════════
+   SCREEN 6 — CNI IDENTITY VERIFICATION
+══════════════════════════════════════ */
+.cni-hero{
+  background:linear-gradient(145deg,rgba(247,183,49,.06),rgba(255,100,34,.03));
+  border:1px solid rgba(247,183,49,.14);
+  border-radius:16px;padding:18px;
+  display:flex;flex-direction:column;align-items:center;
+  gap:10px;text-align:center;margin-bottom:20px;
+}
+.cni-icon{font-size:40px;}
+.cni-title{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;letter-spacing:-.3px;}
+.cni-body{font-size:11px;color:var(--w35);line-height:1.65;}
+
+.cni-why{
+  margin-bottom:18px;display:flex;flex-direction:column;gap:8px;
+}
+.cni-reason{
+  display:flex;align-items:flex-start;gap:10px;
+  background:var(--w04);border:1px solid var(--w06);
+  border-radius:11px;padding:10px 12px;
+}
+.cr-ico{font-size:16px;flex-shrink:0;}
+.cr-text{font-size:11px;color:var(--w50);line-height:1.5;}
+.cr-text b{color:var(--w);font-weight:600;}
+
+.cni-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.cni-opt{
+  display:flex;align-items:center;gap:12px;
+  background:var(--w06);border:1.5px solid var(--w10);
+  border-radius:13px;padding:13px 14px;cursor:pointer;
+  transition:border-color .2s,background .2s;
+}
+.cni-opt:hover,.cni-opt.on{
+  background:rgba(26,240,96,.06);
+  border-color:rgba(26,240,96,.3);
+}
+.co-ico{font-size:22px;flex-shrink:0;}
+.co-body{flex:1;}
+.co-title{font-size:13px;font-weight:700;margin-bottom:2px;}
+.co-sub{font-size:10px;color:var(--w35);}
+.co-arrow{font-size:14px;color:var(--w30);}
+
+.skip-cni{
+  text-align:center;font-size:11px;color:var(--w25);
+  margin-bottom:16px;cursor:pointer;
+}
+.skip-cni span{color:var(--w40);text-decoration:underline;}
+
+/* ══════════════════════════════════════
+   SCREEN 7 — ARRONDISSEMENT PICK
+══════════════════════════════════════ */
+.arr-search{
+  display:flex;align-items:center;gap:10px;
+  background:var(--w08);border:1.5px solid var(--w12);
+  border-radius:13px;padding:0 14px;
+  height:48px;margin-bottom:16px;
+}
+.arr-search input{
+  flex:1;background:none;border:none;outline:none;
+  font-family:'Outfit',sans-serif;font-size:13px;color:var(--w);
+}
+.arr-search input::placeholder{color:var(--w25);}
+
+.arr-map-teaser{
+  height:90px;border-radius:14px;overflow:hidden;
+  background:linear-gradient(145deg,#0a1a0c,#060e07);
+  border:1px solid rgba(26,240,96,.12);
+  margin-bottom:14px;position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.amt-label{
+  position:absolute;top:8px;left:10px;
+  font-size:8px;font-weight:700;letter-spacing:1px;
+  color:rgba(26,240,96,.6);text-transform:uppercase;
+}
+.amt-dots{display:flex;gap:4px;flex-wrap:wrap;padding:4px;}
+.amt-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:rgba(26,240,96,.2);
+  transition:background .2s;
+}
+.amt-dot.active{background:var(--G);box-shadow:0 0 6px var(--G);}
+
+.arr-section-label{
+  font-size:9px;font-weight:700;letter-spacing:1.5px;
+  color:var(--w25);text-transform:uppercase;
+  padding:4px 0 8px;
+}
+.arr-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;scrollbar-width:none;}
+.arr-list::-webkit-scrollbar{display:none;}
+.arr-item{
+  display:flex;align-items:center;gap:10px;
+  background:var(--w06);border:1.5px solid transparent;
+  border-radius:12px;padding:11px 13px;cursor:pointer;
+  transition:all .15s;
+}
+.arr-item:hover{background:var(--w08);}
+.arr-item.on{
+  background:rgba(26,240,96,.07);
+  border-color:rgba(26,240,96,.25);
+}
+.ai-icon{font-size:18px;flex-shrink:0;}
+.ai-name{flex:1;font-size:13px;font-weight:600;}
+.ai-count{font-size:10px;color:var(--w30);}
+.ai-check{
+  width:18px;height:18px;border-radius:50%;
+  background:var(--G);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:900;color:var(--ink);
+  opacity:0;transition:opacity .15s;
+}
+.arr-item.on .ai-check{opacity:1;}
+
+/* ══════════════════════════════════════
+   SCREEN 8 — FIRST DEPOSIT / FUND WALLET
+══════════════════════════════════════ */
+.fund-methods{
+  display:flex;flex-direction:column;gap:8px;
+  margin-bottom:16px;
+}
+.fm-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--w06);border:1.5px solid var(--w10);
+  border-radius:14px;padding:14px;cursor:pointer;
+  transition:all .15s;
+}
+.fm-item:hover,.fm-item.on{
+  background:rgba(26,240,96,.06);
+  border-color:rgba(26,240,96,.25);
+}
+.fm-ico{
+  width:42px;height:42px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.fm-body{flex:1;}
+.fm-name{font-size:13px;font-weight:700;margin-bottom:2px;}
+.fm-sub{font-size:10px;color:var(--w35);}
+.fm-badge{
+  font-size:8px;font-weight:700;letter-spacing:.5px;
+  border-radius:6px;padding:3px 7px;flex-shrink:0;
+}
+.badge-free{background:rgba(26,240,96,.12);color:var(--G);border:1px solid rgba(26,240,96,.2);}
+.badge-fast{background:rgba(247,183,49,.1);color:var(--Y);border:1px solid rgba(247,183,49,.2);}
+
+.fund-amount-section{margin-bottom:16px;}
+.fas-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--w30);text-transform:uppercase;margin-bottom:8px;}
+.fas-amounts{display:flex;gap:7px;flex-wrap:wrap;}
+.fa-chip{
+  height:36px;padding:0 14px;border-radius:100px;
+  background:var(--w06);border:1.5px solid var(--w10);
+  font-size:12px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;
+  transition:all .15s;
+}
+.fa-chip.on{
+  background:rgba(26,240,96,.1);
+  border-color:rgba(26,240,96,.3);
+  color:var(--G);
+}
+
+.skip-fund{
+  text-align:center;font-size:11px;color:var(--w30);
+  cursor:pointer;margin-bottom:10px;
+}
+.skip-fund span{color:var(--w50);}
+
+/* ══════════════════════════════════════
+   SCREEN 9 — WELCOME / ALL DONE
+══════════════════════════════════════ */
+.welcome-screen{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  overflow:hidden;
+  padding:0 24px;
+}
+.ws-bg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse at 50% 30%,rgba(26,240,96,.1) 0%,transparent 60%),
+    radial-gradient(ellipse at 20% 80%,rgba(255,100,34,.08) 0%,transparent 50%),
+    radial-gradient(ellipse at 80% 70%,rgba(247,183,49,.06) 0%,transparent 50%),
+    #050805;
+}
+.ws-pattern{
+  position:absolute;inset:0;opacity:.03;
+  background-image:
+    repeating-linear-gradient(45deg,rgba(255,255,255,1) 0px,rgba(255,255,255,1) 1px,transparent 1px,transparent 20px),
+    repeating-linear-gradient(-45deg,rgba(255,255,255,1) 0px,rgba(255,255,255,1) 1px,transparent 1px,transparent 20px);
+}
+.ws-content{position:relative;z-index:2;text-align:center;width:100%;}
+
+.ws-celebration{
+  font-size:52px;margin-bottom:20px;
+  animation:bounce-in .6s cubic-bezier(.175,.885,.32,1.275) both;
+}
+.ws-greeting{
+  font-family:'Unbounded',sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:2px;
+  color:var(--G);text-transform:uppercase;
+  margin-bottom:8px;
+}
+.ws-name{
+  font-family:'Unbounded',sans-serif;
+  font-size:28px;font-weight:900;letter-spacing:-1px;
+  line-height:1.1;margin-bottom:14px;
+}
+.ws-sub{
+  font-size:13px;color:var(--w40);line-height:1.7;
+  margin-bottom:28px;
+}
+.ws-balance{
+  background:linear-gradient(145deg,rgba(26,240,96,.08),rgba(26,240,96,.03));
+  border:1px solid rgba(26,240,96,.2);
+  border-radius:18px;padding:16px;margin-bottom:28px;
+}
+.wsb-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:rgba(26,240,96,.6);text-transform:uppercase;margin-bottom:6px;}
+.wsb-amount{
+  font-family:'Unbounded',sans-serif;
+  font-size:36px;font-weight:900;color:var(--G);
+  letter-spacing:-2px;line-height:1;
+}
+.wsb-currency{font-size:14px;font-weight:400;color:rgba(26,240,96,.5);}
+.wsb-note{font-size:10px;color:rgba(26,240,96,.5);margin-top:6px;}
+
+.ws-first-steps{
+  display:flex;gap:8px;margin-bottom:28px;
+}
+.wfs-item{
+  flex:1;background:var(--w06);border:1px solid var(--w08);
+  border-radius:12px;padding:12px 8px;text-align:center;
+  cursor:pointer;transition:background .15s;
+}
+.wfs-item:hover{background:var(--w08);}
+.wfs-icon{font-size:20px;margin-bottom:5px;}
+.wfs-label{font-size:9px;font-weight:700;color:var(--w40);}
+
+.btn-enter-k21{
+  width:100%;height:52px;border-radius:14px;border:none;
+  background:var(--G);color:var(--ink);
+  font-family:'Unbounded',sans-serif;font-size:12px;font-weight:900;
+  letter-spacing:.5px;cursor:pointer;
+  box-shadow:0 4px 24px rgba(26,240,96,.35);
+  animation:pulse-glow 2.5s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════
+   FLOW CONNECTOR
+══════════════════════════════════════ */
+.flow-arrow{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;color:rgba(255,255,255,.15);
+  font-size:20px;padding-top:60px;align-self:flex-start;
+  flex-shrink:0;
+}
+
+/* ══════════════════════════════════════
+   KEYFRAMES
+══════════════════════════════════════ */
+@keyframes mark-arrive{
+  from{opacity:0;transform:scale(.7) translateY(20px);}
+  to{opacity:1;transform:scale(1) translateY(0);}
+}
+@keyframes fade-up{
+  from{opacity:0;transform:translateY(16px);}
+  to{opacity:1;transform:translateY(0);}
+}
+@keyframes icon-float{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-12px);}
+}
+@keyframes bounce-in{
+  from{opacity:0;transform:scale(.3);}
+  to{opacity:1;transform:scale(1);}
+}
+@keyframes pulse-glow{
+  0%,100%{box-shadow:0 4px 24px rgba(26,240,96,.35);}
+  50%{box-shadow:0 4px 40px rgba(26,240,96,.6),0 0 0 6px rgba(26,240,96,.08);}
+}
+</style>
+</head>
+<body>
+
+<div class="page-h">K21 — UX/UI Design System</div>
+<div class="page-sub">Onboarding Flow · Complete · 9 screens</div>
+
+<!-- ═══ ROW 1: ENTRY ═══ -->
+<div class="flow-label">01 — First Open & Discovery</div>
+<div class="row">
+
+  <!-- SCREEN 1: SPLASH -->
+  <div style="position:relative;">
+    <div class="phone">
+      <div class="sb" style="position:relative;z-index:10;">
+        <span class="sb-t" style="color:rgba(255,255,255,.5);">9:41</span>
+        <span class="sb-r">📶 🔋</span>
+      </div>
+      <div class="splash">
+        <div class="splash-bg"></div>
+        <div class="splash-pattern"></div>
+        <div class="splash-content">
+          <div class="k21-mark">
+            <div class="mark-k">K</div>
+            <div class="mark-div"></div>
+            <div class="mark-21">
+              <span class="mark-2">2</span>
+              <span class="mark-1">1</span>
+            </div>
+          </div>
+          <div class="splash-tagline">African Youth Wallet</div>
+          <div class="splash-cta">
+            <button class="btn-primary">Créer mon compte</button>
+            <button class="btn-secondary">J'ai déjà un compte</button>
+          </div>
+        </div>
+        <div class="splash-lang">
+          <div class="lang-btn on">FR</div>
+          <div class="lang-btn">WO</div>
+          <div class="lang-btn">EN</div>
+        </div>
+      </div>
+    </div>
+    <div class="s-label">Splash · First open</div>
+  </div>
+
+  <div class="flow-arrow">→</div>
+
+  <!-- SCREEN 2a: ONBOARD 1 — PAYMENTS -->
+  <div style="position:relative;">
+    <div class="phone">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="onboard">
+        <div class="ob-visual">
+          <div class="ob-glow" style="background:radial-gradient(ellipse at 50% 40%,rgba(26,240,96,.12) 0%,transparent 65%);"></div>
+          <div class="ob-icon">💸</div>
+          <div class="ob-skip">Passer</div>
+        </div>
+        <div class="ob-bottom">
+          <div class="ob-dots">
+            <div class="od on"></div>
+            <div class="od"></div>
+            <div class="od"></div>
+          </div>
+          <div class="ob-title">Envoie de l'argent<br><span class="accent-g">sans frais.</span> Pour de vrai.</div>
+          <div class="ob-body">Yónnee à ta famille, tes amis, tes marchands. Zéro frais. Zéro mauvaises surprises. L'argent arrive instantanément.</div>
+          <button class="ob-next">Suivant →</button>
+        </div>
+      </div>
+    </div>
+    <div class="s-label">Onboard 1 · Payments</div>
+  </div>
+
+  <div class="flow-arrow">→</div>
+
+  <!-- SCREEN 2b: ONBOARD 2 — MUSIC -->
+  <div style="position:relative;">
+    <div class="phone">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="onboard">
+        <div class="ob-visual">
+          <div class="ob-glow" style="background:radial-gradient(ellipse at 50% 40%,rgba(255,100,34,.12) 0%,transparent 65%);"></div>
+          <div class="ob-icon">🎵</div>
+          <div class="ob-skip">Passer</div>
+        </div>
+        <div class="ob-bottom">
+          <div class="ob-dots">
+            <div class="od"></div>
+            <div class="od on"></div>
+            <div class="od"></div>
+          </div>
+          <div class="ob-title">La musique<br>sénégalaise <span class="accent-o">reconnue.</span></div>
+          <div class="ob-body">Chart 221 Bëgg — le premier classement basé sur ce que le Sénégal écoute vraiment. Pas les streams achetés. Toi tu décides.</div>
+          <button class="ob-next" style="background:var(--O);box-shadow:0 4px 20px rgba(255,100,34,.3);">Suivant →</button>
+        </div>
+      </div>
+    </div>
+    <div class="s-label">Onboard 2 · Music</div>
+  </div>
+
+  <div class="flow-arrow">→</div>
+
+  <!-- SCREEN 2c: ONBOARD 3 — COMMUNITY -->
+  <div style="position:relative;">
+    <div class="phone">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="onboard">
+        <div class="ob-visual">
+          <div class="ob-glow" style="background:radial-gradient(ellipse at 50% 40%,rgba(247,183,49,.12) 0%,transparent 65%);"></div>
+          <div class="ob-icon">🏘️</div>
+          <div class="ob-skip">Passer</div>
+        </div>
+        <div class="ob-bottom">
+          <div class="ob-dots">
+            <div class="od"></div>
+            <div class="od"></div>
+            <div class="od on"></div>
+          </div>
+          <div class="ob-title">Ton quartier.<br><span class="accent-y">Ton identité.</span></div>
+          <div class="ob-body">Mboolo, Ataya rooms, Défis, Tontine digitale. K21 c'est Dakar dans ta poche — pas une appli bancaire de plus.</div>
+          <button class="ob-next" style="background:var(--Y);color:var(--ink);box-shadow:0 4px 20px rgba(247,183,49,.3);">C'est parti →</button>
+        </div>
+      </div>
+    </div>
+    <div class="s-label">Onboard 3 · Community</div>
+  </div>
+
+</div>
+
+<!-- ═══ ROW 2: IDENTITY ═══ -->
+<div class="flow-label">02 — Phone Number & Verification</div>
+<div class="row">
+
+  <!-- SCREEN 3: PHONE NUMBER -->
+  <div style="position:relative;">
+    <div class="phone tall">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="auth-screen" style="padding-bottom:20px;">
+        <div class="auth-head">
+          <div class="back-btn">←</div>
+          <div class="auth-title">Créer mon compte</div>
+        </div>
+        <div class="step-indicator">
+          <div class="step"><div class="step-fill" style="width:100%;"></div></div>
+          <div class="step"><div class="step-fill" style="width:0%;"></div></div>
+          <div class="step"><div class="step-fill" style="width:0%;"></div></div>
+          <div class="step"><div class="step-fill" style="width:0%;"></div></div>
+        </div>
+        <div class="auth-label">Étape 1 sur 4</div>
+        <div class="auth-headline">Ton numéro<br><span class="g">de téléphone</span></div>
+        <div class="auth-sub">On t'envoie un code pour vérifier que c'est bien toi. Rien d'autre.</div>
+        <div class="phone-input-wrap">
+          <div class="country-sel">
+            <span class="cs-flag">🇸🇳</span>
+            <span class="cs-code">+221</span>
+            <span class="cs-arrow">▾</span>
+          </div>
+          <input class="phone-field filled" type="tel" value="77 234 56 78" placeholder="77 000 00 00"/>
+        </div>
+        <div class="field-note">
+          Ton numéro est lié à <b>ton identité K21</b>, pas à ta SIM. Si tu perds ton téléphone, ton argent reste en sécurité.
+        </div>
+        <div class="quick-nums">
+          <div class="qn">📱 Orange</div>
+          <div class="qn">📱 Free</div>
+          <div class="qn">📱 Expresso</div>
+        </div>
+        <div class="sec-note">
+          <span class="sec-ico">🔒</span>
+          <div class="sec-text">Ton numéro ne sera jamais partagé avec des tiers ni utilisé à des fins publicitaires.</div>
+        </div>
+        <button class="btn-full">Recevoir mon code →</button>
+      </div>
+    </div>
+    <div class="s-label">Screen 3 · Phone number</div>
+  </div>
+
+  <div class="flow-arrow">→</div>
+
+  <!-- SCREEN 4: OTP -->
+  <div style="position:relative;">
+    <div class="phone tall">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="auth-screen" style="padding-bottom:20px;">
+        <div class="auth-head">
+          <div class="back-btn">←</div>
+          <div class="auth-title">Vérification</div>
+        </div>
+        <div class="step-indicator">
+          <div class="step"><div class="step-fill" style="width:100%;"></div></div>
+          <div class="step"><div class="step-fill" style="width:100%;"></div></div>
+          <div class="step"><div class="step-fill" style="width:0%;"></div></div>
+          <div class="step"><div class="step-fill" style="width:0%;"></div></div>
+        </div>
+        <div class="auth-label">Étape 2 sur 4</div>
+        <div class="auth-headline">Saisis le<br><span class="g">code reçu</span></div>
+        <div class="otp-sent-to">Code envoyé au <b>+221 77 234 56 78</b><br>par SMS · valide 10 minutes</div>
+        <div class="otp-digits">
+          <div class="otp-d filled">4</div>
+          <div class="otp-d filled">8</div>
+          <div class="otp-d filled">2</div>
+          <div class="otp-d active"></div>
+          <div class="otp-d"></div>
+          <div class="otp-d"></div>
+        </div>
+        <div class="otp-resend">Tu n'as rien reçu ? <span>Renvoyer le code</span></div>
+        <div class="sec-note">
+          <span class="sec-ico">🛡️</span>
+          <div class="sec-text"><b style="color:rgba(255,255,255,.7)">Ne partage jamais ce code</b> — même si quelqu'un dit travailler pour K21. On ne te demandera jamais ton code.</div>
+        </div>
+        <button class="btn-full" style="margin-top:auto;">Vérifier →</button>
+      </div>
+    </div>
+    <div class="s-label">Screen 4 · OTP code</div>
+  </div>
+
+</div>
+
+<!-- ═══ ROW 3: PROFILE ═══ -->
+<div class="flow-label">03 — Profile & Identity</div>
+<div class="row">
+
+  <!-- SCREEN 5: CREATE PROFILE -->
+  <div style="position:relative;">
+    <div class="phone tall">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="auth-screen" style="padding-bottom:16px;">
+        <div class="auth-head">
+          <div class="back-btn">←</div>
+          <div class="auth-title">Mon profil</div>
+        </div>
+        <div class="step-indicator">
+          <div class="step"><div class="step-fill" style="width:100%;"></div></div>
+          <div class="step"><div class="step-fill" style="width:100%;"></div></div>
+          <div class="step"><div class="step-fill" style="width:100%;"></div></div>
+          <div class="step"><div class="step-fill" style="width:0%;"></div></div>
+        </div>
+        <div class="auth-label">Étape 3 sur 4</div>
+        <div class="auth-headline">Crée ton<br><span class="g">identité K21</span></div>
+        <div style="height:10px;"></div>
+        <div class="profile-avatar-pick">
+          <div class="pap-circle">
+            👤
+            <div class="pap-add">+</div>
+          </div>
+          <div class="pap-hint">Ajouter une photo</div>
+        </div>
+        <div class="input-group">
+          <div class="ig-label">Prénom et nom</div>
+          <input class="ig-field" type="text" placeholder="Saliou Diallo" value="Saliou Diallo"/>
+        </div>
+        <div class="input-group">
+          <div class="ig-label">Ton handle</div>
+          <div class="handle-wrap">
+            <span class="handle-at">@</span>
+            <input class="ig-field handle-field" type="text" value="saliou_medina"/>
+            <div class="handle-avail">✓ Dispo</div>
+          </div>
+        </div>
+        <button class="btn-full">Continuer →</button>
+      </div>
+    </div>
+    <div class="s-label">Screen 5 · Create profile</div>
+  </div>
+
+  <div class="flow-arrow">→</div>
+
+  <!-- SCREEN 6: CNI VERIFICATION -->
+  <div style="position:relative;">
+    <div class="phone tall">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="auth-screen" style="padding-bottom:14px;overflow-y:auto;">
+        <div class="auth-head">
+          <div class="back-btn">←</div>
+          <div class="auth-title">Identité</div>
+        </div>
+        <div class="step-indicator">
+          <div class="step"><div class="step-fill" style="width:100%;"></div></div>
+          <div class="step"><div class="step-fill" style="width:100%;"></div></div>
+          <div class="step"><div class="step-fill" style="width:100%;"></div></div>
+          <div class="step"><div class="step-fill" style="width:60%;background:var(--Y);"></div></div>
+        </div>
+        <div class="auth-label">Étape 4 sur 4</div>
+        <div class="cni-hero">
+          <div class="cni-icon">🪪</div>
+          <div class="cni-title">Vérifie ton identité</div>
+          <div class="cni-body">Chez K21, ton compte est lié à toi — pas à ta SIM. Si tu perds ton téléphone, ton argent ne disparaît jamais.</div>
+        </div>
+        <div class="cni-why">
+          <div class="cni-reason">
+            <span class="cr-ico">🔐</span>
+            <div class="cr-text"><b>Ton argent reste à toi.</b> Même si quelqu'un d'autre prend ton numéro.</div>
+          </div>
+          <div class="cni-reason">
+            <span class="cr-ico">⚡</span>
+            <div class="cr-text"><b>Récupération en 5 min.</b> Va chez un agent K21 avec ta CNI.</div>
+          </div>
+        </div>
+        <div class="cni-options">
+          <div class="cni-opt on">
+            <span class="co-ico">🪪</span>
+            <div class="co-body">
+              <div class="co-title">Carte Nationale d'Identité</div>
+              <div class="co-sub">Recommandé · Plus rapide</div>
+            </div>
+            <span class="co-arrow">→</span>
+          </div>
+          <div class="cni-opt">
+            <span class="co-ico">📘</span>
+            <div class="co-body">
+              <div class="co-title">Passeport</div>
+              <div class="co-sub">Accepté</div>
+            </div>
+            <span class="co-arrow">→</span>
+          </div>
+        </div>
+        <div class="skip-cni">Faire ça plus tard · <span>Limites de compte s'appliquent</span></div>
+        <button class="btn-full" style="background:var(--Y);color:var(--ink);box-shadow:0 4px 20px rgba(247,183,49,.28);">Scanner ma CNI →</button>
+      </div>
+    </div>
+    <div class="s-label">Screen 6 · CNI identity</div>
+  </div>
+
+  <div class="flow-arrow">→</div>
+
+  <!-- SCREEN 7: ARRONDISSEMENT PICK -->
+  <div style="position:relative;">
+    <div class="phone tall">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="auth-screen" style="padding-bottom:16px;">
+        <div class="auth-head">
+          <div class="back-btn">←</div>
+          <div class="auth-title">Mon quartier</div>
+        </div>
+        <div class="auth-headline" style="font-size:18px;margin-bottom:6px;">Ton <span class="g">arrondissement</span></div>
+        <div class="auth-sub" style="margin-bottom:14px;">Ton identité culturelle sur K21. Le classement de ton quartier dépend de toi.</div>
+        <div class="arr-search">
+          <span style="font-size:14px;opacity:.4;">🔍</span>
+          <input placeholder="Chercher mon arrondissement..."/>
+        </div>
+        <div class="arr-map-teaser">
+          <div class="amt-label">Dakar · Actif</div>
+          <div class="amt-dots">
+            <div class="amt-dot active"></div><div class="amt-dot active"></div><div class="amt-dot"></div>
+            <div class="amt-dot active"></div><div class="amt-dot active"></div><div class="amt-dot active"></div>
+            <div class="amt-dot"></div><div class="amt-dot active"></div><div class="amt-dot"></div>
+            <div class="amt-dot active"></div><div class="amt-dot active"></div><div class="amt-dot active"></div>
+          </div>
+        </div>
+        <div class="arr-section-label">Populaires</div>
+        <div class="arr-list">
+          <div class="arr-item on">
+            <span class="ai-icon">🏘️</span>
+            <span class="ai-name">Médina</span>
+            <span class="ai-count">4 821 K21</span>
+            <div class="ai-check">✓</div>
+          </div>
+          <div class="arr-item">
+            <span class="ai-icon">🏙️</span>
+            <span class="ai-name">Plateau</span>
+            <span class="ai-count">3 204 K21</span>
+            <div class="ai-check">✓</div>
+          </div>
+          <div class="arr-item">
+            <span class="ai-icon">🌆</span>
+            <span class="ai-name">Parcelles Assainies</span>
+            <span class="ai-count">5 112 K21</span>
+            <div class="ai-check">✓</div>
+          </div>
+          <div class="arr-item">
+            <span class="ai-icon">🌇</span>
+            <span class="ai-name">HLM</span>
+            <span class="ai-count">2 987 K21</span>
+            <div class="ai-check">✓</div>
+          </div>
+          <div class="arr-item">
+            <span class="ai-icon">🌃</span>
+            <span class="ai-name">Ouakam</span>
+            <span class="ai-count">2 341 K21</span>
+            <div class="ai-check">✓</div>
+          </div>
+        </div>
+        <button class="btn-full" style="margin-top:14px;">Médina — C'est mon quartier ✓</button>
+      </div>
+    </div>
+    <div class="s-label">Screen 7 · Arrondissement</div>
+  </div>
+
+</div>
+
+<!-- ═══ ROW 4: FUNDING + WELCOME ═══ -->
+<div class="flow-label">04 — First Deposit & Welcome</div>
+<div class="row">
+
+  <!-- SCREEN 8: FUND WALLET -->
+  <div style="position:relative;">
+    <div class="phone tall">
+      <div class="sb"><span class="sb-t">9:41</span><span class="sb-r">📶 🔋</span></div>
+      <div class="auth-screen" style="padding-bottom:16px;overflow-y:auto;">
+        <div class="auth-head">
+          <div class="back-btn" style="opacity:.3;">←</div>
+          <div class="auth-title">Alimenter mon compte</div>
+        </div>
+        <div class="auth-headline" style="font-size:18px;margin-bottom:6px;">Ajoute de <span class="g">l'argent</span></div>
+        <div class="auth-sub" style="margin-bottom:16px;">Transfère depuis Orange Money, Free Money ou Wave en quelques secondes.</div>
+        <div class="fund-methods">
+          <div class="fm-item on">
+            <div class="fm-ico" style="background:rgba(255,100,34,.1);">🟠</div>
+            <div class="fm-body">
+              <div class="fm-name">Orange Money</div>
+              <div class="fm-sub">Transfert instantané</div>
+            </div>
+            <div class="fm-badge badge-free">GRATUIT</div>
+          </div>
+          <div class="fm-item">
+            <div class="fm-ico" style="background:rgba(26,240,96,.08);">💚</div>
+            <div class="fm-body">
+              <div class="fm-name">Free Money</div>
+              <div class="fm-sub">Transfert instantané</div>
+            </div>
+            <div class="fm-badge badge-free">GRATUIT</div>
+          </div>
+          <div class="fm-item">
+            <div class="fm-ico" style="background:rgba(100,180,255,.08);">〰️</div>
+            <div class="fm-body">
+              <div class="fm-name">Wave</div>
+              <div class="fm-sub">Depuis ton compte Wave</div>
+            </div>
+            <div class="fm-badge badge-fast">RAPIDE</div>
+          </div>
+        </div>
+        <div class="fund-amount-section">
+          <div class="fas-label">Montant rapide</div>
+          <div class="fas-amounts">
+            <div class="fa-chip">5k F</div>
+            <div class="fa-chip on">10k F</div>
+            <div class="fa-chip">25k F</div>
+            <div class="fa-chip">50k F</div>
+          </div>
+        </div>
+        <div style="height:12px;"></div>
+        <div class="skip-fund">ou <span>Commencer sans argent pour l'instant</span></div>
+        <button class="btn-full">Ajouter 10 000 F →</button>
+      </div>
+    </div>
+    <div class="s-label">Screen 8 · First deposit</div>
+  </div>
+
+  <div class="flow-arrow">→</div>
+
+  <!-- SCREEN 9: WELCOME -->
+  <div style="position:relative;">
+    <div class="phone tall">
+      <div class="sb" style="position:relative;z-index:10;">
+        <span class="sb-t" style="color:rgba(255,255,255,.5);">9:41</span>
+        <span class="sb-r">📶 🔋</span>
+      </div>
+      <div class="welcome-screen">
+        <div class="ws-bg"></div>
+        <div class="ws-pattern"></div>
+        <div class="ws-content">
+          <div class="ws-celebration">🎉</div>
+          <div class="ws-greeting">Bienvenue dans K21</div>
+          <div class="ws-name">Saliou,<br>tu es chez toi.</div>
+          <div class="ws-sub">Ton compte est prêt. Ton quartier t'attend.<br>La musique tourne déjà.</div>
+          <div class="ws-balance">
+            <div class="wsb-label">Ton solde K21</div>
+            <div class="wsb-amount">10 000 <span class="wsb-currency">F CFA</span></div>
+            <div class="wsb-note">✦ Zéro frais sur tous tes envois</div>
+          </div>
+          <div class="ws-first-steps">
+            <div class="wfs-item">
+              <div class="wfs-icon">💸</div>
+              <div class="wfs-label">Envoyer</div>
+            </div>
+            <div class="wfs-item">
+              <div class="wfs-icon">🎵</div>
+              <div class="wfs-label">Chart 221</div>
+            </div>
+            <div class="wfs-item">
+              <div class="wfs-icon">💬</div>
+              <div class="wfs-label">Mboolo</div>
+            </div>
+            <div class="wfs-item">
+              <div class="wfs-icon">🏘️</div>
+              <div class="wfs-label">Médina</div>
+            </div>
+          </div>
+          <button class="btn-enter-k21">Entrer dans K21 →</button>
+        </div>
+      </div>
+    </div>
+    <div class="s-label">Screen 9 · Welcome</div>
+  </div>
+
+</div>
+
+</body>
+</html>
