@@ -1,7 +1,9 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import SplashScreen from '../screens/SplashScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import SignUpScreen from '../screens/SignUpScreen';
+import WelcomeCelebrationScreen from '../screens/WelcomeCelebrationScreen';
 import MainTabs from './MainTabs';
 import SendMoneyScreen from '../screens/SendMoneyScreen';
 import PayMerchantScreen from '../screens/PayMerchantScreen';
@@ -15,13 +17,26 @@ import ComingSoonScreen from '../screens/ComingSoonScreen';
 
 const Stack = createNativeStackNavigator();
 
-// No persistence yet (no AsyncStorage wired), so the full first-run
-// sequence always shows: Welcome (value props) -> Onboarding (country +
-// language) -> SignUp (phone/OTP/profile) -> Main. `navigation.reset` on
-// completion clears it all from the back stack.
+// First-run sequence, matching design/k21-onboarding.html's 9 screens:
+// Splash -> Welcome (3 value-prop slides) -> Onboarding (country + language
+// — not in that prototype, but explicitly requested separately, kept for
+// diaspora/other-country users) -> SignUp (phone/OTP/profile/CNI/
+// arrondissement/fund wallet) -> Celebration -> Main. No persistence yet,
+// so this always runs on cold start; `navigation.reset` on completion
+// clears it all from the back stack.
 export default function RootNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Welcome">
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
+      <Stack.Screen name="Splash">
+        {({ navigation }) => (
+          <SplashScreen
+            onCreateAccount={() => navigation.navigate('Welcome')}
+            onHaveAccount={() =>
+              navigation.navigate('Info', { title: 'Se connecter', subtitle: 'La connexion à un compte existant arrive bientôt — crée un compte pour l’instant.', icon: '🔑' })
+            }
+          />
+        )}
+      </Stack.Screen>
       <Stack.Screen name="Welcome">
         {({ navigation }) => <WelcomeScreen onComplete={() => navigation.navigate('Onboarding')} />}
       </Stack.Screen>
@@ -30,7 +45,12 @@ export default function RootNavigator() {
       </Stack.Screen>
       <Stack.Screen name="SignUp">
         {({ navigation }) => (
-          <SignUpScreen onComplete={() => navigation.reset({ index: 0, routes: [{ name: 'Main' }] })} />
+          <SignUpScreen onComplete={(profile) => navigation.replace('Celebration', profile)} />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="Celebration">
+        {({ navigation, route }) => (
+          <WelcomeCelebrationScreen {...route.params} onEnter={() => navigation.reset({ index: 0, routes: [{ name: 'Main' }] })} />
         )}
       </Stack.Screen>
       <Stack.Screen name="Main" component={MainTabs} />

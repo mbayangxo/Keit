@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -7,7 +7,6 @@ import * as ExpoSplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { colors, fontsToLoad } from './src/theme';
 import RootNavigator from './src/navigation/RootNavigator';
-import BrandSplashScreen from './src/screens/SplashScreen';
 
 ExpoSplashScreen.preventAutoHideAsync();
 
@@ -18,7 +17,6 @@ const navTheme = {
 
 export default function App() {
   const [fontsLoaded] = useFonts(fontsToLoad);
-  const [brandSplashDone, setBrandSplashDone] = useState(false);
 
   const onLayout = useCallback(async () => {
     if (fontsLoaded) {
@@ -32,13 +30,9 @@ export default function App() {
     <SafeAreaProvider>
       <View style={styles.root} onLayout={onLayout}>
         <StatusBar style="light" />
-        {!brandSplashDone ? (
-          <BrandSplashScreen onFinish={() => setBrandSplashDone(true)} />
-        ) : (
-          <NavigationContainer theme={navTheme}>
-            <RootNavigator />
-          </NavigationContainer>
-        )}
+        <NavigationContainer theme={navTheme}>
+          <RootNavigator />
+        </NavigationContainer>
       </View>
     </SafeAreaProvider>
   );
