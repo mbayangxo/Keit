@@ -28,14 +28,14 @@ const ACTIONS = [
 function ActionButton({ icon, label, bg, border, delay, onPress }) {
   const float = useFloatLoop(delay);
   return (
-    <View style={styles.haItem}>
-      <PressScale scaleTo={0.9} onPress={onPress} style={[styles.haBtn, { backgroundColor: bg, borderColor: border }]}>
+    <PressScale scaleTo={0.9} onPress={onPress} style={styles.haItem}>
+      <View style={[styles.haBtn, { backgroundColor: bg, borderColor: border }]}>
         <Animated.View style={{ transform: [{ translateY: float }] }}>
           <Text style={styles.haIcon}>{icon}</Text>
         </Animated.View>
-      </PressScale>
+      </View>
       <Text style={styles.haLabel}>{label}</Text>
-    </View>
+    </PressScale>
   );
 }
 
