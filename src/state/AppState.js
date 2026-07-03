@@ -85,19 +85,15 @@ export function AppStateProvider({ children }) {
     setAuthenticated(true);
   }, []);
 
-  const initBusinessAccount = useCallback(({ businessName, category, arrondissement, fundAmount }) => {
+  const initBusinessAccount = useCallback(({ businessName, category, arrondissement }) => {
     setProfileState((prev) => ({
       ...prev,
       accountType: 'business',
       arrondissement,
       business: { name: businessName, category, keboId: generateId('KEBU') },
     }));
-    setBalance(fundAmount ?? 0);
-    setTransactions(
-      fundAmount
-        ? [{ key: 'funding', icon: '💰', iconBg: colors.greenA08, title: 'Dépôt initial', subtitle: 'Bienvenue sur K21 Business', amount: fundAmount }]
-        : []
-    );
+    setBalance(0);
+    setTransactions([]);
     setAuthenticated(true);
   }, []);
 

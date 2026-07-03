@@ -356,7 +356,9 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
     try {
       const res = await authPhone(normalized);
       setE164Phone(normalized);
-      if (res.otp) setDevOtpHint(res.otp);
+      if (res.otp && (process.env.EXPO_PUBLIC_ALLOW_BETA_OTP === 'true' || __DEV__)) {
+        setDevOtpHint(res.otp);
+      }
       goTo('otp');
     } catch (err) {
       showToast(err.message ?? 'Impossible d\'envoyer le code');
@@ -370,7 +372,9 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
     setLoading(true);
     try {
       const res = await authPhone(e164Phone);
-      if (res.otp) setDevOtpHint(res.otp);
+      if (res.otp && (process.env.EXPO_PUBLIC_ALLOW_BETA_OTP === 'true' || __DEV__)) {
+        setDevOtpHint(res.otp);
+      }
       showToast('Code renvoyé ✓');
     } catch (err) {
       showToast(err.message ?? 'Échec du renvoi');

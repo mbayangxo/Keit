@@ -68,6 +68,38 @@ test('phone → verify → complete-profile issues session and profile', async (
   assert.equal(profileRes.body.balance, 0);
 });
 
+test('complete-profile ignores fundAmount and never mints signup credit', async () => {
+  const phone = uniquePhone();
+
+  const sendRes = mockRes();
+  await authPhone(mockReq({ body: { phone } }), sendRes);
+  const verifyRes = mockRes();
+  await authVerify(
+    mockReq({ body: { phone, otp: sendRes.body.otp }, headers: { 'x-device-id': 'auth-test-fund' } }),
+    verifyRes,
+  );
+  const user = await prisma.user.findUnique({ where: { phone } });
+
+  const profileRes = mockRes();
+  await authCompleteProfile(
+    mockReq({
+      userId: user.id,
+      body: {
+        name: 'Mint Test',
+        handle: `mint${Date.now().toString(36)}`,
+        arrondissement: { key: 'medina', icon: '🏘️', name: 'Médina' },
+        fundAmount: 50000,
+        countryCode: 'SN',
+      },
+    }),
+    profileRes,
+  );
+  assert.equal(profileRes.statusCode, 200);
+  assert.equal(profileRes.body.balance, 0);
+  assert.equal(profileRes.body.koriMinted, 0);
+  assert.equal(profileRes.body.transactions.length, 0);
+});
+
 test('returning user verify sets isNewUser false', async () => {
   const phone = uniquePhone();
 
