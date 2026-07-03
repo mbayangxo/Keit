@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import StepTransition from '../components/StepTransition';
+import Keypad from '../components/Keypad';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
@@ -46,6 +47,8 @@ function ModeToggle({ mode, setMode }) {
 
 function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onBack }) {
   const label = mode === 'in' ? 'Combien déposer ?' : 'Combien retirer ?';
+  const pressDigit = (d) => setAmount((prev) => Math.min(999999, Number(`${prev === 0 ? '' : prev}${d}`)));
+  const pressBackspace = () => setAmount((prev) => Math.floor(prev / 10));
 
   return (
     <View style={{ flex: 1 }}>
@@ -81,6 +84,10 @@ function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onB
           </View>
 
           {mode === 'out' && <Text style={styles.balanceNote}>Solde disponible : {formatAmount(balance)} F</Text>}
+
+          <View style={styles.keypadWrap}>
+            <Keypad onDigit={pressDigit} onBackspace={pressBackspace} />
+          </View>
         </View>
 
         <View style={styles.feeNote}>
@@ -329,6 +336,7 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.white },
   chipTextOn: { color: colors.green },
   balanceNote: { marginTop: spacing.xl, fontSize: 11, color: colors.whiteA35 },
+  keypadWrap: { width: '100%', marginTop: spacing.xxl },
 
   feeNote: { marginHorizontal: spacing.huge, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg },
   feeNoteText: { fontSize: 11, color: colors.whiteA40 },

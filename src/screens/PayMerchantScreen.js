@@ -6,6 +6,7 @@ import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import WaxPattern from '../components/WaxPattern';
 import StepTransition from '../components/StepTransition';
+import Keypad from '../components/Keypad';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing } from '../theme';
@@ -55,6 +56,8 @@ function ScanStep({ amount, setAmount, onBack, onContinue }) {
   const historyEntrance = useEntrance(150, 350, 10);
   const { transactions } = useAppState();
   const history = transactions.filter((tx) => tx.title === MERCHANT.name).slice(0, 3);
+  const pressDigit = (d) => setAmount((prev) => Math.min(999999, Number(`${prev === 0 ? '' : prev}${d}`)));
+  const pressBackspace = () => setAmount((prev) => Math.floor(prev / 10));
 
   return (
     <View style={{ flex: 1 }}>
@@ -102,7 +105,6 @@ function ScanStep({ amount, setAmount, onBack, onContinue }) {
           <View style={styles.amountDisplay}>
             <Text style={styles.amountNum}>{formatAmount(amount)}</Text>
             <Text style={styles.amountCurr}>F CFA</Text>
-            <View style={styles.amountCursor} />
           </View>
           <View style={styles.quickRow}>
             {QUICK_AMOUNTS.map((q) => (
@@ -110,6 +112,10 @@ function ScanStep({ amount, setAmount, onBack, onContinue }) {
                 <Text style={[styles.chipText, amount === q.value && styles.chipTextOn]}>{q.label}</Text>
               </PressScale>
             ))}
+          </View>
+
+          <View style={styles.keypadWrap}>
+            <Keypad onDigit={pressDigit} onBackspace={pressBackspace} />
           </View>
         </View>
 
@@ -341,7 +347,7 @@ const styles = StyleSheet.create({
   amountDisplay: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA12, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, marginBottom: spacing.md },
   amountNum: { fontFamily: fontFamily.displayBlack, fontSize: 34, fontWeight: '900', letterSpacing: -1.5, color: colors.white, flex: 1 },
   amountCurr: { fontSize: 13, color: colors.whiteA30 },
-  amountCursor: { width: 2, height: 30, backgroundColor: colors.green, borderRadius: 1 },
+  keypadWrap: { marginTop: spacing.lg },
   quickRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   chip: { height: 34, paddingHorizontal: spacing.lg, borderRadius: radius.round, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, alignItems: 'center', justifyContent: 'center' },
   chipOn: { backgroundColor: colors.greenA10, borderColor: colors.greenA30 },
