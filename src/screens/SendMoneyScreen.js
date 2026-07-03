@@ -1,13 +1,14 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import StepTransition from '../components/StepTransition';
+import Keypad from '../components/Keypad';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
-import { useBlink, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
+import { useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 
 // design/k21-remaining-flows.html, Flow 02 (Send Money) — three steps in one
 // screen: amount entry -> confirm/safety -> success. The safety screen is
@@ -34,15 +35,10 @@ function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ | /g, ' ');
 }
 
-function AmountCursor() {
-  const blink = useBlink(1000, 0);
-  return <Animated.View style={[styles.ahCursor, { opacity: blink }]} />;
-}
-
 function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelectContact, onBack }) {
-  const inputRef = useRef(null);
-  const [focused, setFocused] = useState(false);
   const popIn = usePopIn(0, 400, 0.8);
+  const pressDigit = (d) => setAmount((prev) => Math.min(999999, Number(`${prev === 0 ? '' : prev}${d}`)));
+  const pressBackspace = () => setAmount((prev) => Math.floor(prev / 10));
 
   return (
     <View style={{ flex: 1 }}>
@@ -58,24 +54,11 @@ function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelect
 
           <View style={styles.amountHero}>
             <Text style={styles.ahLbl}>Combien ?</Text>
-            <PressScale scaleTo={0.98} onPress={() => inputRef.current?.focus()}>
-              <Animated.View style={[popIn, styles.ahRow]}>
-                <Text style={styles.ahNum}>
-                  {formatAmount(amount)} <Text style={styles.ahCurr}>F</Text>
-                </Text>
-                {!focused && <AmountCursor />}
-              </Animated.View>
-            </PressScale>
-            <TextInput
-              ref={inputRef}
-              value={String(amount)}
-              onChangeText={(t) => setAmount(Math.min(999999, Number(t.replace(/[^0-9]/g, '')) || 0))}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              keyboardType="number-pad"
-              style={styles.hiddenInput}
-              caretHidden={false}
-            />
+            <Animated.View style={[popIn, styles.ahRow]}>
+              <Text style={styles.ahNum}>
+                {formatAmount(amount)} <Text style={styles.ahCurr}>F</Text>
+              </Text>
+            </Animated.View>
           </View>
 
           <View style={styles.quickRow}>
@@ -84,6 +67,10 @@ function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelect
                 <Text style={[styles.chipText, amount === q && styles.chipTextOn]}>{q / 1000}k</Text>
               </PressScale>
             ))}
+          </View>
+
+          <View style={styles.keypadWrap}>
+            <Keypad onDigit={pressDigit} onBackspace={pressBackspace} />
           </View>
         </View>
 
@@ -325,8 +312,7 @@ const styles = StyleSheet.create({
   ahRow: { flexDirection: 'row', alignItems: 'center' },
   ahNum: { fontFamily: fontFamily.displayBlack, fontSize: 52, letterSpacing: -3, lineHeight: 52, color: colors.green },
   ahCurr: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(26,240,96,0.4)' },
-  ahCursor: { width: 2, height: 40, backgroundColor: colors.green, marginLeft: 4 },
-  hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
+  keypadWrap: { marginTop: spacing.xxl },
 
   quickRow: { flexDirection: 'row', gap: spacing.md, justifyContent: 'center', marginTop: spacing.xl },
   chip: { height: 34, paddingHorizontal: spacing.xxl, borderRadius: radius.round, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, alignItems: 'center', justifyContent: 'center' },

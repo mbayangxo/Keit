@@ -3,6 +3,7 @@ import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
+import { useToast } from '../components/Toast';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useEntrance } from '../hooks/animations';
 
@@ -104,6 +105,7 @@ function PhoneStep({ phone, setPhone, onNext, onBack }) {
 function OtpStep({ phone, otp, setOtp, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
   const boxes = [0, 1, 2, 3, 4, 5];
+  const showToast = useToast();
   return (
     <Animated.View style={[styles.body, entrance]}>
       <StepHeader title="Vérification" step={2} onBack={onBack} />
@@ -125,7 +127,7 @@ function OtpStep({ phone, otp, setOtp, onNext, onBack }) {
       </View>
       <TextInput style={styles.hiddenInput} value={otp} onChangeText={(t) => setOtp(t.replace(/[^0-9]/g, '').slice(0, 6))} keyboardType="number-pad" autoFocus maxLength={6} />
 
-      <PressScale scaleTo={0.95} style={{ alignSelf: 'center' }}>
+      <PressScale scaleTo={0.95} onPress={() => showToast('Code renvoyé ✓')} style={{ alignSelf: 'center' }}>
         <Text style={styles.resendText}>Tu n'as rien reçu ? <Text style={{ color: colors.green, fontFamily: fontFamily.bodyBold }}>Renvoyer le code</Text></Text>
       </PressScale>
 

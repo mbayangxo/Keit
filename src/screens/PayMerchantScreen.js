@@ -6,6 +6,7 @@ import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import WaxPattern from '../components/WaxPattern';
 import StepTransition from '../components/StepTransition';
+import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
@@ -207,6 +208,7 @@ function SuccessStep({ amount, oldBalance, newBalance, onDone }) {
   const receipt = useEntrance(400, 500, 10);
   const bonus = useEntrance(500, 500, 10);
   const balanceCount = useCountUp(oldBalance, newBalance, 700);
+  const showToast = useToast();
   const reference = 'K21-2603-8F4A';
 
   return (
@@ -250,7 +252,7 @@ function SuccessStep({ amount, oldBalance, newBalance, onDone }) {
         </Text>
       </Animated.View>
 
-      <PressScale scaleTo={0.97} onPress={() => {}} style={styles.shareBtn}>
+      <PressScale scaleTo={0.97} onPress={() => showToast('Reçu copié ✓')} style={styles.shareBtn}>
         <Text style={styles.shareBtnText}>📤 Partager le reçu</Text>
       </PressScale>
       <GlowButton label="Retour à l'accueil" onPress={onDone} />

@@ -6,6 +6,7 @@ import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import WaxPattern from '../components/WaxPattern';
 import StepTransition from '../components/StepTransition';
+import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useEntrance, useFillIn } from '../hooks/animations';
@@ -204,6 +205,7 @@ function CreateStep({ onBack, onCreate }) {
   const [name, setName] = useState('Médina Squad 2');
   const [amountChip, setAmountChip] = useState('25k F');
   const [freq, setFreq] = useState('Mensuel');
+  const showToast = useToast();
 
   return (
     <View style={{ flex: 1 }}>
@@ -262,7 +264,7 @@ function CreateStep({ onBack, onCreate }) {
               </View>
             ))}
           </View>
-          <PressScale scaleTo={0.97} onPress={() => {}} style={styles.addMember}>
+          <PressScale scaleTo={0.97} onPress={() => showToast('Invitation envoyée ✓')} style={styles.addMember}>
             <View style={styles.addMemberIcon}>
               <Text style={{ fontSize: 16, color: colors.whiteA55 }}>+</Text>
             </View>
