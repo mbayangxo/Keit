@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>K21 Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/admin/styles.css" />
+</head>
+<body>
+  <div id="login-view" class="login-wrap">
+    <div class="login-card">
+      <div class="logo"><span class="k">K</span><span class="two">2</span><span class="one">1</span></div>
+      <p class="sub">Operations console — separate admin credentials + 2FA</p>
+      <div id="login-error" class="error hidden"></div>
+      <form id="login-form">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" required />
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required />
+        <button class="btn btn-primary" type="submit">Sign in</button>
+      </form>
+      <form id="totp-form" class="hidden">
+        <p class="hint">Enter the 6-digit code from your authenticator app.</p>
+        <label for="totp">Authenticator code</label>
+        <input id="totp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required />
+        <button class="btn btn-primary" type="submit">Verify</button>
+      </form>
+      <form id="setup-form" class="hidden">
+        <p class="hint">Set up two-factor authentication. Add this secret to Google Authenticator / Authy:</p>
+        <code id="totp-secret" class="hint"></code>
+        <label for="setup-code">Confirm with 6-digit code</label>
+        <input id="setup-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required />
+        <button class="btn btn-primary" type="submit">Enable 2FA &amp; continue</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="app-view" class="shell hidden">
+    <header class="topbar">
+      <div>
+        <div class="logo"><span class="k">K</span><span class="two">2</span><span class="one">1</span> Admin</div>
+        <p class="sub" id="admin-email"></p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" id="refresh-btn">Refresh</button>
+        <button class="btn btn-ghost btn-sm" id="export-report-btn">Export daily report</button>
+        <button class="btn btn-ghost btn-sm" id="logout-btn">Log out</button>
+      </div>
+    </header>
+
+    <div class="grid-stats" id="stats-grid"></div>
+    <div id="morning-alerts" class="hidden" style="margin-bottom:20px;padding:16px;border-radius:14px;border:1px solid rgba(224,54,74,0.35);background:rgba(224,54,74,0.08)"></div>
+
+    <div class="tabs" id="main-tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="pending">Pending &amp; fraud</button>
+      <button class="tab" data-tab="support">Support</button>
+      <button class="tab" data-tab="deliveries">Deliveries &amp; riders</button>
+      <button class="tab" data-tab="actions">Actions</button>
+    </div>
+
+    <div id="tab-overview" class="tab-panel">
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-head"><h2>Failed today</h2></div>
+          <div class="panel-body" id="failed-table"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Top merchants (month)</h2></div>
+          <div class="panel-body" id="merchants-table"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-pending" class="tab-panel hidden">
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-head"><h2>Pending rails (&gt;15 min)</h2></div>
+          <div class="panel-body" id="pending-rails"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Held for review</h2></div>
+          <div class="panel-body" id="pending-held"></div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:20px">
+        <div class="panel-head"><h2>Fraud alerts</h2></div>
+        <div class="panel-body" id="fraud-alerts"></div>
+      </div>
+    </div>
+
+    <div id="tab-support" class="tab-panel hidden">
+      <div class="panel">
+        <div class="panel-head"><h2>Support tickets</h2></div>
+        <div class="panel-body" id="support-tickets"></div>
+      </div>
+    </div>
+
+    <div id="tab-deliveries" class="tab-panel hidden">
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-head"><h2>Active deliveries</h2></div>
+          <div class="panel-body" id="deliveries-table"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Rider performance</h2></div>
+          <div class="panel-body" id="riders-table"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-actions" class="tab-panel hidden">
+      <div class="section">
+        <h3 class="section-title">Lookup transaction</h3>
+        <input id="tx-lookup" placeholder="Transaction ID or reference" />
+        <button class="btn btn-primary btn-sm" id="tx-lookup-btn">View details</button>
+      </div>
+      <div class="section">
+        <h3 class="section-title">Freeze user account</h3>
+        <input id="freeze-user-id" placeholder="User ID" />
+        <input id="freeze-reason" placeholder="Reason (shown internally)" />
+        <button class="btn btn-danger btn-sm" id="freeze-btn">Freeze account</button>
+      </div>
+      <div class="section">
+        <h3 class="section-title">Issue refund (via float wallet)</h3>
+        <input id="refund-user-id" placeholder="Recipient user ID" />
+        <input id="refund-amount" type="number" placeholder="Amount XOF" />
+        <input id="refund-reason" placeholder="Reason" />
+        <button class="btn btn-primary btn-sm" id="refund-btn">Issue refund</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="modal-title">Details</h3>
+      <pre id="modal-body"></pre>
+      <div id="modal-actions"></div>
+      <button class="btn btn-ghost btn-sm" id="modal-close" style="margin-top:16px">Close</button>
+    </div>
+  </div>
+
+  <script src="/admin/app.js" type="module"></script>
+</body>
+</html>

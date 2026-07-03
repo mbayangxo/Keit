@@ -5,6 +5,7 @@ import WaxPattern from '../components/WaxPattern';
 import HomeHeroBackground from '../components/HomeHeroBackground';
 import PressScale from '../components/PressScale';
 import { useAppState } from '../state/AppState';
+import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { colors, fontFamily, radius, spacing, type, motion } from '../theme';
 import {
   useFloatLoop,
@@ -158,6 +159,7 @@ function TransactionRow({ icon, iconBg, title, subtitle, amount, amountColor }) 
 }
 
 export default function HomeScreen({ navigation }) {
+  useScreenshotBlock(true);
   const notifBlink = useBlink();
   const balanceEntrance = useEntrance(0, 1000, 12);
   const { profile, balance, transactions } = useAppState();

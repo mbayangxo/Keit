@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
@@ -12,6 +12,12 @@ import ReceiptCard from '../components/ReceiptCard';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
+import ReceiptShareButtons from '../components/ReceiptShareButtons';
+import UndoTransferBar from '../components/UndoTransferBar';
+import { usePreferences } from '../context/PreferencesContext';
+import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
+import { useToast } from '../components/Toast';
+import { transferSend } from '../lib/api-client';
 
 // design/k21-remaining-flows.html, Flow 02 (Send Money) — three steps in one
 // screen: amount entry -> confirm/safety -> success. The safety screen is
@@ -20,32 +26,29 @@ import { useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 
 const QUICK_AMOUNTS = [1000, 5000, 10000, 25000];
 
-const RECIPIENT = {
-  name: 'Fatou Diallo',
-  handle: '@fatou_medina',
-  emoji: '👩🏾',
-  phone: '+221 77 *** ** 42',
-  arrondissement: 'Médina',
-};
-
-const RECENT_CONTACTS = [
-  { name: 'Fatou', emoji: '👩🏾', bg: colors.greenA08, border: colors.greenA20 },
-  { name: 'Ibou', emoji: '👦🏿', bg: colors.goldA08, border: 'rgba(250,216,54,0.15)' },
-  { name: 'Aminata', emoji: '👩🏿', bg: colors.redA08, border: 'rgba(232,25,44,0.15)' },
+const RECENT_HANDLES = [
+  { name: 'Fatou', handle: 'fatou_medina', emoji: '👩🏾', bg: colors.greenA08, border: colors.greenA20 },
+  { name: 'Ibou', handle: 'ibou_dakar', emoji: '👦🏿', bg: colors.goldA08, border: 'rgba(250,216,54,0.15)' },
+  { name: 'Aminata', handle: 'aminata_hlm', emoji: '👩🏿', bg: colors.redA08, border: 'rgba(232,25,44,0.15)' },
 ];
+
+function displayHandle(handle) {
+  const h = String(handle).replace(/^@/, '');
+  return h ? `@${h}` : '';
+}
 
 function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ | /g, ' ');
 }
 
-function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelectContact, onBack }) {
+function AmountStep({ amount, setAmount, reason, setReason, recipientHandle, setRecipientHandle, onContinue, onBack, reduceMotion }) {
   const popIn = usePopIn(0, 400, 0.8);
   const pressDigit = (d) => setAmount((prev) => Math.min(999999, Number(`${prev === 0 ? '' : prev}${d}`)));
   const pressBackspace = () => setAmount((prev) => Math.floor(prev / 10));
 
   return (
     <View style={{ flex: 1 }}>
-      <WaxPattern color="rgba(26,240,96,0.04)" size={18} animated={false} />
+      <WaxPattern color="rgba(26,240,96,0.04)" size={18} animated={!reduceMotion} />
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.sendHero}>
           <ScreenHeader onBack={onBack} title="Envoyer" style={styles.shTop} />
@@ -67,17 +70,24 @@ function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelect
         </View>
 
         <View style={styles.recipientSection}>
-          <Text style={styles.lbl}>À qui ?</Text>
-          <PressScale scaleTo={0.98} onPress={onContinue} style={styles.recCard}>
+          <Text style={styles.lbl}>À qui ? (handle K21)</Text>
+          <View style={styles.recCard}>
             <View style={styles.recAva}>
-              <Text style={{ fontSize: 20 }}>{RECIPIENT.emoji}</Text>
+              <Text style={{ fontSize: 20 }}>👤</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.recName}>{RECIPIENT.name}</Text>
-              <Text style={styles.recHandle}>{RECIPIENT.handle}</Text>
-            </View>
-            <Text style={styles.recArr}>→</Text>
-          </PressScale>
+            <TextInput
+              style={styles.handleField}
+              placeholder="@handle"
+              placeholderTextColor={colors.whiteA30}
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={recipientHandle}
+              onChangeText={(t) => setRecipientHandle(t.replace(/^@/, '').replace(/[^a-z0-9_]/gi, '').toLowerCase())}
+            />
+          </View>
+          {recipientHandle.length >= 3 ? (
+            <Text style={styles.recHandle}>{displayHandle(recipientHandle)}</Text>
+          ) : null}
         </View>
 
         <View style={styles.reasonWrap}>
@@ -92,26 +102,20 @@ function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelect
         </View>
 
         <View style={{ paddingHorizontal: spacing.huge, paddingBottom: spacing.giant }}>
-          <GlowButton label="Continuer →" onPress={onContinue} />
+          <GlowButton label="Continuer →" onPress={onContinue} disabled={recipientHandle.length < 3 || amount <= 0} />
         </View>
 
         <View style={{ paddingHorizontal: spacing.huge, paddingBottom: spacing.giant }}>
           <Text style={[styles.lbl, { marginBottom: spacing.lg }]}>Contacts récents</Text>
           <View style={{ flexDirection: 'row', gap: spacing.xl }}>
-            {RECENT_CONTACTS.map((c) => (
-              <PressScale key={c.name} scaleTo={0.9} onPress={onSelectContact} style={styles.contactItem}>
+            {RECENT_HANDLES.map((c) => (
+              <PressScale key={c.handle} scaleTo={0.9} onPress={() => setRecipientHandle(c.handle)} style={styles.contactItem}>
                 <View style={[styles.contactAva, { backgroundColor: c.bg, borderColor: c.border }]}>
                   <Text style={{ fontSize: 22 }}>{c.emoji}</Text>
                 </View>
                 <Text style={styles.contactLabel}>{c.name}</Text>
               </PressScale>
             ))}
-            <PressScale scaleTo={0.9} onPress={onSelectContact} style={styles.contactItem}>
-              <View style={[styles.contactAva, { backgroundColor: colors.whiteA08, borderColor: colors.whiteA12, borderStyle: 'dashed' }]}>
-                <Text style={{ fontSize: 20, color: colors.whiteA30 }}>+</Text>
-              </View>
-              <Text style={[styles.contactLabel, { color: colors.whiteA30 }]}>Autre</Text>
-            </PressScale>
           </View>
         </View>
       </ScrollView>
@@ -119,19 +123,19 @@ function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelect
   );
 }
 
-function ConfirmStep({ amount, reason, balance, onConfirm, onCancel }) {
+function ConfirmStep({ amount, reason, balance, recipientHandle, onConfirm, onCancel, submitting }) {
   const solde = balance - amount;
+  const label = displayHandle(recipientHandle);
 
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.csHero}>
         <WaxPattern color="rgba(26,240,96,0.03)" size={18} animated={false} />
         <View style={styles.csAva}>
-          <Text style={{ fontSize: 28 }}>{RECIPIENT.emoji}</Text>
+          <Text style={{ fontSize: 28 }}>👤</Text>
         </View>
-        <Text style={styles.csName}>{RECIPIENT.name}</Text>
-        <Text style={styles.csHandle}>{RECIPIENT.handle}</Text>
-        <Text style={styles.csArr}>📍 {RECIPIENT.arrondissement} · Vérifiée K21</Text>
+        <Text style={styles.csName}>{label}</Text>
+        <Text style={styles.csHandle}>Destinataire K21</Text>
         <Text style={styles.csAmount}>
           {formatAmount(amount)} <Text style={{ fontSize: 20, fontWeight: '400', color: 'rgba(26,240,96,0.4)' }}>F</Text>
         </Text>
@@ -142,9 +146,9 @@ function ConfirmStep({ amount, reason, balance, onConfirm, onCancel }) {
         <View style={styles.csConfirmPhoto}>
           <Text style={{ fontSize: 18 }}>🔒</Text>
           <Text style={styles.cspText}>
-            <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.whiteA85 }}>Oui c'est bien {RECIPIENT.name} ?</Text>
+            <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.whiteA85 }}>Oui c'est bien {label} ?</Text>
             {'\n'}
-            {RECIPIENT.phone} · {RECIPIENT.arrondissement}
+            Vérifie le handle avant d'envoyer.
           </Text>
         </View>
       </View>
@@ -152,7 +156,7 @@ function ConfirmStep({ amount, reason, balance, onConfirm, onCancel }) {
       <View style={styles.csBody}>
         <View style={styles.csRow}>
           <Text style={styles.csrL}>Destinataire</Text>
-          <Text style={styles.csrR}>{RECIPIENT.name}</Text>
+          <Text style={styles.csrR}>{label}</Text>
         </View>
         <View style={styles.csRow}>
           <Text style={styles.csrL}>Montant</Text>
@@ -169,8 +173,8 @@ function ConfirmStep({ amount, reason, balance, onConfirm, onCancel }) {
       </View>
 
       <View style={styles.csActions}>
-        <GlowButton label={`Oui — Envoyer ${formatAmount(amount)} F →`} onPress={onConfirm} />
-        <PressScale scaleTo={0.96} onPress={onCancel}>
+        <GlowButton label={submitting ? 'Envoi…' : `Oui — Envoyer ${formatAmount(amount)} F →`} onPress={onConfirm} disabled={submitting} />
+        <PressScale scaleTo={0.96} onPress={onCancel} disabled={submitting}>
           <Text style={styles.csNo}>Ce n'est pas la bonne personne</Text>
         </PressScale>
       </View>
@@ -178,74 +182,119 @@ function ConfirmStep({ amount, reason, balance, onConfirm, onCancel }) {
   );
 }
 
-function SuccessStep({ amount, reason, onDone }) {
+function SuccessStep({ amount, reason, reference, recipientHandle, onDone, onMarkedUndone, onShareMbolo, undone }) {
   useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.3);
   const title = useEntrance(200, 500, 10);
   const sub = useEntrance(300, 500, 10);
   const receipt = useEntrance(400, 500, 10);
   const bonus = useEntrance(500, 500, 10);
-  const reference = 'K21-0803-FA2C';
+  const label = displayHandle(recipientHandle);
 
   return (
     <View style={styles.successRoot}>
       <View style={styles.successBg} />
       <View style={styles.successContent}>
         <Animated.View style={[styles.ssRing, ring]}>
-          <Text style={{ fontSize: 38, color: colors.green }}>✓</Text>
+          <Text style={{ fontSize: 38, color: colors.green }}>{undone ? '↩' : '✓'}</Text>
         </Animated.View>
-        <Animated.Text style={[styles.ssTitle, title]}>Envoyé !</Animated.Text>
+        <Animated.Text style={[styles.ssTitle, title]}>{undone ? 'Annulé' : 'Envoyé !'}</Animated.Text>
         <Animated.Text style={[styles.ssSub, sub]}>
-          {RECIPIENT.name.split(' ')[0]} a reçu ton argent{'\n'}en quelques secondes.
+          {undone
+            ? 'L\'argent est revenu sur ton compte.'
+            : `${label} a reçu ton argent\nen quelques secondes.`}
         </Animated.Text>
+
+        {!undone && (
+          <UndoTransferBar reference={reference} amount={amount} onUndone={onMarkedUndone} />
+        )}
 
         <Animated.View style={receipt}>
           <ReceiptCard
-            style={{ marginBottom: spacing.giant }}
+            style={{ marginBottom: spacing.lg }}
             rows={[
-              { key: 'to', label: 'À', value: RECIPIENT.name },
+              { key: 'to', label: 'À', value: label },
               { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.green },
               { key: 'fee', label: 'Frais', value: '0 F ✦', color: colors.green },
               { key: 'reason', label: 'Motif', value: reason || '—' },
               { key: 'ref', label: 'Référence', value: reference, small: true },
             ]}
           />
+          {!undone && (
+            <ReceiptShareButtons
+              amount={amount}
+              counterparty={label}
+              reference={reference}
+              note={reason}
+              onShareMbolo={onShareMbolo}
+              style={{ marginBottom: spacing.lg }}
+            />
+          )}
         </Animated.View>
 
-        <Animated.View style={[styles.wakhnaBonus, bonus]}>
-          <Text style={{ fontSize: 16 }}>✦</Text>
-          <Text style={styles.wbText}>
-            <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.green }}>+10 Wakhna</Text> pour cet envoi
-          </Text>
-        </Animated.View>
+        {!undone && (
+          <Animated.View style={[styles.wakhnaBonus, bonus]}>
+            <Text style={{ fontSize: 16 }}>✦</Text>
+            <Text style={styles.wbText}>
+              <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.green }}>+10 Wakhna</Text> pour cet envoi
+            </Text>
+          </Animated.View>
+        )}
 
-        <GlowButton label="Retour à l'accueil" onPress={onDone} />
+        <GlowButton label={undone ? 'Retour à l\'accueil' : 'Terminer'} onPress={onDone} />
       </View>
     </View>
   );
 }
 
 export default function SendMoneyScreen({ navigation }) {
+  useScreenshotBlock(true);
+  const { reduceMotion } = usePreferences();
+  const showToast = useToast();
   const [step, setStep] = useState('amount');
   const [amount, setAmount] = useState(5000);
-  const [reason, setReason] = useState('Pour le taxi 🚕');
-  const { balance, addTransaction } = useAppState();
+  const [reason, setReason] = useState('');
+  const [recipientHandle, setRecipientHandle] = useState('');
+  const [reference, setReference] = useState('');
+  const [undone, setUndone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const { balance, refreshWallet, setPendingMboloShare } = useAppState();
 
-  const confirm = () => {
-    addTransaction({
-      icon: '💸',
-      iconBg: colors.greenA08,
-      title: `Envoyé à ${RECIPIENT.name}`,
-      subtitle: "À l'instant",
-      amount: -amount,
-    });
-    setStep('success');
+  const confirm = async () => {
+    setSubmitting(true);
+    try {
+      const result = await transferSend({
+        recipientHandle,
+        amount,
+        note: reason,
+      });
+      setReference(result.reference);
+      setUndone(false);
+      await refreshWallet();
+      setStep('success');
+    } catch (err) {
+      showToast(err.message ?? 'Envoi impossible');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUndone = async () => {
+    setUndone(true);
+    await refreshWallet();
+  };
+
+  const shareMbolo = (text) => {
+    setPendingMboloShare(text);
+    navigation.navigate('Main', { screen: 'MbooloTab' });
   };
 
   const finish = () => {
     setStep('amount');
     setAmount(5000);
-    setReason('Pour le taxi 🚕');
+    setReason('');
+    setRecipientHandle('');
+    setUndone(false);
     navigation.goBack();
   };
 
@@ -259,20 +308,31 @@ export default function SendMoneyScreen({ navigation }) {
               setAmount={setAmount}
               reason={reason}
               setReason={setReason}
+              recipientHandle={recipientHandle}
+              setRecipientHandle={setRecipientHandle}
               onContinue={() => setStep('confirm')}
-              onSelectContact={() => setStep('confirm')}
               onBack={() => navigation.goBack()}
+              reduceMotion={reduceMotion}
             />
           </StepTransition>
         )}
         {step === 'confirm' && (
           <StepTransition>
-            <ConfirmStep amount={amount} reason={reason} balance={balance} onConfirm={confirm} onCancel={() => setStep('amount')} />
+            <ConfirmStep amount={amount} reason={reason} balance={balance} recipientHandle={recipientHandle} onConfirm={confirm} onCancel={() => setStep('amount')} submitting={submitting} />
           </StepTransition>
         )}
         {step === 'success' && (
           <StepTransition>
-            <SuccessStep amount={amount} reason={reason} onDone={finish} />
+            <SuccessStep
+              amount={amount}
+              reason={reason}
+              reference={reference}
+              recipientHandle={recipientHandle}
+              onDone={finish}
+              onMarkedUndone={handleUndone}
+              onShareMbolo={shareMbolo}
+              undone={undone}
+            />
           </StepTransition>
         )}
       </SafeAreaView>
@@ -299,6 +359,7 @@ const styles = StyleSheet.create({
   recipientSection: { paddingHorizontal: spacing.huge, paddingVertical: spacing.xxl },
   lbl: { ...type.eyebrow, color: colors.whiteA30 },
   recCard: { backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA12, borderRadius: radius.xxl, padding: spacing.xxl, flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginTop: spacing.sm },
+  handleField: { flex: 1, fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white },
   recAva: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(26,240,96,0.1)', borderWidth: 2, borderColor: colors.greenA25, alignItems: 'center', justifyContent: 'center' },
   recName: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white },
   recHandle: { fontFamily: fontFamily.bodyRegular, fontSize: 11, color: colors.green },

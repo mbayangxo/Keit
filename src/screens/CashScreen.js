@@ -11,6 +11,17 @@ import ReceiptCard from '../components/ReceiptCard';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
+import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
+import { useToast } from '../components/Toast';
+import { cashIn, cashOut } from '../lib/api-client';
+
+/** Maps agent UI keys to Julaya operator ids (backend abstraction). */
+const AGENT_OPERATORS = {
+  ndiaye: 'orange_money',
+  sandaga: 'wave',
+  'medina-tel': 'free_money',
+  'aminata-shop': 'orange_money',
+};
 
 // No HTML prototype exists for Cash In/Out (Julaya agent network) — only
 // mentioned in the brief's Phase 1 scope. Designed to match the established
@@ -148,7 +159,7 @@ function AgentStep({ mode, amount, onBack, onSelect }) {
   );
 }
 
-function CodeStep({ mode, amount, agent, onDone }) {
+function CodeStep({ mode, amount, agent, onDone, loading }) {
   const pop = usePopIn(0, 450, 0.85);
   const note = useEntrance(200, 400, 8);
   const code = useMemo(() => String(Math.floor(100000 + Math.random() * 900000)), [agent]);
@@ -173,7 +184,7 @@ function CodeStep({ mode, amount, agent, onDone }) {
       </Animated.View>
 
       <View style={{ width: '100%', marginTop: spacing.giant }}>
-        <GlowButton label="J'ai terminé avec l'agent →" onPress={onDone} />
+        <GlowButton label={loading ? 'Traitement…' : "J'ai terminé avec l'agent →"} onPress={onDone} disabled={loading} />
       </View>
     </View>
   );
@@ -216,13 +227,16 @@ function SuccessStep({ mode, amount, agent, oldBalance, newBalance, onDone }) {
 }
 
 export default function CashScreen({ navigation }) {
+  useScreenshotBlock(true);
+  const showToast = useToast();
   const [step, setStep] = useState('amount');
   const [mode, setMode] = useState('in');
   const [amount, setAmount] = useState(5000);
   const [agent, setAgent] = useState(null);
   const [oldBalance, setOldBalance] = useState(0);
   const [newBalance, setNewBalance] = useState(0);
-  const { balance, addTransaction } = useAppState();
+  const [loading, setLoading] = useState(false);
+  const { balance, refreshWallet } = useAppState();
 
   const finish = () => {
     setStep('amount');
@@ -231,18 +245,25 @@ export default function CashScreen({ navigation }) {
     navigation.goBack();
   };
 
-  const completeAtAgent = () => {
-    const signedAmount = mode === 'in' ? amount : -amount;
-    addTransaction({
-      icon: '🏬',
-      iconBg: mode === 'in' ? colors.greenA08 : colors.orangeA08,
-      title: mode === 'in' ? `Dépôt · ${agent.name}` : `Retrait · ${agent.name}`,
-      subtitle: "À l'instant",
-      amount: signedAmount,
-    });
+  const completeAtAgent = async () => {
+    if (!agent) return;
+    const operator = AGENT_OPERATORS[agent.key] ?? 'orange_money';
+    setLoading(true);
     setOldBalance(balance);
-    setNewBalance(balance + signedAmount);
-    setStep('success');
+    try {
+      if (mode === 'in') {
+        await cashIn({ amount, operator });
+      } else {
+        await cashOut({ amount, operator });
+      }
+      const wallet = await refreshWallet();
+      setNewBalance(wallet.nationalBalance ?? wallet.balance ?? balance);
+      setStep('success');
+    } catch (err) {
+      showToast(err.message ?? 'Opération impossible');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -276,7 +297,7 @@ export default function CashScreen({ navigation }) {
         )}
         {step === 'code' && agent && (
           <StepTransition>
-            <CodeStep mode={mode} amount={amount} agent={agent} onDone={completeAtAgent} />
+            <CodeStep mode={mode} amount={amount} agent={agent} onDone={completeAtAgent} loading={loading} />
           </StepTransition>
         )}
         {step === 'success' && agent && (

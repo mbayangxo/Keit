@@ -1,5 +1,45 @@
 {
-  "buildCommand": "npx expo export --platform web",
+  "buildCommand": "prisma generate && npx expo export --platform web",
+  "installCommand": "npm install",
   "outputDirectory": "dist",
-  "framework": null
+  "framework": null,
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin/index.html" },
+    { "source": "/admin/(.*)", "destination": "/admin/$1" },
+    { "source": "/((?!api/|admin/).*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/financial-integrity",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/pending-transactions",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/fraud-monitor",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/tontine-processor",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/rider-status",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/daily-financial-report",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/delivery-auto-release",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/kyc-purge",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }

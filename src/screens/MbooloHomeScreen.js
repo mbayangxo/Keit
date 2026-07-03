@@ -1,4 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAppState } from '../state/AppState';
+import { useToast } from '../components/Toast';
 import { Animated, Easing, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -232,6 +235,18 @@ export default function MbooloHomeScreen({ navigation }) {
   const logoBounce = useScalePulse(3000, 1.03);
   const [query, setQuery] = useState('');
   const searchRef = useRef(null);
+  const { pendingMboloShare, setPendingMboloShare } = useAppState();
+  const showToast = useToast();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (pendingMboloShare) {
+        showToast('Reçu prêt — colle-le dans ta conversation Mboolo');
+        setPendingMboloShare(null);
+      }
+    }, [pendingMboloShare, setPendingMboloShare, showToast]),
+  );
+
   const filteredConversations = CONVERSATIONS.filter(
     (c) => c.name.toLowerCase().includes(query.trim().toLowerCase()) || c.preview.toLowerCase().includes(query.trim().toLowerCase())
   );

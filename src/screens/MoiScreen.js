@@ -37,6 +37,7 @@ const HIGHLIGHTS = [
 ];
 
 const SETTINGS = [
+  { key: 'accessibility', icon: '👁️', title: 'Accessibilité', subtitle: 'Mode données réduites, grand texte' },
   { key: 'account', icon: '🔐', title: 'Compte & Sécurité', subtitle: 'CNI, biométrie, 2FA pour gros montants' },
   { key: 'wallet', icon: '💳', title: 'Portefeuille', subtitle: 'Comptes liés, historique, limites' },
   { key: 'notifs', icon: '🔔', title: 'Notifications', subtitle: 'Alertes paiements, Mboolo, Wakhna' },
@@ -234,7 +235,17 @@ export default function MoiScreen({ navigation }) {
           <View style={{ paddingHorizontal: spacing.huge, gap: spacing.sm }}>
             <Text style={styles.sectionLabel}>Paramètres</Text>
             {SETTINGS.map((s) => (
-              <SettingsRow key={s.key} item={s} onPress={() => navigation.navigate('Info', { title: s.title, subtitle: `${s.subtitle} — bientôt disponible.`, icon: s.icon })} />
+              <SettingsRow
+                key={s.key}
+                item={s}
+                onPress={() => {
+                  if (s.key === 'accessibility') {
+                    navigation.navigate('Accessibility');
+                    return;
+                  }
+                  navigation.navigate('Info', { title: s.title, subtitle: `${s.subtitle} — bientôt disponible.`, icon: s.icon });
+                }}
+              />
             ))}
           </View>
         </ScrollView>

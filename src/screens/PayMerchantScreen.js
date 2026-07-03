@@ -10,10 +10,14 @@ import Keypad from '../components/Keypad';
 import ScreenHeader from '../components/ScreenHeader';
 import AmountChips from '../components/AmountChips';
 import ReceiptCard from '../components/ReceiptCard';
-import { useToast } from '../components/Toast';
+import ReceiptShareButtons from '../components/ReceiptShareButtons';
+import UndoTransferBar from '../components/UndoTransferBar';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
+import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
+import { useToast } from '../components/Toast';
+import { merchantPay } from '../lib/api-client';
 
 // design/k21-four-flows.html, FLOW 4 — MERCHANT QR PAYMENT (Screens M1-M3):
 // Scan QR (merchant card + scanner + amount) -> Confirm payment -> Payment done.
@@ -29,6 +33,15 @@ const MERCHANT = {
   name: 'Dibiterie Chez Papa',
   arr: 'Médina · Dakar',
   emoji: '🍖',
+  businessId: process.env.EXPO_PUBLIC_DEMO_MERCHANT_ID ?? '',
+};
+
+/** Maps agent UI keys to Julaya operator ids (backend abstraction). */
+const AGENT_OPERATORS = {
+  ndiaye: 'orange_money',
+  sandaga: 'wave',
+  'medina-tel': 'free_money',
+  'aminata-shop': 'orange_money',
 };
 
 function formatAmount(n) {
@@ -141,7 +154,7 @@ function ScanStep({ amount, setAmount, onBack, onContinue }) {
   );
 }
 
-function ConfirmStep({ amount, balance, onPay, onCancel }) {
+function ConfirmStep({ amount, balance, onPay, onCancel, submitting }) {
   const entrance = useEntrance(0, 350, 10);
 
   return (
@@ -189,8 +202,8 @@ function ConfirmStep({ amount, balance, onPay, onCancel }) {
           <Text style={{ fontSize: 13 }}>🔒</Text>
           <Text style={styles.warnText}>Paiement sécurisé K21. Marchand vérifié. Transaction irréversible une fois confirmée.</Text>
         </View>
-        <GlowButton label={`Confirmer · Payer ${formatAmount(amount)} F →`} onPress={onPay} />
-        <PressScale scaleTo={0.96} onPress={onCancel} style={styles.cancelBtn}>
+        <GlowButton label={submitting ? 'Paiement…' : `Confirmer · Payer ${formatAmount(amount)} F →`} onPress={onPay} disabled={submitting} />
+        <PressScale scaleTo={0.96} onPress={onCancel} disabled={submitting} style={styles.cancelBtn}>
           <Text style={styles.cancelBtnText}>Annuler</Text>
         </PressScale>
       </View>
@@ -198,7 +211,7 @@ function ConfirmStep({ amount, balance, onPay, onCancel }) {
   );
 }
 
-function SuccessStep({ amount, oldBalance, newBalance, onDone }) {
+function SuccessStep({ amount, oldBalance, newBalance, reference, onDone, onMarkedUndone, onShareMbolo, undone }) {
   useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.4);
   const title = useEntrance(200, 500, 10);
@@ -206,60 +219,98 @@ function SuccessStep({ amount, oldBalance, newBalance, onDone }) {
   const receipt = useEntrance(400, 500, 10);
   const bonus = useEntrance(500, 500, 10);
   const balanceCount = useCountUp(oldBalance, newBalance, 700);
-  const showToast = useToast();
-  const reference = 'K21-2603-8F4A';
 
   return (
     <View style={styles.successRoot}>
       <WaxPattern color="rgba(255,255,255,0.03)" size={18} animated={false} />
       <Animated.View style={[styles.ssRing, ring]}>
-        <Text style={{ fontSize: 38, color: colors.green }}>✓</Text>
+        <Text style={{ fontSize: 38, color: colors.green }}>{undone ? '↩' : '✓'}</Text>
       </Animated.View>
-      <Animated.Text style={[styles.ssTitle, title]}>Payé !</Animated.Text>
+      <Animated.Text style={[styles.ssTitle, title]}>{undone ? 'Annulé' : 'Payé !'}</Animated.Text>
       <Animated.Text style={[styles.ssSub, sub]}>
-        {MERCHANT.name} a reçu{'\n'}ton paiement instantanément.
+        {undone ? 'Paiement annulé — argent récupéré.' : `${MERCHANT.name} a reçu\nton paiement instantanément.`}
       </Animated.Text>
+
+      {!undone && <UndoTransferBar reference={reference} amount={amount} onUndone={onMarkedUndone} />}
 
       <Animated.View style={receipt}>
         <ReceiptCard
-          style={{ marginBottom: spacing.xl }}
+          style={{ marginBottom: spacing.lg }}
           rows={[
-            { key: 'merchant', label: 'Marchand', value: 'Chez Papa' },
+            { key: 'merchant', label: 'Marchand', value: MERCHANT.name },
             { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.green },
             { key: 'fee', label: 'Frais', value: '0 F ✦', color: colors.green },
             { key: 'balance', label: 'Nouveau solde', value: `${formatAmount(balanceCount)} F` },
             { key: 'ref', label: 'Référence', value: reference, small: true },
           ]}
         />
+        {!undone && (
+          <ReceiptShareButtons
+            type="merchant"
+            amount={amount}
+            counterparty={MERCHANT.name}
+            reference={reference}
+            onShareMbolo={onShareMbolo}
+          />
+        )}
       </Animated.View>
 
-      <Animated.View style={[styles.wakhnaBonus, bonus]}>
-        <Text style={{ fontSize: 16 }}>✦</Text>
-        <Text style={styles.wakhnaBonusText}>
-          <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.green }}>+5 points Wakhna</Text> pour ce paiement marchand
-        </Text>
-      </Animated.View>
+      {!undone && (
+        <Animated.View style={[styles.wakhnaBonus, bonus]}>
+          <Text style={{ fontSize: 16 }}>✦</Text>
+          <Text style={styles.wakhnaBonusText}>
+            <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.green }}>+5 points Wakhna</Text> pour ce paiement marchand
+          </Text>
+        </Animated.View>
+      )}
 
-      <PressScale scaleTo={0.97} onPress={() => showToast('Reçu copié ✓')} style={styles.shareBtn}>
-        <Text style={styles.shareBtnText}>📤 Partager le reçu</Text>
-      </PressScale>
       <GlowButton label="Retour à l'accueil" onPress={onDone} />
     </View>
   );
 }
 
 export default function PayMerchantScreen({ navigation }) {
+  useScreenshotBlock(true);
+  const showToast = useToast();
   const [step, setStep] = useState('scan');
   const [amount, setAmount] = useState(2500);
   const [oldBalance, setOldBalance] = useState(0);
   const [newBalance, setNewBalance] = useState(0);
-  const { balance, addTransaction } = useAppState();
+  const [reference, setReference] = useState('');
+  const [undone, setUndone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const { balance, refreshWallet, setPendingMboloShare } = useAppState();
 
-  const pay = () => {
-    addTransaction({ icon: '🏪', iconBg: colors.orangeA08, title: MERCHANT.name, subtitle: "À l'instant", amount: -amount });
+  const pay = async () => {
+    if (!MERCHANT.businessId) {
+      showToast('Marchand demo non configuré — définis EXPO_PUBLIC_DEMO_MERCHANT_ID');
+      return;
+    }
+    setSubmitting(true);
     setOldBalance(balance);
-    setNewBalance(balance - amount);
-    setStep('success');
+    try {
+      const result = await merchantPay(MERCHANT.businessId, { amount });
+      setReference(result.reference);
+      setUndone(false);
+      const wallet = await refreshWallet();
+      setNewBalance(wallet.nationalBalance ?? wallet.balance ?? balance - amount);
+      setStep('success');
+    } catch (err) {
+      showToast(err.message ?? 'Paiement impossible');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUndone = async () => {
+    setUndone(true);
+    const wallet = await refreshWallet();
+    setNewBalance(wallet.nationalBalance ?? wallet.balance ?? oldBalance);
+  };
+
+  const shareMbolo = (text) => {
+    setPendingMboloShare(text);
+    navigation.navigate('Main', { screen: 'MbooloTab' });
   };
 
   const finish = () => {
@@ -278,12 +329,21 @@ export default function PayMerchantScreen({ navigation }) {
         )}
         {step === 'confirm' && (
           <StepTransition>
-            <ConfirmStep amount={amount} balance={balance} onPay={pay} onCancel={() => setStep('scan')} />
+            <ConfirmStep amount={amount} balance={balance} onPay={pay} onCancel={() => setStep('scan')} submitting={submitting} />
           </StepTransition>
         )}
         {step === 'success' && (
           <StepTransition>
-            <SuccessStep amount={amount} oldBalance={oldBalance} newBalance={newBalance} onDone={finish} />
+            <SuccessStep
+              amount={amount}
+              oldBalance={oldBalance}
+              newBalance={newBalance}
+              reference={reference}
+              onDone={finish}
+              onMarkedUndone={handleUndone}
+              onShareMbolo={shareMbolo}
+              undone={undone}
+            />
           </StepTransition>
         )}
       </SafeAreaView>

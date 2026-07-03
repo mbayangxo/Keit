@@ -1,20 +1,30 @@
 {
   "name": "keit",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "dependencies": {
     "@expo-google-fonts/outfit": "^0.4.3",
     "@expo-google-fonts/unbounded": "^0.4.1",
+    "@prisma/client": "^6.19.3",
     "@react-navigation/bottom-tabs": "^7.18.5",
     "@react-navigation/native": "^7.3.5",
     "@react-navigation/native-stack": "^7.17.7",
+    "@sentry/node": "^10.63.0",
+    "@sentry/react-native": "^8.17.0",
+    "bcryptjs": "^3.0.3",
     "expo": "~57.0.1",
     "expo-blur": "^57.0.0",
+    "expo-device": "^57.0.0",
     "expo-font": "^57.0.0",
     "expo-haptics": "^57.0.0",
     "expo-linear-gradient": "^57.0.0",
+    "expo-local-authentication": "^57.0.0",
+    "expo-screen-capture": "^57.0.0",
+    "expo-secure-store": "^57.0.0",
     "expo-splash-screen": "^57.0.1",
     "expo-status-bar": "~57.0.0",
+    "jsonwebtoken": "^9.0.2",
     "react": "19.2.3",
     "react-dom": "^19.2.3",
     "react-native": "0.86.0",
@@ -22,13 +32,32 @@
     "react-native-safe-area-context": "^5.8.0",
     "react-native-screens": "^4.25.2",
     "react-native-svg": "^15.15.5",
-    "react-native-web": "^0.21.2"
+    "react-native-web": "^0.21.2",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.3"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "dev:api": "vercel dev",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "test:db:start": "prisma dev --name keit-test --detach",
+    "test:db:setup": "prisma db push --skip-generate && prisma generate",
+    "test:db:stop": "prisma dev stop keit-test",
+    "test": "node --test --test-concurrency=1 \"tests/unit/**/*.test.js\" \"tests/integration/**/*.test.js\" \"tests/security/**/*.test.js\"",
+    "test:unit": "node --test --test-concurrency=1 \"tests/unit/**/*.test.js\"",
+    "test:integration": "node --test --test-concurrency=1 \"tests/integration/**/*.test.js\"",
+    "test:security": "node --test --test-concurrency=1 \"tests/security/**/*.test.js\"",
+    "test:load": "node --test --test-concurrency=1 --test-timeout=600000 \"tests/load/**/*.test.js\"",
+    "test:launch-gate": "node --test --test-concurrency=1 --test-timeout=600000 \"tests/unit/**/*.test.js\" \"tests/integration/**/*.test.js\" \"tests/security/**/*.test.js\" \"tests/load/**/*.test.js\""
   },
   "private": true
 }

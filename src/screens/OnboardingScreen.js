@@ -9,6 +9,7 @@ import { useEntrance } from '../hooks/animations';
 import { COUNTRIES } from '../i18n/countries';
 import { LANGUAGES } from '../i18n/languages';
 import { t } from '../i18n/translations';
+import { useLocale } from '../context/LocaleContext';
 
 // No HTML prototype exists for onboarding — this screen is a new addition
 // designed to match the established system exactly (dark #050805 shell,
@@ -37,7 +38,7 @@ function Row({ leading, title, subtitle, selected, delay, onPress }) {
   );
 }
 
-function CountryStep({ query, setQuery, selected, onSelect, onContinue }) {
+function CountryStep({ lang, query, setQuery, selected, onSelect, onContinue }) {
   const filtered = useMemo(
     () => COUNTRIES.filter((c) => c.name.toLowerCase().includes(query.trim().toLowerCase())),
     [query]
@@ -46,14 +47,14 @@ function CountryStep({ query, setQuery, selected, onSelect, onContinue }) {
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>{t('fr', 'countryLabel')}</Text>
-        <Text style={styles.title}>{t('fr', 'countryTitle')}</Text>
+        <Text style={styles.eyebrow}>{t(lang, 'countryLabel')}</Text>
+        <Text style={styles.title}>{t(lang, 'countryTitle')}</Text>
       </View>
 
       <View style={styles.searchWrap}>
         <TextInput
           style={styles.searchInput}
-          placeholder={t('fr', 'countrySearchPlaceholder')}
+          placeholder={t(lang, 'countrySearchPlaceholder')}
           placeholderTextColor={colors.whiteA30}
           value={query}
           onChangeText={setQuery}
@@ -74,14 +75,14 @@ function CountryStep({ query, setQuery, selected, onSelect, onContinue }) {
       </ScrollView>
 
       <View style={styles.footer}>
-        <GlowButton label={`${t('fr', 'continueLabel')} →`} onPress={onContinue} disabled={!selected} />
+        <GlowButton label={`${t(lang, 'continueLabel')} →`} onPress={onContinue} disabled={!selected} />
       </View>
     </View>
   );
 }
 
-function LanguageStep({ country, query, setQuery, selected, onSelect, onBack, onFinish }) {
-  const uiLang = selected?.code ?? 'fr';
+function LanguageStep({ lang, country, query, setQuery, selected, onSelect, onBack, onFinish }) {
+  const uiLang = selected?.code ?? lang;
   const suggested = (country?.languages ?? []).map((code) => LANGUAGES.find((l) => l.code === code)).filter(Boolean);
   const suggestedCodes = new Set(suggested.map((l) => l.code));
   const filtered = useMemo(
@@ -100,28 +101,28 @@ function LanguageStep({ country, query, setQuery, selected, onSelect, onBack, on
             <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
           </PressScale>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>{t('fr', 'languageLabel')}</Text>
-            <Text style={styles.title}>{t('fr', 'languageTitle')}</Text>
+            <Text style={styles.eyebrow}>{t(lang, 'languageLabel')}</Text>
+            <Text style={styles.title}>{t(lang, 'languageTitle')}</Text>
           </View>
         </View>
-        <Text style={styles.subtitle}>{t('fr', 'languageSubtitle')}</Text>
+        <Text style={styles.subtitle}>{t(lang, 'languageSubtitle')}</Text>
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
         {suggested.length > 0 && (
           <>
-            <Text style={styles.sectionLabel}>{t('fr', 'suggestedLabel')}</Text>
+            <Text style={styles.sectionLabel}>{t(lang, 'suggestedLabel')}</Text>
             {suggested.map((l, i) => (
               <Row key={l.code} leading="🗣️" title={l.native} subtitle={l.name} selected={selected?.code === l.code} delay={i * 30} onPress={() => onSelect(l)} />
             ))}
           </>
         )}
 
-        <Text style={[styles.sectionLabel, { marginTop: spacing.xxl }]}>{t('fr', 'allLanguagesLabel')}</Text>
+        <Text style={[styles.sectionLabel, { marginTop: spacing.xxl }]}>{t(lang, 'allLanguagesLabel')}</Text>
         <View style={styles.searchWrap}>
           <TextInput
             style={styles.searchInput}
-            placeholder={t('fr', 'searchLanguagePlaceholder')}
+            placeholder={t(lang, 'searchLanguagePlaceholder')}
             placeholderTextColor={colors.whiteA30}
             value={query}
             onChangeText={setQuery}
@@ -140,11 +141,18 @@ function LanguageStep({ country, query, setQuery, selected, onSelect, onBack, on
 }
 
 export default function OnboardingScreen({ onComplete }) {
+  const { langCode, country: savedCountry, language: savedLanguage, setCountry, setLanguage } = useLocale();
   const [step, setStep] = useState('country');
-  const [country, setCountry] = useState(null);
-  const [language, setLanguage] = useState(null);
+  const [country, setCountryLocal] = useState(savedCountry);
+  const [language, setLanguageLocal] = useState(savedLanguage);
   const [countryQuery, setCountryQuery] = useState('');
   const [languageQuery, setLanguageQuery] = useState('');
+
+  const finish = async () => {
+    if (country) await setCountry(country);
+    if (language) await setLanguage(language);
+    onComplete?.({ country, language });
+  };
 
   return (
     <View style={styles.root}>
@@ -152,21 +160,23 @@ export default function OnboardingScreen({ onComplete }) {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'country' ? (
           <CountryStep
+            lang={langCode}
             query={countryQuery}
             setQuery={setCountryQuery}
             selected={country}
-            onSelect={setCountry}
+            onSelect={setCountryLocal}
             onContinue={() => setStep('language')}
           />
         ) : (
           <LanguageStep
+            lang={langCode}
             country={country}
             query={languageQuery}
             setQuery={setLanguageQuery}
             selected={language}
-            onSelect={setLanguage}
+            onSelect={setLanguageLocal}
             onBack={() => setStep('country')}
-            onFinish={() => onComplete?.({ country, language })}
+            onFinish={finish}
           />
         )}
       </SafeAreaView>

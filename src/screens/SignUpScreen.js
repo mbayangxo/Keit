@@ -1,19 +1,19 @@
-import { useRef, useState } from 'react';
-import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import { useToast } from '../components/Toast';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useEntrance } from '../hooks/animations';
+import { useLocale } from '../context/LocaleContext';
+import { authPhone, authVerify, authCompleteProfile, getMe } from '../lib/api-client';
+import { saveSessionTokens } from '../lib/secure-storage';
+import { toE164, isValidLocalPhone } from '../lib/phone';
+import { t } from '../i18n/translations';
 
-// design/k21-onboarding.html, Screens 3-8 — phone -> OTP -> profile -> CNI
-// -> arrondissement -> fund wallet. The CNI step matches brief §05's
-// "tied to CNI, not SIM" identity model in UI terms only — real document
-// scanning/verification needs a licensed KYC vendor and a backend, so
-// tapping through it here just records the choice, it doesn't verify one.
-
-const CARRIERS = ['📱 Orange', '📱 Free', '📱 Expresso'];
+// Backend-driven signup: phone → OTP (API) → profile → intent → arrondissement → fund (optional).
+// CNI deferred to KYC flow (POST /api/kyc/cni/submit).
 const ARRONDISSEMENTS = [
   { key: 'medina', icon: '🏘️', name: 'Médina', count: '4 821 K21' },
   { key: 'plateau', icon: '🏙️', name: 'Plateau', count: '3 204 K21' },
@@ -21,12 +21,16 @@ const ARRONDISSEMENTS = [
   { key: 'hlm', icon: '🌇', name: 'HLM', count: '2 987 K21' },
   { key: 'ouakam', icon: '🌃', name: 'Ouakam', count: '2 341 K21' },
 ];
-const FUND_METHODS = [
-  { key: 'orange', icon: '🟠', bg: colors.orangeA10, name: 'Orange Money', sub: 'Transfert instantané', badge: 'GRATUIT', badgeStyle: 'free' },
-  { key: 'free', icon: '💚', bg: colors.greenA08, name: 'Free Money', sub: 'Transfert instantané', badge: 'GRATUIT', badgeStyle: 'free' },
-  { key: 'wave', icon: '〰️', bg: 'rgba(100,180,255,0.08)', name: 'Wave', sub: 'Depuis ton compte Wave', badge: 'RAPIDE', badgeStyle: 'fast' },
-];
+const FUND_METHOD = { key: 'mobile_money', icon: '💳', bg: colors.greenA08, name: 'Mobile Money', sub: 'Transfert depuis ton opérateur mobile', badge: 'SÉCURISÉ', badgeStyle: 'free' };
 const FUND_AMOUNTS = [5000, 10000, 25000, 50000];
+const INTENTS = [
+  { key: 'send_money', icon: '💸', title: 'Envoyer de l\'argent', sub: 'Transfers et paiements' },
+  { key: 'mbolo', icon: '🧑‍🤝‍🧑', title: 'Communauté', sub: 'Mboolo — groupes et collectes' },
+  { key: 'discover', icon: '📍', title: 'Découvrir', sub: 'Événements et vie locale' },
+  { key: 'business', icon: '🏪', title: 'Mon business', sub: 'Vendre et être payé' },
+];
+const STEP_ORDER = ['phone', 'otp', 'profile', 'intent', 'arrondissement', 'fund'];
+const STEP_NUM = { phone: 1, otp: 2, profile: 3, intent: 4, arrondissement: 5 };
 
 function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ /g, ' ');
@@ -53,70 +57,60 @@ function StepHeader({ title, step, onBack }) {
   );
 }
 
-function PhoneStep({ phone, setPhone, onNext, onBack }) {
+function PhoneStep({ lang, country, phone, setPhone, loading, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
+  const valid = isValidLocalPhone(country, phone);
   return (
     <Animated.View style={[styles.body, entrance]}>
-      <StepHeader title="Créer mon compte" step={1} onBack={onBack} />
+      <StepHeader title="Créer mon compte" step={STEP_NUM.phone} onBack={onBack} />
       <Text style={styles.headline}>
-        Ton numéro{'\n'}
-        <Text style={styles.g}>de téléphone</Text>
+        {t(lang, 'signupPhoneHead')}{'\n'}
+        <Text style={styles.g}>{t(lang, 'signupPhoneTitle')}</Text>
       </Text>
-      <Text style={styles.sub}>On t'envoie un code pour vérifier que c'est bien toi. Rien d'autre.</Text>
+      <Text style={styles.sub}>{t(lang, 'signupPhoneSub')}</Text>
 
       <View style={styles.phoneRow}>
         <View style={styles.countrySel}>
-          <Text style={{ fontSize: 18 }}>🇸🇳</Text>
-          <Text style={styles.countryCode}>+221</Text>
+          <Text style={{ fontSize: 18 }}>{country?.flag ?? '🇸🇳'}</Text>
+          <Text style={styles.countryCode}>{country?.dial ?? '+221'}</Text>
         </View>
         <TextInput
-          style={[styles.phoneField, phone.length >= 8 && styles.phoneFieldFilled]}
+          style={[styles.phoneField, valid && styles.phoneFieldFilled]}
           placeholder="77 000 00 00"
           placeholderTextColor={colors.whiteA20}
           keyboardType="number-pad"
           value={phone}
           onChangeText={(t) => setPhone(t.replace(/[^0-9]/g, ''))}
-          maxLength={9}
+          maxLength={country?.phoneMax ?? 12}
         />
       </View>
       <Text style={styles.fieldNote}>
         Ton numéro est lié à <Text style={{ color: colors.whiteA55, fontFamily: fontFamily.bodyBold }}>ton identité K21</Text>, pas à ta SIM. Si tu perds ton téléphone, ton argent reste en sécurité.
       </Text>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickNumsRow}>
-        {CARRIERS.map((c) => (
-          <View key={c} style={styles.qn}>
-            <Text style={styles.qnText}>{c}</Text>
-          </View>
-        ))}
-      </ScrollView>
-
-      <View style={styles.secNote}>
-        <Text style={{ fontSize: 14 }}>🔒</Text>
-        <Text style={styles.secText}>Ton numéro ne sera jamais partagé avec des tiers ni utilisé à des fins publicitaires.</Text>
-      </View>
-
       <View style={{ flex: 1 }} />
-      <GlowButton label="Recevoir mon code →" onPress={onNext} disabled={phone.length < 8} />
+      <GlowButton label={loading ? t(lang, 'signupSending') : t(lang, 'signupSendCode')} onPress={onNext} disabled={!valid || loading} />
+      {loading && <ActivityIndicator color={colors.green} style={{ marginTop: spacing.md }} />}
     </Animated.View>
   );
 }
 
-function OtpStep({ phone, otp, setOtp, onNext, onBack }) {
+function OtpStep({ lang, displayPhone, otp, setOtp, loading, devHint, onResend, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
   const boxes = [0, 1, 2, 3, 4, 5];
-  const showToast = useToast();
   return (
     <Animated.View style={[styles.body, entrance]}>
-      <StepHeader title="Vérification" step={2} onBack={onBack} />
+      <StepHeader title="Vérification" step={STEP_NUM.otp} onBack={onBack} />
       <Text style={styles.headline}>
-        Saisis le{'\n'}
-        <Text style={styles.g}>code reçu</Text>
+        {t(lang, 'signupOtpHeadPrefix')}{'\n'}
+        <Text style={styles.g}>{t(lang, 'signupOtpHead')}</Text>
       </Text>
       <Text style={styles.otpSentTo}>
-        Code envoyé au <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.whiteA70 }}>+221 {phone}</Text>
-        {'\n'}par SMS · valide 10 minutes
+        {t(lang, 'signupOtpSent')}{' '}
+        <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.whiteA70 }}>{displayPhone}</Text>
+        {'\n'}{t(lang, 'signupOtpValid')}
       </Text>
+      {devHint ? <Text style={styles.devOtpHint}>Code: {devHint}</Text> : null}
 
       <View style={styles.otpRow}>
         {boxes.map((i) => (
@@ -127,8 +121,11 @@ function OtpStep({ phone, otp, setOtp, onNext, onBack }) {
       </View>
       <TextInput style={styles.hiddenInput} value={otp} onChangeText={(t) => setOtp(t.replace(/[^0-9]/g, '').slice(0, 6))} keyboardType="number-pad" autoFocus maxLength={6} />
 
-      <PressScale scaleTo={0.95} onPress={() => showToast('Code renvoyé ✓')} style={{ alignSelf: 'center' }}>
-        <Text style={styles.resendText}>Tu n'as rien reçu ? <Text style={{ color: colors.green, fontFamily: fontFamily.bodyBold }}>Renvoyer le code</Text></Text>
+      <PressScale scaleTo={0.95} onPress={onResend} style={{ alignSelf: 'center' }}>
+        <Text style={styles.resendText}>
+          {t(lang, 'signupResend')}{' '}
+          <Text style={{ color: colors.green, fontFamily: fontFamily.bodyBold }}>{t(lang, 'signupResendAction')}</Text>
+        </Text>
       </PressScale>
 
       <View style={styles.secNote}>
@@ -139,7 +136,8 @@ function OtpStep({ phone, otp, setOtp, onNext, onBack }) {
       </View>
 
       <View style={{ flex: 1 }} />
-      <GlowButton label="Vérifier →" onPress={onNext} disabled={otp.length < 6} />
+      <GlowButton label={loading ? t(lang, 'signupVerifying') : t(lang, 'signupVerify')} onPress={onNext} disabled={otp.length < 6 || loading} />
+      {loading && <ActivityIndicator color={colors.green} style={{ marginTop: spacing.md }} />}
     </Animated.View>
   );
 }
@@ -148,7 +146,7 @@ function ProfileStep({ name, setName, handle, setHandle, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
   return (
     <Animated.View style={[styles.body, entrance]}>
-      <StepHeader title="Mon profil" step={3} onBack={onBack} />
+      <StepHeader title="Mon profil" step={STEP_NUM.profile} onBack={onBack} />
       <Text style={styles.headline}>
         Crée ton{'\n'}
         <Text style={styles.g}>identité K21</Text>
@@ -191,50 +189,37 @@ function ProfileStep({ name, setName, handle, setHandle, onNext, onBack }) {
   );
 }
 
-function CniStep({ cniType, setCniType, onNext, onSkip, onBack }) {
+function IntentStep({ lang, intent, setIntent, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
   return (
     <Animated.View style={[styles.body, entrance]}>
-      <StepHeader title="Identité" step={4} onBack={onBack} />
+      <StepHeader title="Ton objectif" step={STEP_NUM.intent} onBack={onBack} />
+      <Text style={styles.headline}>
+        {t(lang, 'signupIntentHeadPrefix')}{'\n'}
+        <Text style={styles.g}>{t(lang, 'signupIntentHead')}</Text>
+      </Text>
+      <Text style={styles.sub}>{t(lang, 'signupIntentSub')}</Text>
 
-      <View style={styles.cniHero}>
-        <Text style={{ fontSize: 40 }}>🪪</Text>
-        <Text style={styles.cniTitle}>Vérifie ton identité</Text>
-        <Text style={styles.cniBody}>Chez K21, ton compte est lié à toi — pas à ta SIM. Si tu perds ton téléphone, ton argent ne disparaît jamais.</Text>
-      </View>
-
-      <View style={{ gap: spacing.sm, marginBottom: spacing.xxl }}>
-        <View style={styles.cniReason}>
-          <Text style={{ fontSize: 16 }}>🔐</Text>
-          <Text style={styles.crText}><Text style={{ color: colors.white, fontFamily: fontFamily.bodySemiBold }}>Ton argent reste à toi.</Text> Même si quelqu'un d'autre prend ton numéro.</Text>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        <View style={{ gap: spacing.sm }}>
+          {INTENTS.map((opt) => (
+            <PressScale key={opt.key} scaleTo={0.98} onPress={() => setIntent(opt.key)} style={[styles.cniOpt, intent === opt.key && styles.cniOptOn]}>
+              <Text style={{ fontSize: 22 }}>{opt.icon}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.coTitle}>{opt.title}</Text>
+                <Text style={styles.coSub}>{opt.sub}</Text>
+              </View>
+              {intent === opt.key && (
+                <View style={styles.aiCheck}>
+                  <Text style={{ fontSize: 9, fontWeight: '900', color: colors.ink }}>✓</Text>
+                </View>
+              )}
+            </PressScale>
+          ))}
         </View>
-        <View style={styles.cniReason}>
-          <Text style={{ fontSize: 16 }}>⚡</Text>
-          <Text style={styles.crText}><Text style={{ color: colors.white, fontFamily: fontFamily.bodySemiBold }}>Récupération en 5 min.</Text> Va chez un agent K21 avec ta CNI.</Text>
-        </View>
-      </View>
+      </ScrollView>
 
-      <View style={{ gap: spacing.sm, marginBottom: spacing.xl }}>
-        {[
-          { key: 'cni', icon: '🪪', title: 'Carte Nationale d’Identité', sub: 'Recommandé · Plus rapide' },
-          { key: 'passport', icon: '📘', title: 'Passeport', sub: 'Accepté' },
-        ].map((opt) => (
-          <PressScale key={opt.key} scaleTo={0.98} onPress={() => setCniType(opt.key)} style={[styles.cniOpt, cniType === opt.key && styles.cniOptOn]}>
-            <Text style={{ fontSize: 22 }}>{opt.icon}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.coTitle}>{opt.title}</Text>
-              <Text style={styles.coSub}>{opt.sub}</Text>
-            </View>
-            <Text style={{ fontSize: 14, color: colors.whiteA30 }}>→</Text>
-          </PressScale>
-        ))}
-      </View>
-
-      <PressScale scaleTo={0.96} onPress={onSkip} style={{ alignSelf: 'center', marginBottom: spacing.xl }}>
-        <Text style={styles.skipCni}>Faire ça plus tard · <Text style={{ color: colors.whiteA40, textDecorationLine: 'underline' }}>Limites de compte s'appliquent</Text></Text>
-      </PressScale>
-
-      <GlowButton label="Scanner ma CNI →" onPress={onNext} style={{ backgroundColor: colors.flagGold }} />
+      <GlowButton label="Continuer →" onPress={onNext} disabled={!intent} />
     </Animated.View>
   );
 }
@@ -291,8 +276,9 @@ function ArrondissementStep({ arrondissement, setArrondissement, onNext, onBack 
   );
 }
 
-function FundStep({ amount, setAmount, method, setMethod, onNext, onSkip }) {
+function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext, onSkip }) {
   const entrance = useEntrance(0, 350, 8);
+  const m = FUND_METHOD;
   return (
     <Animated.View style={[styles.body, entrance]}>
       <View style={styles.headRow}>
@@ -304,24 +290,22 @@ function FundStep({ amount, setAmount, method, setMethod, onNext, onSkip }) {
       <Text style={[styles.headline, { fontSize: 18, marginBottom: spacing.sm }]}>
         Ajoute de <Text style={styles.g}>l'argent</Text>
       </Text>
-      <Text style={[styles.sub, { marginBottom: spacing.xl }]}>Transfère depuis Orange Money, Free Money ou Wave en quelques secondes.</Text>
+      <Text style={[styles.sub, { marginBottom: spacing.xl }]}>{t(lang, 'signupFundSub')}</Text>
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={{ gap: spacing.sm, marginBottom: spacing.xl }}>
-          {FUND_METHODS.map((m) => (
-            <PressScale key={m.key} scaleTo={0.98} onPress={() => setMethod(m.key)} style={[styles.fmItem, method === m.key && styles.fmItemOn]}>
-              <View style={[styles.fmIco, { backgroundColor: m.bg }]}>
-                <Text style={{ fontSize: 20 }}>{m.icon}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fmName}>{m.name}</Text>
-                <Text style={styles.fmSub}>{m.sub}</Text>
-              </View>
-              <View style={[styles.fmBadge, m.badgeStyle === 'free' ? styles.badgeFree : styles.badgeFast]}>
-                <Text style={[styles.fmBadgeText, { color: m.badgeStyle === 'free' ? colors.green : colors.flagGold }]}>{m.badge}</Text>
-              </View>
-            </PressScale>
-          ))}
+          <PressScale key={m.key} scaleTo={0.98} onPress={() => setMethod(m.key)} style={[styles.fmItem, method === m.key && styles.fmItemOn]}>
+            <View style={[styles.fmIco, { backgroundColor: m.bg }]}>
+              <Text style={{ fontSize: 20 }}>{m.icon}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.fmName}>{m.name}</Text>
+              <Text style={styles.fmSub}>{m.sub}</Text>
+            </View>
+            <View style={[styles.fmBadge, styles.badgeFree]}>
+              <Text style={[styles.fmBadgeText, { color: colors.green }]}>{m.badge}</Text>
+            </View>
+          </PressScale>
         </View>
 
         <Text style={styles.fasLabel}>Montant rapide</Text>
@@ -334,26 +318,29 @@ function FundStep({ amount, setAmount, method, setMethod, onNext, onSkip }) {
         </View>
       </ScrollView>
 
-      <PressScale scaleTo={0.96} onPress={onSkip} style={{ alignSelf: 'center', marginBottom: spacing.md }}>
+      <PressScale scaleTo={0.96} onPress={onSkip} disabled={loading} style={{ alignSelf: 'center', marginBottom: spacing.md }}>
         <Text style={styles.skipFund}>ou <Text style={{ color: colors.whiteA55 }}>Commencer sans argent pour l'instant</Text></Text>
       </PressScale>
-      <GlowButton label={`Ajouter ${formatAmount(amount)} F →`} onPress={onNext} />
+      <GlowButton label={loading ? t(lang, 'signupCreating') : `Ajouter ${formatAmount(amount)} F →`} onPress={onNext} disabled={loading} />
     </Animated.View>
   );
 }
 
-const STEP_ORDER = ['phone', 'otp', 'profile', 'cni', 'arrondissement', 'fund'];
-
-export default function SignUpScreen({ onComplete }) {
+export default function SignUpScreen({ mode = 'signup', onComplete, onLoginComplete, onCancel }) {
+  const { country, langCode, setOnboardingIntent } = useLocale();
+  const showToast = useToast();
   const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
+  const [e164Phone, setE164Phone] = useState('');
   const [otp, setOtp] = useState('');
+  const [devOtpHint, setDevOtpHint] = useState(null);
   const [name, setName] = useState('');
-  const [handle, setHandle] = useState('saliou_medina');
-  const [cniType, setCniType] = useState('cni');
+  const [handle, setHandle] = useState('');
+  const [intent, setIntent] = useState(null);
   const [arrondissement, setArrondissement] = useState(ARRONDISSEMENTS[0]);
-  const [fundMethod, setFundMethod] = useState('orange');
+  const [fundMethod, setFundMethod] = useState('mobile_money');
   const [fundAmount, setFundAmount] = useState(10000);
+  const [loading, setLoading] = useState(false);
 
   const goTo = (s) => setStep(s);
   const back = () => {
@@ -361,28 +348,128 @@ export default function SignUpScreen({ onComplete }) {
     if (i > 0) setStep(STEP_ORDER[i - 1]);
   };
 
+  const displayPhone = e164Phone || (country ? `${country.dial} ${phone}` : phone);
+
+  const requestOtp = async () => {
+    const normalized = toE164(country, phone);
+    setLoading(true);
+    try {
+      const res = await authPhone(normalized);
+      setE164Phone(normalized);
+      if (res.otp) setDevOtpHint(res.otp);
+      goTo('otp');
+    } catch (err) {
+      showToast(err.message ?? 'Impossible d\'envoyer le code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resendOtp = async () => {
+    if (!e164Phone) return;
+    setLoading(true);
+    try {
+      const res = await authPhone(e164Phone);
+      if (res.otp) setDevOtpHint(res.otp);
+      showToast('Code renvoyé ✓');
+    } catch (err) {
+      showToast(err.message ?? 'Échec du renvoi');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    setLoading(true);
+    try {
+      const res = await authVerify(e164Phone, otp);
+      await saveSessionTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+      if (!res.isNewUser) {
+        const me = await getMe();
+        if (me.name?.length >= 2 && me.handle?.length >= 3 && mode === 'login') {
+          onLoginComplete?.();
+          return;
+        }
+      }
+      goTo('profile');
+    } catch (err) {
+      showToast(err.message ?? 'Code invalide');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const finishSignup = async (amount) => {
+    setLoading(true);
+    try {
+      if (intent) await setOnboardingIntent(intent);
+      const res = await authCompleteProfile({
+        name: name.trim(),
+        handle,
+        arrondissement: { key: arrondissement.key, icon: arrondissement.icon, name: arrondissement.name },
+        fundAmount: 0, // Beta: real top-up via /api/cash/in when Julaya is live
+        identityChoice: intent,
+        isDiaspora: country?.code !== 'SN',
+        countryCode: country?.code,
+      });
+      const balance = res.nationalBalance ?? res.balance ?? 0;
+      onComplete?.({
+        phone: e164Phone,
+        name,
+        handle,
+        arrondissement,
+        fundAmount: balance,
+        intent,
+        profile: res.profile,
+        transactions: res.transactions,
+      });
+    } catch (err) {
+      showToast(err.message ?? 'Profil incomplet');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const phoneBack = mode === 'login' ? onCancel : onCancel;
+
   return (
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        {step === 'phone' && <PhoneStep phone={phone} setPhone={setPhone} onNext={() => goTo('otp')} onBack={onComplete} />}
-        {step === 'otp' && <OtpStep phone={phone} otp={otp} setOtp={setOtp} onNext={() => goTo('profile')} onBack={back} />}
-        {step === 'profile' && (
-          <ProfileStep name={name} setName={setName} handle={handle} setHandle={setHandle} onNext={() => goTo('cni')} onBack={back} />
+        {step === 'phone' && (
+          <PhoneStep lang={langCode} country={country} phone={phone} setPhone={setPhone} loading={loading} onNext={requestOtp} onBack={phoneBack} />
         )}
-        {step === 'cni' && (
-          <CniStep cniType={cniType} setCniType={setCniType} onNext={() => goTo('arrondissement')} onSkip={() => goTo('arrondissement')} onBack={back} />
+        {step === 'otp' && (
+          <OtpStep
+            lang={langCode}
+            displayPhone={displayPhone}
+            otp={otp}
+            setOtp={setOtp}
+            loading={loading}
+            devHint={devOtpHint}
+            onResend={resendOtp}
+            onNext={verifyOtp}
+            onBack={back}
+          />
+        )}
+        {step === 'profile' && (
+          <ProfileStep name={name} setName={setName} handle={handle} setHandle={setHandle} onNext={() => goTo('intent')} onBack={back} />
+        )}
+        {step === 'intent' && (
+          <IntentStep lang={langCode} intent={intent} setIntent={setIntent} onNext={() => goTo('arrondissement')} onBack={back} />
         )}
         {step === 'arrondissement' && (
           <ArrondissementStep arrondissement={arrondissement} setArrondissement={setArrondissement} onNext={() => goTo('fund')} onBack={back} />
         )}
         {step === 'fund' && (
           <FundStep
+            lang={langCode}
             amount={fundAmount}
             setAmount={setFundAmount}
             method={fundMethod}
             setMethod={setFundMethod}
-            onNext={() => onComplete?.({ phone, name, handle, arrondissement, fundAmount })}
-            onSkip={() => onComplete?.({ phone, name, handle, arrondissement, fundAmount: 0 })}
+            loading={loading}
+            onNext={() => finishSignup(fundAmount)}
+            onSkip={() => finishSignup(0)}
           />
         )}
       </SafeAreaView>
@@ -429,6 +516,7 @@ const styles = StyleSheet.create({
   otpDigit: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: colors.green },
   hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
   resendText: { fontSize: 11, color: colors.whiteA30, marginBottom: spacing.xxl },
+  devOtpHint: { fontSize: 10, color: colors.flagGold, textAlign: 'center', marginBottom: spacing.md },
 
   avatarPick: { alignItems: 'center', marginBottom: spacing.xl },
   avatarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.greenA10, borderWidth: 2, borderColor: colors.greenA25, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SplashBackground from '../components/SplashBackground';
@@ -6,15 +6,18 @@ import K21Logo from '../components/K21Logo';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import { colors, fontFamily, spacing } from '../theme';
+import { useLocale } from '../context/LocaleContext';
 
 const LANGS = ['FR', 'WO', 'EN'];
+const SPLASH_FROM_CODE = { fr: 'FR', wo: 'WO', en: 'EN' };
 
 // design/k21-onboarding.html, Screen 1 (Splash / first open) — the K21
 // mark over a warm "Dakar alive" background, with the two real entry
 // points (create account / already have one) and a quick language toggle.
 export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
   const entrance = useRef(new Animated.Value(0)).current;
-  const [lang, setLang] = useState('FR');
+  const { langCode, setLanguageFromSplash } = useLocale();
+  const lang = SPLASH_FROM_CODE[langCode] ?? 'FR';
 
   useEffect(() => {
     Animated.timing(entrance, { toValue: 1, duration: 700, easing: Easing.out(Easing.back(1.2)), useNativeDriver: true }).start();
@@ -46,7 +49,7 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
 
         <View style={styles.langRow}>
           {LANGS.map((l) => (
-            <PressScale key={l} scaleTo={0.92} onPress={() => setLang(l)}>
+            <PressScale key={l} scaleTo={0.92} onPress={() => setLanguageFromSplash(l)}>
               <Text style={[styles.langBtn, l === lang && styles.langBtnOn]}>{l}</Text>
             </PressScale>
           ))}

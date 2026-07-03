@@ -23,6 +23,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "organization": "k21",
+          "project": "k21-mobile"
+        }
+      ]
+    ]
   }
 }
