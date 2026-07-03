@@ -1,9 +1,12 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SplashScreen from '../screens/SplashScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
+import AccountTypeScreen from '../screens/AccountTypeScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import SignUpScreen from '../screens/SignUpScreen';
+import BusinessSignUpScreen from '../screens/BusinessSignUpScreen';
 import WelcomeCelebrationScreen from '../screens/WelcomeCelebrationScreen';
+import BusinessDashboardScreen from '../screens/BusinessDashboardScreen';
 import MainTabs from './MainTabs';
 import SendMoneyScreen from '../screens/SendMoneyScreen';
 import PayMerchantScreen from '../screens/PayMerchantScreen';
@@ -19,14 +22,13 @@ import { useAppState } from '../state/AppState';
 const Stack = createNativeStackNavigator();
 
 // First-run sequence, matching design/k21-onboarding.html's 9 screens:
-// Splash -> Welcome (3 value-prop slides) -> Onboarding (country + language
-// — not in that prototype, but explicitly requested separately, kept for
-// diaspora/other-country users) -> SignUp (phone/OTP/profile/CNI/
-// arrondissement/fund wallet) -> Celebration -> Main. No persistence yet,
-// so this always runs on cold start; `navigation.reset` on completion
-// clears it all from the back stack.
+// Splash -> Welcome (3 value-prop slides) -> AccountType (personal vs
+// business — new branch point, not in any prototype) -> Onboarding
+// (country + language) -> SignUp or BusinessSignUp -> Celebration ->
+// Main or BusinessMain. No persistence yet, so this always runs on cold
+// start; `navigation.reset` on completion clears it all from the back stack.
 export default function RootNavigator() {
-  const { initAccount } = useAppState();
+  const { profile, initAccount, initBusinessAccount } = useAppState();
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
@@ -41,27 +43,57 @@ export default function RootNavigator() {
         )}
       </Stack.Screen>
       <Stack.Screen name="Welcome">
-        {({ navigation }) => <WelcomeScreen onComplete={() => navigation.navigate('Onboarding')} />}
+        {({ navigation }) => <WelcomeScreen onComplete={() => navigation.navigate('AccountType')} />}
+      </Stack.Screen>
+      <Stack.Screen name="AccountType">
+        {({ navigation }) => (
+          <AccountTypeScreen onSelect={(accountType) => navigation.navigate('Onboarding', { accountType })} />
+        )}
       </Stack.Screen>
       <Stack.Screen name="Onboarding">
-        {({ navigation }) => <OnboardingScreen onComplete={() => navigation.navigate('SignUp')} />}
+        {({ navigation, route }) => (
+          <OnboardingScreen
+            onComplete={() =>
+              route.params?.accountType === 'business' ? navigation.navigate('BusinessSignUp') : navigation.navigate('SignUp')
+            }
+          />
+        )}
       </Stack.Screen>
       <Stack.Screen name="SignUp">
         {({ navigation }) => (
           <SignUpScreen
-            onComplete={(profile) => {
-              initAccount(profile);
-              navigation.replace('Celebration', profile);
+            onComplete={(signupProfile) => {
+              initAccount(signupProfile);
+              navigation.replace('Celebration', signupProfile);
+            }}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="BusinessSignUp">
+        {({ navigation }) => (
+          <BusinessSignUpScreen
+            onComplete={(signupProfile) => {
+              initBusinessAccount(signupProfile);
+              navigation.replace('Celebration', signupProfile);
             }}
           />
         )}
       </Stack.Screen>
       <Stack.Screen name="Celebration">
         {({ navigation, route }) => (
-          <WelcomeCelebrationScreen {...route.params} onEnter={() => navigation.reset({ index: 0, routes: [{ name: 'Main' }] })} />
+          <WelcomeCelebrationScreen
+            {...route.params}
+            accountType={profile.accountType}
+            afriId={profile.afriId}
+            keboId={profile.business?.keboId}
+            onEnter={() =>
+              navigation.reset({ index: 0, routes: [{ name: profile.accountType === 'business' ? 'BusinessMain' : 'Main' }] })
+            }
+          />
         )}
       </Stack.Screen>
       <Stack.Screen name="Main" component={MainTabs} />
+      <Stack.Screen name="BusinessMain" component={BusinessDashboardScreen} />
       <Stack.Screen name="SendMoney" component={SendMoneyScreen} />
       <Stack.Screen name="PayMerchant" component={PayMerchantScreen} />
       <Stack.Screen name="Cash" component={CashScreen} />

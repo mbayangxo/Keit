@@ -168,6 +168,11 @@ export default function MoiScreen({ navigation }) {
                     </View>
                     <Text style={styles.handle}>@{profile.handle}</Text>
                     <Text style={styles.location}>📍 {profile.arrondissement.name} · Dakar</Text>
+                    {profile.afriId ? (
+                      <View style={styles.afriPill}>
+                        <Text style={styles.afriPillText}>✦ {profile.afriId}</Text>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
                 <PressScale
@@ -260,6 +265,8 @@ const styles = StyleSheet.create({
   ppImg: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: colors.ink, backgroundColor: colors.whiteA08, textAlign: 'center', textAlignVertical: 'center', fontSize: 11, overflow: 'hidden' },
   handle: { fontSize: 11, color: colors.green, marginBottom: 2 },
   location: { fontSize: 10, color: colors.whiteA30 },
+  afriPill: { alignSelf: 'flex-start', marginTop: spacing.sm, backgroundColor: colors.greenA08, borderWidth: 1, borderColor: colors.greenA20, borderRadius: radius.round, paddingHorizontal: spacing.md, paddingVertical: 2 },
+  afriPillText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.green },
   editBtn: { height: 30, paddingHorizontal: spacing.xl, borderRadius: radius.round, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
   editBtnText: { fontSize: 10, fontWeight: '700', color: colors.whiteA55 },
 

@@ -7,10 +7,21 @@ import { colors } from '../theme';
 // on a real screen) actually shows up everywhere else. No persistence yet:
 // this resets on app reload, same as the rest of the app's state.
 
+// Mock, client-generated ID strings — not tied to any real identity
+// registry or verification. "AFRI ID" for personal accounts, "KEBU ID"
+// for business accounts, both assigned once at signup.
+function generateId(prefix) {
+  const part = () => Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `${prefix}-${part()}-${part()}`;
+}
+
 const DEFAULT_PROFILE = {
+  accountType: 'personal', // 'personal' | 'business'
   name: 'Saliou',
   handle: 'saliou_medina',
   arrondissement: { key: 'medina', icon: '🏘️', name: 'Médina' },
+  afriId: generateId('AFRI'),
+  business: null, // { name, category, keboId } when accountType === 'business'
 };
 
 const DEFAULT_BALANCE = 47000;
@@ -41,7 +52,7 @@ export function AppStateProvider({ children }) {
   // account the person actually just created (their name + their real
   // starting deposit), instead of adding on top of the placeholder 47 000 F.
   const initAccount = useCallback(({ name, handle, arrondissement, fundAmount }) => {
-    setProfileState((prev) => ({ ...prev, name, handle, arrondissement }));
+    setProfileState((prev) => ({ ...prev, accountType: 'personal', name, handle, arrondissement, afriId: generateId('AFRI'), business: null }));
     setBalance(fundAmount ?? 0);
     setTransactions(
       fundAmount
@@ -50,9 +61,27 @@ export function AppStateProvider({ children }) {
     );
   }, []);
 
+  // Business-account equivalent of initAccount — assigns a KEBU ID instead
+  // of an AFRI ID and stores the business profile separately from the
+  // personal name/handle fields.
+  const initBusinessAccount = useCallback(({ businessName, category, arrondissement, fundAmount }) => {
+    setProfileState((prev) => ({
+      ...prev,
+      accountType: 'business',
+      arrondissement,
+      business: { name: businessName, category, keboId: generateId('KEBU') },
+    }));
+    setBalance(fundAmount ?? 0);
+    setTransactions(
+      fundAmount
+        ? [{ key: 'funding', icon: '💰', iconBg: colors.greenA08, title: 'Dépôt initial', subtitle: 'Bienvenue sur K21 Business', amount: fundAmount }]
+        : []
+    );
+  }, []);
+
   const value = useMemo(
-    () => ({ profile, setProfile, balance, transactions, addTransaction, initAccount }),
-    [profile, setProfile, balance, transactions, addTransaction, initAccount]
+    () => ({ profile, setProfile, balance, transactions, addTransaction, initAccount, initBusinessAccount }),
+    [profile, setProfile, balance, transactions, addTransaction, initAccount, initBusinessAccount]
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
