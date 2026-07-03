@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl },
   statBox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: colors.greenA15, borderRadius: radius.lg, padding: spacing.md, alignItems: 'center' },
   statNum: { fontFamily: fontFamily.displayBlack, fontSize: 18, fontWeight: '900', color: colors.green, letterSpacing: -0.5 },
-  statLabel: { fontSize: 9, color: colors.whiteA30, marginTop: 2, textAlign: 'center' },
+  statLabel: { fontSize: 10, color: colors.whiteA40, marginTop: 2, textAlign: 'center' },
 
   groupsList: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.md, gap: spacing.md },
 
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
   releaseBadgeText: { fontSize: 8, fontWeight: '700', letterSpacing: 0.5, color: colors.white, textTransform: 'uppercase' },
   groupAmountBox: { alignItems: 'flex-end' },
   groupAmount: { fontFamily: fontFamily.displayBlack, fontSize: 14, fontWeight: '900' },
-  groupAmountLabel: { fontSize: 9, color: colors.whiteA30 },
+  groupAmountLabel: { fontSize: 10, color: colors.whiteA40 },
   progressTrack: { height: 3, backgroundColor: colors.whiteA08 },
 
   footer: { paddingHorizontal: spacing.huge, paddingTop: spacing.md, paddingBottom: spacing.xxl },

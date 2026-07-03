@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', backgroundColor: colors.whiteA04, borderBottomWidth: 1, borderBottomColor: colors.whiteA06 },
   statItem: { flex: 1, paddingVertical: spacing.lg, alignItems: 'center' },
   statValue: { fontFamily: fontFamily.displayBlack, fontSize: 14, letterSpacing: -0.5, color: colors.white },
-  statLabel: { fontSize: 8, color: colors.whiteA30, marginTop: 1 },
+  statLabel: { fontSize: 10, color: colors.whiteA40, marginTop: 1 },
 
   wakhnaMini: { margin: spacing.xxl, backgroundColor: 'rgba(26,240,96,0.08)', borderWidth: 1, borderColor: colors.greenA15, borderRadius: radius.xl, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   wmScore: { fontFamily: fontFamily.displayBlack, fontSize: 26, letterSpacing: -1, color: colors.green },

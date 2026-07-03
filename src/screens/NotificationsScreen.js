@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
   iconWrap: { width: 38, height: 38, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   text: { fontSize: 11, lineHeight: 16.5, color: colors.whiteA70 },
-  time: { fontSize: 9, color: colors.whiteA30, marginTop: 2 },
+  time: { fontSize: 10, color: colors.whiteA40, marginTop: 2 },
   actionBtn: { height: 26, paddingHorizontal: spacing.lg, borderRadius: radius.round, alignItems: 'center', justifyContent: 'center' },
   actionBtnG: { backgroundColor: colors.green },
   actionBtnO: { backgroundColor: colors.orangeA10, borderWidth: 1, borderColor: colors.orangeA20 },
