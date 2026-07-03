@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import StepTransition from '../components/StepTransition';
+import ScreenHeader from '../components/ScreenHeader';
+import AmountChips from '../components/AmountChips';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
@@ -39,12 +41,7 @@ function RequestStep({ amount, setAmount, reason, setReason, contact, setContact
     <View style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <View style={styles.topRow}>
-            <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-              <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
-            </PressScale>
-            <Text style={styles.title}>Demander</Text>
-          </View>
+          <ScreenHeader onBack={onBack} title="Demander" style={styles.topRow} />
 
           <View style={styles.amountHero}>
             <Text style={styles.ahLbl}>Combien demander ?</Text>
@@ -67,13 +64,15 @@ function RequestStep({ amount, setAmount, reason, setReason, contact, setContact
             />
           </View>
 
-          <View style={styles.quickRow}>
-            {QUICK_AMOUNTS.map((q) => (
-              <PressScale key={q} scaleTo={0.92} onPress={() => setAmount(q)} style={[styles.chip, amount === q && styles.chipOn]}>
-                <Text style={[styles.chipText, amount === q && styles.chipTextOn]}>{q / 1000}k</Text>
-              </PressScale>
-            ))}
-          </View>
+          <AmountChips
+            options={QUICK_AMOUNTS}
+            value={amount}
+            onChange={setAmount}
+            accentBg={colors.goldA10}
+            accentBorder="rgba(250,216,54,0.4)"
+            accentText={colors.flagGold}
+            style={styles.quickRow}
+          />
         </View>
 
         <View style={styles.section}>
@@ -203,9 +202,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
 
   hero: { paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.huge, backgroundColor: colors.goldA08, borderBottomWidth: 1, borderBottomColor: 'rgba(250,216,54,0.12)' },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginBottom: spacing.giant },
-  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.white },
+  topRow: { marginBottom: spacing.giant },
 
   amountHero: { alignItems: 'center' },
   ahLbl: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: 'rgba(250,216,54,0.7)', textTransform: 'uppercase', marginBottom: spacing.lg },
@@ -215,11 +212,7 @@ const styles = StyleSheet.create({
   ahCursor: { width: 2, height: 36, backgroundColor: colors.flagGold, marginLeft: 4 },
   hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
 
-  quickRow: { flexDirection: 'row', gap: spacing.md, justifyContent: 'center', marginTop: spacing.xl },
-  chip: { height: 34, paddingHorizontal: spacing.xxl, borderRadius: radius.round, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, alignItems: 'center', justifyContent: 'center' },
-  chipOn: { backgroundColor: colors.goldA10, borderColor: 'rgba(250,216,54,0.4)' },
-  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.white },
-  chipTextOn: { color: colors.flagGold },
+  quickRow: { justifyContent: 'center', marginTop: spacing.xl },
 
   section: { paddingHorizontal: spacing.huge, paddingVertical: spacing.xxl, gap: spacing.sm },
   lbl: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.xs },

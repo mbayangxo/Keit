@@ -6,6 +6,8 @@ import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import WaxPattern from '../components/WaxPattern';
 import StepTransition from '../components/StepTransition';
+import ScreenHeader from '../components/ScreenHeader';
+import AmountChips from '../components/AmountChips';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
@@ -129,11 +131,7 @@ function HomeStep({ onOpenGroup, onCreate, onBack }) {
           style={styles.hero}
         >
           <WaxPattern color="rgba(255,255,255,0.06)" size={18} animated={false} />
-          <View style={styles.topRow}>
-            <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-              <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
-            </PressScale>
-          </View>
+          <ScreenHeader onBack={onBack} style={styles.topRow} />
           <Animated.View style={heroEntrance}>
             <View style={styles.flagStripe}>
               <View style={[styles.flagBar, { backgroundColor: colors.green }]} />
@@ -210,12 +208,7 @@ function CreateStep({ onBack, onCreate }) {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.createScroll}>
-        <View style={styles.createHead}>
-          <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-            <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
-          </PressScale>
-          <Text style={styles.createTitle}>Nouvelle tontine</Text>
-        </View>
+        <ScreenHeader onBack={onBack} title="Nouvelle tontine" titleStyle={styles.createTitle} style={styles.createHead} />
 
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>Nom du groupe</Text>
@@ -229,13 +222,12 @@ function CreateStep({ onBack, onCreate }) {
 
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>Montant par personne</Text>
-          <View style={styles.chipsRow}>
-            {AMOUNT_CHIPS.map((c) => (
-              <PressScale key={c} scaleTo={0.94} onPress={() => setAmountChip(c)} style={[styles.chip, amountChip === c && styles.chipOn]}>
-                <Text style={[styles.chipText, amountChip === c && styles.chipTextOnGreen]}>{c}</Text>
-              </PressScale>
-            ))}
-          </View>
+          <AmountChips
+            options={AMOUNT_CHIPS.map((c) => ({ value: c, label: c }))}
+            value={amountChip}
+            onChange={setAmountChip}
+            style={styles.chipsRow}
+          />
         </View>
 
         <View style={styles.fieldGroup}>
@@ -303,11 +295,7 @@ function ReleaseStep({ onBack, onReceive }) {
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.releaseHero}>
           <WaxPattern color="rgba(255,255,255,0.06)" size={18} animated={false} />
-          <View style={styles.topRow}>
-            <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-              <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
-            </PressScale>
-          </View>
+          <ScreenHeader onBack={onBack} style={styles.topRow} />
           <Animated.View style={[{ alignItems: 'center' }, heroEntrance]}>
             <View style={styles.releaseBadgeBig}>
               <Animated.View style={[styles.releaseDot, { opacity: blink }]} />
@@ -417,8 +405,7 @@ export default function TontineScreen({ navigation }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
 
-  topRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.huge, paddingTop: spacing.xl },
-  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
+  topRow: { paddingHorizontal: spacing.huge, paddingTop: spacing.xl },
 
   // Home / list
   hero: { paddingHorizontal: spacing.huge, paddingBottom: spacing.xxl, position: 'relative', overflow: 'hidden', borderBottomWidth: 1, borderBottomColor: colors.greenA15 },
@@ -466,11 +453,7 @@ const styles = StyleSheet.create({
   fieldLabel: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.sm },
   fieldInput: { width: '100%', height: 50, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1.5, borderColor: colors.whiteA12, paddingHorizontal: spacing.xl, fontFamily: fontFamily.bodyRegular, fontSize: 14, color: colors.white },
   fieldInputFilled: { borderColor: colors.greenA25 },
-  chipsRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-  chip: { height: 36, paddingHorizontal: spacing.lg, borderRadius: radius.round, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, alignItems: 'center', justifyContent: 'center' },
-  chipOn: { backgroundColor: colors.greenA10, borderColor: colors.greenA30 },
-  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
-  chipTextOnGreen: { color: colors.green },
+  chipsRow: { gap: spacing.sm, flexWrap: 'wrap' },
   freqRow: { flexDirection: 'row', gap: spacing.sm },
   freqOpt: { flex: 1, height: 44, borderRadius: radius.lg, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, alignItems: 'center', justifyContent: 'center' },
   freqOptOn: { backgroundColor: 'rgba(250,216,54,0.1)', borderColor: 'rgba(250,216,54,0.3)' },

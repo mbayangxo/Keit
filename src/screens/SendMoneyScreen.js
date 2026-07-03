@@ -6,6 +6,9 @@ import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import StepTransition from '../components/StepTransition';
 import Keypad from '../components/Keypad';
+import ScreenHeader from '../components/ScreenHeader';
+import AmountChips from '../components/AmountChips';
+import ReceiptCard from '../components/ReceiptCard';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
@@ -45,12 +48,7 @@ function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelect
       <WaxPattern color="rgba(26,240,96,0.04)" size={18} animated={false} />
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.sendHero}>
-          <View style={styles.shTop}>
-            <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-              <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
-            </PressScale>
-            <Text style={styles.shTitle}>Envoyer</Text>
-          </View>
+          <ScreenHeader onBack={onBack} title="Envoyer" style={styles.shTop} />
 
           <View style={styles.amountHero}>
             <Text style={styles.ahLbl}>Combien ?</Text>
@@ -61,13 +59,7 @@ function AmountStep({ amount, setAmount, reason, setReason, onContinue, onSelect
             </Animated.View>
           </View>
 
-          <View style={styles.quickRow}>
-            {QUICK_AMOUNTS.map((q) => (
-              <PressScale key={q} scaleTo={0.92} onPress={() => setAmount(q)} style={[styles.chip, amount === q && styles.chipOn]}>
-                <Text style={[styles.chipText, amount === q && styles.chipTextOn]}>{q / 1000}k</Text>
-              </PressScale>
-            ))}
-          </View>
+          <AmountChips options={QUICK_AMOUNTS} value={amount} onChange={setAmount} style={styles.quickRow} />
 
           <View style={styles.keypadWrap}>
             <Keypad onDigit={pressDigit} onBackspace={pressBackspace} />
@@ -207,27 +199,17 @@ function SuccessStep({ amount, reason, onDone }) {
           {RECIPIENT.name.split(' ')[0]} a reçu ton argent{'\n'}en quelques secondes.
         </Animated.Text>
 
-        <Animated.View style={[styles.ssReceipt, receipt]}>
-          <View style={styles.ssrRow}>
-            <Text style={styles.ssrL}>À</Text>
-            <Text style={styles.ssrR}>{RECIPIENT.name}</Text>
-          </View>
-          <View style={styles.ssrRow}>
-            <Text style={styles.ssrL}>Montant</Text>
-            <Text style={[styles.ssrR, { color: colors.green }]}>{formatAmount(amount)} F CFA</Text>
-          </View>
-          <View style={styles.ssrRow}>
-            <Text style={styles.ssrL}>Frais</Text>
-            <Text style={[styles.ssrR, { color: colors.green }]}>0 F ✦</Text>
-          </View>
-          <View style={styles.ssrRow}>
-            <Text style={styles.ssrL}>Motif</Text>
-            <Text style={styles.ssrR}>{reason || '—'}</Text>
-          </View>
-          <View style={styles.ssrRow}>
-            <Text style={styles.ssrL}>Référence</Text>
-            <Text style={[styles.ssrR, { fontSize: 9, color: colors.whiteA30 }]}>{reference}</Text>
-          </View>
+        <Animated.View style={receipt}>
+          <ReceiptCard
+            style={{ marginBottom: spacing.giant }}
+            rows={[
+              { key: 'to', label: 'À', value: RECIPIENT.name },
+              { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.green },
+              { key: 'fee', label: 'Frais', value: '0 F ✦', color: colors.green },
+              { key: 'reason', label: 'Motif', value: reason || '—' },
+              { key: 'ref', label: 'Référence', value: reference, small: true },
+            ]}
+          />
         </Animated.View>
 
         <Animated.View style={[styles.wakhnaBonus, bonus]}>
@@ -303,9 +285,7 @@ const styles = StyleSheet.create({
 
   // Amount step
   sendHero: { paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.huge, position: 'relative', overflow: 'hidden' },
-  shTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginBottom: spacing.giant },
-  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
-  shTitle: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.white },
+  shTop: { marginBottom: spacing.giant },
 
   amountHero: { alignItems: 'center' },
   ahLbl: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: 'rgba(26,240,96,0.6)', textTransform: 'uppercase', marginBottom: spacing.lg },
@@ -314,11 +294,7 @@ const styles = StyleSheet.create({
   ahCurr: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(26,240,96,0.4)' },
   keypadWrap: { marginTop: spacing.xxl },
 
-  quickRow: { flexDirection: 'row', gap: spacing.md, justifyContent: 'center', marginTop: spacing.xl },
-  chip: { height: 34, paddingHorizontal: spacing.xxl, borderRadius: radius.round, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, alignItems: 'center', justifyContent: 'center' },
-  chipOn: { backgroundColor: colors.greenA10, borderColor: colors.greenA30 },
-  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.white },
-  chipTextOn: { color: colors.green },
+  quickRow: { justifyContent: 'center', marginTop: spacing.xl },
 
   recipientSection: { paddingHorizontal: spacing.huge, paddingVertical: spacing.xxl },
   lbl: { ...type.eyebrow, color: colors.whiteA30 },
@@ -363,10 +339,6 @@ const styles = StyleSheet.create({
   ssRing: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.greenA08, borderWidth: 3, borderColor: colors.green, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xxxl, shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 50, elevation: 8 },
   ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 24, letterSpacing: -0.8, color: colors.white, marginBottom: spacing.md, textAlign: 'center' },
   ssSub: { fontSize: 12, color: colors.whiteA40, marginBottom: spacing.giant + 2, lineHeight: 20.4, textAlign: 'center' },
-  ssReceipt: { width: '100%', backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA10, borderRadius: radius.xxl, padding: spacing.xxl, gap: spacing.md, marginBottom: spacing.giant },
-  ssrRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  ssrL: { fontSize: 11, color: colors.whiteA30 },
-  ssrR: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
   wakhnaBonus: { backgroundColor: colors.greenA05, borderWidth: 1, borderColor: colors.greenA15, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xxxl, alignSelf: 'stretch' },
   wbText: { fontSize: 11, color: colors.whiteA40 },
 });

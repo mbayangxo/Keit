@@ -5,6 +5,9 @@ import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import StepTransition from '../components/StepTransition';
 import Keypad from '../components/Keypad';
+import ScreenHeader from '../components/ScreenHeader';
+import AmountChips from '../components/AmountChips';
+import ReceiptCard from '../components/ReceiptCard';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
@@ -53,15 +56,13 @@ function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onB
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-            <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
-          </PressScale>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>JULAYA · CASH</Text>
-            <Text style={styles.title}>{mode === 'in' ? 'Déposer de l’argent' : 'Retirer de l’argent'}</Text>
-          </View>
-        </View>
+        <ScreenHeader
+          onBack={onBack}
+          eyebrow="JULAYA · CASH"
+          title={mode === 'in' ? 'Déposer de l’argent' : 'Retirer de l’argent'}
+          titleStyle={styles.title}
+          style={styles.headerRow}
+        />
       </View>
 
       <View style={{ paddingHorizontal: spacing.huge, marginBottom: spacing.xxl }}>
@@ -75,13 +76,7 @@ function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onB
             {formatAmount(amount)} <Text style={styles.amountCurr}>F</Text>
           </Text>
 
-          <View style={styles.quickRow}>
-            {QUICK_AMOUNTS.map((q) => (
-              <PressScale key={q} scaleTo={0.92} onPress={() => setAmount(q)} style={[styles.chip, amount === q && styles.chipOn]}>
-                <Text style={[styles.chipText, amount === q && styles.chipTextOn]}>{q / 1000}k</Text>
-              </PressScale>
-            ))}
-          </View>
+          <AmountChips options={QUICK_AMOUNTS} value={amount} onChange={setAmount} style={styles.quickRow} />
 
           {mode === 'out' && <Text style={styles.balanceNote}>Solde disponible : {formatAmount(balance)} F</Text>}
 
@@ -138,15 +133,7 @@ function AgentStep({ mode, amount, onBack, onSelect }) {
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-            <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
-          </PressScale>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>AGENT LE PLUS PROCHE</Text>
-            <Text style={styles.title}>Choisis un agent</Text>
-          </View>
-        </View>
+        <ScreenHeader onBack={onBack} eyebrow="AGENT LE PLUS PROCHE" title="Choisis un agent" titleStyle={styles.title} style={styles.headerRow} />
         <Text style={styles.subtitle}>
           {mode === 'in' ? 'Dépôt de' : 'Retrait de'} {formatAmount(amount)} F
         </Text>
@@ -211,23 +198,16 @@ function SuccessStep({ mode, amount, agent, oldBalance, newBalance, onDone }) {
         {mode === 'in' ? 'Ton solde K21 a été crédité instantanément.' : 'Tes espèces sont prêtes chez l’agent.'}
       </Animated.Text>
 
-      <Animated.View style={[styles.ssReceipt, receipt]}>
-        <View style={styles.ssrRow}>
-          <Text style={styles.ssrL}>Agent</Text>
-          <Text style={styles.ssrR}>{agent.name}</Text>
-        </View>
-        <View style={styles.ssrRow}>
-          <Text style={styles.ssrL}>Montant</Text>
-          <Text style={[styles.ssrR, { color: colors.green }]}>{formatAmount(amount)} F CFA</Text>
-        </View>
-        <View style={styles.ssrRow}>
-          <Text style={styles.ssrL}>Frais agent</Text>
-          <Text style={styles.ssrR}>{formatAmount(fee)} F</Text>
-        </View>
-        <View style={styles.ssrRow}>
-          <Text style={styles.ssrL}>Nouveau solde</Text>
-          <Text style={styles.ssrR}>{formatAmount(balanceCount)} F</Text>
-        </View>
+      <Animated.View style={receipt}>
+        <ReceiptCard
+          style={{ marginBottom: spacing.giant }}
+          rows={[
+            { key: 'agent', label: 'Agent', value: agent.name },
+            { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.green },
+            { key: 'fee', label: 'Frais agent', value: `${formatAmount(fee)} F` },
+            { key: 'balance', label: 'Nouveau solde', value: `${formatAmount(balanceCount)} F` },
+          ]}
+        />
       </Animated.View>
 
       <GlowButton label="Retour à l'accueil" onPress={onDone} />
@@ -313,9 +293,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
 
   header: { paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.xl },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginBottom: spacing.sm },
-  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
-  eyebrow: { ...type.eyebrow, color: colors.green, marginBottom: 4 },
+  headerRow: { marginBottom: spacing.sm },
   title: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: colors.white, letterSpacing: -0.5 },
   subtitle: { fontSize: 12, color: colors.whiteA40, marginTop: spacing.xs },
 
@@ -330,11 +308,7 @@ const styles = StyleSheet.create({
   amountNum: { fontFamily: fontFamily.displayBlack, fontSize: 48, letterSpacing: -3, lineHeight: 48, color: colors.green },
   amountCurr: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(26,240,96,0.4)' },
 
-  quickRow: { flexDirection: 'row', gap: spacing.md, justifyContent: 'center', marginTop: spacing.xl },
-  chip: { height: 34, paddingHorizontal: spacing.xxl, borderRadius: radius.round, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, alignItems: 'center', justifyContent: 'center' },
-  chipOn: { backgroundColor: colors.greenA10, borderColor: colors.greenA30 },
-  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.white },
-  chipTextOn: { color: colors.green },
+  quickRow: { justifyContent: 'center', marginTop: spacing.xl },
   balanceNote: { marginTop: spacing.xl, fontSize: 11, color: colors.whiteA35 },
   keypadWrap: { width: '100%', marginTop: spacing.xxl },
 
@@ -366,8 +340,4 @@ const styles = StyleSheet.create({
   ssRing: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.greenA08, borderWidth: 3, borderColor: colors.green, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xxxl, shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 50, elevation: 8 },
   ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 24, letterSpacing: -0.8, color: colors.white, marginBottom: spacing.md, textAlign: 'center' },
   ssSub: { fontSize: 12, color: colors.whiteA40, marginBottom: spacing.giant + 2, lineHeight: 20.4, textAlign: 'center' },
-  ssReceipt: { width: '100%', backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA10, borderRadius: radius.xxl, padding: spacing.xxl, gap: spacing.md, marginBottom: spacing.giant },
-  ssrRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  ssrL: { fontSize: 11, color: colors.whiteA30 },
-  ssrR: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
 });

@@ -7,6 +7,9 @@ import GlowButton from '../components/GlowButton';
 import WaxPattern from '../components/WaxPattern';
 import StepTransition from '../components/StepTransition';
 import Keypad from '../components/Keypad';
+import ScreenHeader from '../components/ScreenHeader';
+import AmountChips from '../components/AmountChips';
+import ReceiptCard from '../components/ReceiptCard';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing } from '../theme';
@@ -69,12 +72,7 @@ function ScanStep({ amount, setAmount, onBack, onContinue }) {
           style={styles.payHero}
         >
           <WaxPattern color="rgba(255,255,255,0.06)" size={18} animated={false} />
-          <View style={styles.payHeroTop}>
-            <PressScale scaleTo={0.9} onPress={onBack} style={styles.iconBtn}>
-              <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
-            </PressScale>
-            <Text style={styles.payHeroTitle}>Payer un marchand</Text>
-          </View>
+          <ScreenHeader onBack={onBack} title="Payer un marchand" backBg="rgba(0,0,0,0.3)" titleStyle={styles.payHeroTitle} style={styles.payHeroTop} />
 
           <Animated.View style={[styles.merchantCard, entrance]}>
             <View style={styles.merchantIcon}>
@@ -106,13 +104,7 @@ function ScanStep({ amount, setAmount, onBack, onContinue }) {
             <Text style={styles.amountNum}>{formatAmount(amount)}</Text>
             <Text style={styles.amountCurr}>F CFA</Text>
           </View>
-          <View style={styles.quickRow}>
-            {QUICK_AMOUNTS.map((q) => (
-              <PressScale key={q.key} scaleTo={0.92} onPress={() => setAmount(q.value)} style={[styles.chip, amount === q.value && styles.chipOn]}>
-                <Text style={[styles.chipText, amount === q.value && styles.chipTextOn]}>{q.label}</Text>
-              </PressScale>
-            ))}
-          </View>
+          <AmountChips options={QUICK_AMOUNTS} value={amount} onChange={setAmount} style={styles.quickRow} />
 
           <View style={styles.keypadWrap}>
             <Keypad onDigit={pressDigit} onBackspace={pressBackspace} />
@@ -228,27 +220,17 @@ function SuccessStep({ amount, oldBalance, newBalance, onDone }) {
         {MERCHANT.name} a reçu{'\n'}ton paiement instantanément.
       </Animated.Text>
 
-      <Animated.View style={[styles.ssReceipt, receipt]}>
-        <View style={styles.ssrRow}>
-          <Text style={styles.ssrL}>Marchand</Text>
-          <Text style={styles.ssrR}>Chez Papa</Text>
-        </View>
-        <View style={styles.ssrRow}>
-          <Text style={styles.ssrL}>Montant</Text>
-          <Text style={[styles.ssrR, { color: colors.green }]}>{formatAmount(amount)} F CFA</Text>
-        </View>
-        <View style={styles.ssrRow}>
-          <Text style={styles.ssrL}>Frais</Text>
-          <Text style={[styles.ssrR, { color: colors.green }]}>0 F ✦</Text>
-        </View>
-        <View style={styles.ssrRow}>
-          <Text style={styles.ssrL}>Nouveau solde</Text>
-          <Text style={styles.ssrR}>{formatAmount(balanceCount)} F</Text>
-        </View>
-        <View style={styles.ssrRow}>
-          <Text style={styles.ssrL}>Référence</Text>
-          <Text style={[styles.ssrR, { fontSize: 9, color: colors.whiteA30 }]}>{reference}</Text>
-        </View>
+      <Animated.View style={receipt}>
+        <ReceiptCard
+          style={{ marginBottom: spacing.xl }}
+          rows={[
+            { key: 'merchant', label: 'Marchand', value: 'Chez Papa' },
+            { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.green },
+            { key: 'fee', label: 'Frais', value: '0 F ✦', color: colors.green },
+            { key: 'balance', label: 'Nouveau solde', value: `${formatAmount(balanceCount)} F` },
+            { key: 'ref', label: 'Référence', value: reference, small: true },
+          ]}
+        />
       </Animated.View>
 
       <Animated.View style={[styles.wakhnaBonus, bonus]}>
@@ -314,8 +296,7 @@ const styles = StyleSheet.create({
 
   // Scan step
   payHero: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.xl, position: 'relative', overflow: 'hidden' },
-  payHeroTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
-  iconBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },
+  payHeroTop: { gap: spacing.md, marginBottom: spacing.lg },
   payHeroTitle: { fontFamily: fontFamily.displayBold, fontSize: 13, color: colors.white },
   merchantCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: colors.whiteA12, borderRadius: radius.xl, padding: spacing.lg },
   merchantIcon: { width: 48, height: 48, borderRadius: radius.lg, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
@@ -348,11 +329,7 @@ const styles = StyleSheet.create({
   amountNum: { fontFamily: fontFamily.displayBlack, fontSize: 34, fontWeight: '900', letterSpacing: -1.5, color: colors.white, flex: 1 },
   amountCurr: { fontSize: 13, color: colors.whiteA30 },
   keypadWrap: { marginTop: spacing.lg },
-  quickRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-  chip: { height: 34, paddingHorizontal: spacing.lg, borderRadius: radius.round, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, alignItems: 'center', justifyContent: 'center' },
-  chipOn: { backgroundColor: colors.greenA10, borderColor: colors.greenA30 },
-  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.white },
-  chipTextOn: { color: colors.green },
+  quickRow: { gap: spacing.sm, flexWrap: 'wrap' },
 
   footer: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, paddingBottom: spacing.xxl },
 
@@ -383,10 +360,6 @@ const styles = StyleSheet.create({
   ssRing: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.greenA10, borderWidth: 3, borderColor: colors.green, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xxl, shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 50, elevation: 8 },
   ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 22, fontWeight: '900', letterSpacing: -0.8, color: colors.white, marginBottom: spacing.sm, textAlign: 'center' },
   ssSub: { fontSize: 12, color: colors.whiteA40, marginBottom: spacing.xxl, lineHeight: 19.2, textAlign: 'center' },
-  ssReceipt: { width: '100%', backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA10, borderRadius: radius.xxl, padding: spacing.lg, gap: spacing.sm, marginBottom: spacing.xl },
-  ssrRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  ssrL: { fontSize: 11, color: colors.whiteA30 },
-  ssrR: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
   wakhnaBonus: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.greenA06, borderWidth: 1, borderColor: 'rgba(26,240,96,0.18)', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, marginBottom: spacing.lg },
   wakhnaBonusText: { flex: 1, fontSize: 11, color: colors.whiteA40 },
   shareBtn: { width: '100%', height: 44, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
