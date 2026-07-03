@@ -2,9 +2,12 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SplashScreen from '../screens/SplashScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
+import AccountTypeScreen from '../screens/AccountTypeScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import SignUpScreen from '../screens/SignUpScreen';
+import BusinessSignUpScreen from '../screens/BusinessSignUpScreen';
 import WelcomeCelebrationScreen from '../screens/WelcomeCelebrationScreen';
+import BusinessDashboardScreen from '../screens/BusinessDashboardScreen';
 import MainTabs from './MainTabs';
 import SendMoneyScreen from '../screens/SendMoneyScreen';
 import PayMerchantScreen from '../screens/PayMerchantScreen';
@@ -27,14 +30,17 @@ const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {
   const { bootstrapped, hasSession, markSignedIn } = useSession();
-  const { initAccount, hydrateFromApi } = useAppState();
+  const { profile, initAccount, initBusinessAccount, hydrateFromApi } = useAppState();
 
-  const enterApp = async (navigation) => {
+  const mainRouteFor = (accountType) => (accountType === 'business' ? 'BusinessMain' : 'Main');
+
+  const enterApp = async (navigation, accountType = profile.accountType) => {
     markSignedIn();
     const pin = await isPinConfigured();
+    const mainRoute = mainRouteFor(accountType);
     navigation.reset({
       index: 0,
-      routes: [{ name: pin ? 'Main' : 'PinSetup' }],
+      routes: [{ name: pin ? mainRoute : 'PinSetup' }],
     });
   };
 
@@ -47,7 +53,7 @@ export default function RootNavigator() {
   }
 
   const stackKey = hasSession ? 'session' : 'guest';
-  const initialRoute = hasSession ? 'Main' : 'Splash';
+  const initialRoute = hasSession ? mainRouteFor(profile.accountType) : 'Splash';
 
   return (
     <Stack.Navigator key={stackKey} screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
@@ -60,10 +66,21 @@ export default function RootNavigator() {
         )}
       </Stack.Screen>
       <Stack.Screen name="Welcome">
-        {({ navigation }) => <WelcomeScreen onComplete={() => navigation.navigate('Onboarding')} />}
+        {({ navigation }) => <WelcomeScreen onComplete={() => navigation.navigate('AccountType')} />}
+      </Stack.Screen>
+      <Stack.Screen name="AccountType">
+        {({ navigation }) => (
+          <AccountTypeScreen onSelect={(accountType) => navigation.navigate('Onboarding', { accountType })} />
+        )}
       </Stack.Screen>
       <Stack.Screen name="Onboarding">
-        {({ navigation }) => <OnboardingScreen onComplete={() => navigation.navigate('SignUp', { mode: 'signup' })} />}
+        {({ navigation, route }) => (
+          <OnboardingScreen
+            onComplete={() =>
+              route.params?.accountType === 'business' ? navigation.navigate('BusinessSignUp') : navigation.navigate('SignUp', { mode: 'signup' })
+            }
+          />
+        )}
       </Stack.Screen>
       <Stack.Screen name="SignUp">
         {({ navigation, route }) => (
@@ -73,12 +90,23 @@ export default function RootNavigator() {
             onLoginComplete={async () => {
               const payload = await fetchSessionPayload();
               hydrateFromApi(payload);
-              await enterApp(navigation);
+              await enterApp(navigation, payload.profile?.accountType);
             }}
-            onComplete={(profile) => {
-              initAccount(profile);
+            onComplete={(signupProfile) => {
+              initAccount(signupProfile);
               markSignedIn();
-              navigation.replace('Celebration', profile);
+              navigation.replace('Celebration', signupProfile);
+            }}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="BusinessSignUp">
+        {({ navigation }) => (
+          <BusinessSignUpScreen
+            onComplete={(signupProfile) => {
+              initBusinessAccount(signupProfile);
+              markSignedIn();
+              navigation.replace('Celebration', { ...signupProfile, accountType: 'business', businessName: signupProfile.businessName });
             }}
           />
         )}
@@ -87,6 +115,9 @@ export default function RootNavigator() {
         {({ navigation, route }) => (
           <WelcomeCelebrationScreen
             {...route.params}
+            accountType={route.params?.accountType ?? profile.accountType}
+            afriId={profile.afriId}
+            keboId={profile.business?.keboId}
             onEnter={() => navigation.replace('PinSetup')}
           />
         )}
@@ -95,11 +126,14 @@ export default function RootNavigator() {
         {({ navigation }) => (
           <PinGateScreen
             mode="setup"
-            onSetupComplete={() => navigation.reset({ index: 0, routes: [{ name: 'Main' }] })}
+            onSetupComplete={() =>
+              navigation.reset({ index: 0, routes: [{ name: mainRouteFor(profile.accountType) }] })
+            }
           />
         )}
       </Stack.Screen>
       <Stack.Screen name="Main" component={MainTabs} />
+      <Stack.Screen name="BusinessMain" component={BusinessDashboardScreen} />
       <Stack.Screen name="SendMoney" component={SendMoneyScreen} />
       <Stack.Screen name="PayMerchant" component={PayMerchantScreen} />
       <Stack.Screen name="Cash" component={CashScreen} />

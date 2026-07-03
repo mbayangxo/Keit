@@ -2,10 +2,18 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 import { colors } from '../theme';
 import { getWallet, getTransactions } from '../lib/api-client.js';
 
+function generateId(prefix) {
+  const part = () => Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `${prefix}-${part()}-${part()}`;
+}
+
 const EMPTY_PROFILE = {
+  accountType: 'personal',
   name: '',
   handle: '',
   arrondissement: { key: '', icon: '📍', name: '' },
+  afriId: '',
+  business: null,
 };
 
 const AppStateContext = createContext(null);
@@ -28,9 +36,12 @@ export function AppStateProvider({ children }) {
 
   const hydrateFromApi = useCallback(({ profile: p, balance: b, transactions: txs }) => {
     setProfileState({
+      accountType: p.accountType ?? 'personal',
       name: p.name ?? '',
       handle: p.handle ?? '',
       arrondissement: p.arrondissement ?? EMPTY_PROFILE.arrondissement,
+      afriId: p.afriId ?? '',
+      business: p.business ?? null,
     });
     setBalance(b ?? 0);
     setTransactions(txs ?? []);
@@ -54,9 +65,12 @@ export function AppStateProvider({ children }) {
   const initAccount = useCallback(({ name, handle, arrondissement, fundAmount, transactions: txs }) => {
     setProfileState((prev) => ({
       ...prev,
+      accountType: 'personal',
       name: name ?? prev.name,
       handle: handle ?? prev.handle,
       arrondissement: arrondissement ?? prev.arrondissement,
+      afriId: prev.afriId || generateId('AFRI'),
+      business: null,
     }));
     if (fundAmount != null) setBalance(fundAmount);
     if (txs?.length) {
@@ -71,6 +85,22 @@ export function AppStateProvider({ children }) {
     setAuthenticated(true);
   }, []);
 
+  const initBusinessAccount = useCallback(({ businessName, category, arrondissement, fundAmount }) => {
+    setProfileState((prev) => ({
+      ...prev,
+      accountType: 'business',
+      arrondissement,
+      business: { name: businessName, category, keboId: generateId('KEBU') },
+    }));
+    setBalance(fundAmount ?? 0);
+    setTransactions(
+      fundAmount
+        ? [{ key: 'funding', icon: '💰', iconBg: colors.greenA08, title: 'Dépôt initial', subtitle: 'Bienvenue sur K21 Business', amount: fundAmount }]
+        : []
+    );
+    setAuthenticated(true);
+  }, []);
+
   const value = useMemo(
     () => ({
       profile,
@@ -80,6 +110,7 @@ export function AppStateProvider({ children }) {
       authenticated,
       addTransaction,
       initAccount,
+      initBusinessAccount,
       hydrateFromApi,
       resetSession,
       refreshWallet,
@@ -94,11 +125,12 @@ export function AppStateProvider({ children }) {
       authenticated,
       addTransaction,
       initAccount,
+      initBusinessAccount,
       hydrateFromApi,
       resetSession,
       refreshWallet,
       pendingMboloShare,
-    ],
+    ]
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
