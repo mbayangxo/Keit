@@ -25,10 +25,14 @@ Add these for **Production** (and Preview if you use preview URLs):
 
 | Name | Value | Where to get it |
 |------|--------|-----------------|
-| `DATABASE_URL` | `postgresql://...` | Supabase → Project Settings → **Database** → Connection string → **URI** (use “Transaction” pooler is OK; add `?sslmode=require` if missing) |
+| `DATABASE_URL` | `postgresql://...` | Supabase → **Database** → Connection string → **URI** → pick **Transaction pooler** (port **6543**). Must include `?pgbouncer=true&sslmode=require` (K21 adds `connection_limit=1` on Vercel automatically). |
 | `JWT_ACCESS_SECRET` | long random string | Run in Terminal: `openssl rand -base64 32` |
 | `JWT_REFRESH_SECRET` | different random string | Run again: `openssl rand -base64 32` |
 | `EXPO_PUBLIC_API_URL` | `https://keit-six.vercel.app` | So the web app knows where the API is |
+| `ALLOW_BETA_OTP` | `true` | Return OTP in API when SMS is not configured (Dakar beta) |
+| `EXPO_PUBLIC_ALLOW_BETA_OTP` | `true` | Show OTP on signup screen in the web build |
+| `DATA_ENCRYPTION_KEY` | `openssl rand -base64 32` | Required in production |
+| `CRON_SECRET` | `openssl rand -base64 32` | Required in production |
 
 Optional for beta (OTP shows in API response without SMS):
 

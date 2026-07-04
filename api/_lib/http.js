@@ -1,5 +1,6 @@
 import { getUserIdFromRequest } from './auth.js';
 import { logApiCall } from '../../lib/api-audit.js';
+import { databaseConfigured } from '../../lib/prisma.js';
 import { RateLimitError, SecurityBlockError, enforceRateLimit } from '../../lib/rate-limit.js';
 import { initServerSentry, captureServerError } from '../../lib/sentry-server.js';
 
@@ -103,6 +104,19 @@ export function createHandler({ methods, auth = false, handler, skipRateLimit = 
       console.error(error);
       captureServerError(error, { path: req.url, method: req.method, userId });
       if (!res.headersSent) {
+        const prismaInit =
+          error.name === 'PrismaClientInitializationError' ||
+          error.code === 'P1001' ||
+          error.message?.includes('DATABASE_URL');
+        if (prismaInit) {
+          res.status(503).json({
+            error: databaseConfigured()
+              ? 'Database temporarily unavailable'
+              : 'Server not configured — DATABASE_URL missing',
+            code: 'db_unavailable',
+          });
+          return;
+        }
         res.status(500).json({ error: 'Internal server error' });
       }
     } finally {

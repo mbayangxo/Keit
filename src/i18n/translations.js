@@ -88,6 +88,7 @@ export const translations = {
     signupResendFailed: 'Échec du renvoi',
     signupInvalidOtp: 'Code invalide',
     signupProfileFailed: 'Profil incomplet',
+    signupDbUnavailable: 'Serveur indisponible — réessaie dans un instant',
   },
   en: {
     welcomeTitle: 'Welcome to K21',
@@ -165,6 +166,7 @@ export const translations = {
     signupResendFailed: 'Resend failed',
     signupInvalidOtp: 'Invalid code',
     signupProfileFailed: 'Profile incomplete',
+    signupDbUnavailable: 'Server unavailable — try again in a moment',
   },
   wo: {
     welcomeTitle: 'Dalal ak jàmm ci K21',
@@ -242,6 +244,7 @@ export const translations = {
     signupResendFailed: 'Yónnee bi lagg',
     signupInvalidOtp: 'Kódu bi baaxul',
     signupProfileFailed: 'Profil bi matul',
+    signupDbUnavailable: 'Serveur bi doxul — jéemaatal ci kanam',
   },
   ha: {
     welcomeTitle: 'Barka da zuwa K21',

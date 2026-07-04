@@ -398,7 +398,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
       }
       goTo('otp');
     } catch (err) {
-      showToast(err.message ?? t(langCode, 'signupSendFailed'));
+      showToast(err.code === 'db_unavailable' ? t(langCode, 'signupDbUnavailable') : (err.message ?? t(langCode, 'signupSendFailed')));
     } finally {
       setLoading(false);
     }
