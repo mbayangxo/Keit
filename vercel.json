@@ -23,35 +23,7 @@
   "crons": [
     {
       "path": "/api/cron/financial-integrity",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/pending-transactions",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/fraud-monitor",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/tontine-processor",
-      "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/rider-status",
-      "schedule": "*/10 * * * *"
-    },
-    {
-      "path": "/api/cron/daily-financial-report",
-      "schedule": "0 23 * * *"
-    },
-    {
-      "path": "/api/cron/delivery-auto-release",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron/kyc-purge",
-      "schedule": "0 3 * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }
