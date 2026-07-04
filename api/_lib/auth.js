@@ -18,9 +18,15 @@ export function signAccessToken(userId) {
 }
 
 export function signRefreshToken(userId) {
-  return jwt.sign({ sub: userId, type: 'refresh' }, requireEnv('JWT_REFRESH_SECRET'), {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
-  });
+  // jti makes every token byte-distinct even when issued for the same user in
+  // the same second (JWT `iat` is second-granularity) — without it, two logins
+  // within the same second produce an identical token, and storing its hash
+  // in the unique RefreshToken.tokenHash column throws on the second insert.
+  return jwt.sign(
+    { sub: userId, type: 'refresh', jti: crypto.randomBytes(16).toString('hex') },
+    requireEnv('JWT_REFRESH_SECRET'),
+    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' },
+  );
 }
 
 export function hashToken(token) {
