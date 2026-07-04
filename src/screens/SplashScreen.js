@@ -1,20 +1,20 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import SplashBackground from '../components/SplashBackground';
-import K21Logo from '../components/K21Logo';
+import { LinearGradient } from 'expo-linear-gradient';
+import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
-import GlowButton from '../components/GlowButton';
-import { colors, fontFamily, spacing } from '../theme';
+import { colors, fontFamily, radius, spacing } from '../theme';
 import { useLocale } from '../context/LocaleContext';
 
 const LANGS = ['FR', 'WO', 'EN'];
 const SPLASH_FROM_CODE = { fr: 'FR', wo: 'WO', en: 'EN' };
 
-// design/k21-onboarding.html, Screen 1 (Splash / first open) — the K21
-// mark over a warm "Dakar alive" background, with the two real entry
-// points (create account / already have one) and a quick language toggle.
-export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
+// Bright entry screen, deliberately breaking from the app's locked dark
+// theme — explicitly requested as a one-off for this screen only (every
+// other screen keeps the #050805 base). Bright K21 green as the main
+// surface, black reserved for text/buttons/accents, never the background.
+export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinueApple, onContinueGoogle }) {
   const entrance = useRef(new Animated.Value(0)).current;
   const { langCode, setLanguageFromSplash } = useLocale();
   const lang = SPLASH_FROM_CODE[langCode] ?? 'FR';
@@ -25,8 +25,18 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
 
   return (
     <View style={styles.root}>
-      <SplashBackground />
+      <LinearGradient colors={['#22ff74', colors.green, colors.greenDark]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
+      <WaxPattern color="rgba(5,8,5,0.05)" size={20} durationMs={32000} />
+
       <SafeAreaView style={{ flex: 1, width: '100%' }}>
+        <View style={styles.langRow}>
+          {LANGS.map((l) => (
+            <PressScale key={l} scaleTo={0.92} onPress={() => setLanguageFromSplash(l)} style={[styles.langBtn, l === lang && styles.langBtnOn]}>
+              <Text style={[styles.langBtnText, l === lang && styles.langBtnTextOn]}>{l}</Text>
+            </PressScale>
+          ))}
+        </View>
+
         <View style={styles.content}>
           <Animated.View
             style={{
@@ -35,24 +45,39 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
               transform: [{ scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) }, { translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
             }}
           >
-            <K21Logo size={150} />
+            <Text style={styles.logo}>K21</Text>
+            <View style={styles.flagStripe}>
+              <View style={[styles.flagSeg, { backgroundColor: colors.ink }]} />
+              <View style={[styles.flagSeg, { backgroundColor: colors.flagGold }]} />
+              <View style={[styles.flagSeg, { backgroundColor: colors.flagRed }]} />
+            </View>
+            <Text style={styles.slogan}>Ton argent, ta culture, zéro frais.</Text>
           </Animated.View>
-          <Text style={styles.tagline}>African Youth Wallet</Text>
 
           <View style={styles.cta}>
-            <GlowButton label="Créer mon compte" onPress={onCreateAccount} />
-            <PressScale scaleTo={0.96} onPress={onHaveAccount} style={styles.secondaryBtn}>
-              <Text style={styles.secondaryBtnText}>J'ai déjà un compte</Text>
+            <PressScale scaleTo={0.96} onPress={onContinueApple} style={styles.darkBtn}>
+              <Text style={{ fontSize: 15 }}>🍎</Text>
+              <Text style={styles.darkBtnText}>Continuer avec Apple</Text>
+            </PressScale>
+
+            <PressScale scaleTo={0.96} onPress={onContinueGoogle} style={styles.lightBtn}>
+              <View style={styles.googleG}>
+                <Text style={styles.googleGText}>G</Text>
+              </View>
+              <Text style={styles.lightBtnText}>Continuer avec Google</Text>
+            </PressScale>
+
+            <PressScale scaleTo={0.96} onPress={onCreateAccount} style={styles.darkBtn}>
+              <Text style={{ fontSize: 15 }}>✉️</Text>
+              <Text style={styles.darkBtnText}>Continuer avec Email</Text>
             </PressScale>
           </View>
-        </View>
 
-        <View style={styles.langRow}>
-          {LANGS.map((l) => (
-            <PressScale key={l} scaleTo={0.92} onPress={() => setLanguageFromSplash(l)}>
-              <Text style={[styles.langBtn, l === lang && styles.langBtnOn]}>{l}</Text>
-            </PressScale>
-          ))}
+          <PressScale scaleTo={0.96} onPress={onHaveAccount} style={{ marginTop: spacing.xl }}>
+            <Text style={styles.signInText}>
+              Déjà un compte ? <Text style={styles.signInBold}>Se connecter</Text>
+            </Text>
+          </PressScale>
         </View>
       </SafeAreaView>
     </View>
@@ -60,13 +85,29 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, alignItems: 'center', backgroundColor: '#050805' },
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.giant },
-  tagline: { marginTop: 18, marginBottom: 48, fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 3, color: colors.whiteA30, textTransform: 'uppercase' },
-  cta: { width: 240, gap: spacing.md },
-  secondaryBtn: { height: 44, borderRadius: 14, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
-  secondaryBtnText: { fontSize: 13, fontWeight: '600', color: colors.whiteA55 },
-  langRow: { flexDirection: 'row', justifyContent: 'center', gap: 16, paddingBottom: spacing.xl },
-  langBtn: { fontSize: 11, color: colors.whiteA30, paddingVertical: 4, paddingHorizontal: 8 },
-  langBtnOn: { color: colors.green, fontWeight: '700' },
+  root: { flex: 1, alignItems: 'center' },
+
+  langRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm, paddingTop: spacing.xl },
+  langBtn: { borderRadius: radius.round, paddingVertical: 5, paddingHorizontal: spacing.lg, backgroundColor: 'rgba(5,8,5,0.1)' },
+  langBtnOn: { backgroundColor: colors.ink },
+  langBtnText: { fontSize: 11, fontWeight: '700', color: 'rgba(5,8,5,0.55)' },
+  langBtnTextOn: { color: colors.green },
+
+  content: { flex: 1, alignItems: 'center', justifyContent: 'center', width: '100%', paddingHorizontal: spacing.giant },
+
+  logo: { fontFamily: fontFamily.displayBlack, fontSize: 56, letterSpacing: -2, color: colors.ink },
+  flagStripe: { flexDirection: 'row', height: 3, borderRadius: 2, overflow: 'hidden', width: 64, marginTop: spacing.md, marginBottom: spacing.lg },
+  flagSeg: { flex: 1 },
+  slogan: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink, textAlign: 'center', marginBottom: spacing.giant + 8, opacity: 0.75 },
+
+  cta: { width: '100%', gap: spacing.md },
+  darkBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md, height: 52, borderRadius: radius.xl, backgroundColor: colors.ink },
+  darkBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white },
+  lightBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md, height: 52, borderRadius: radius.xl, backgroundColor: colors.white },
+  lightBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
+  googleG: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  googleGText: { fontFamily: fontFamily.displayBlack, fontSize: 13, color: '#4285F4' },
+
+  signInText: { fontSize: 12, color: colors.ink, opacity: 0.7 },
+  signInBold: { fontFamily: fontFamily.bodyBold, opacity: 1, textDecorationLine: 'underline' },
 });
