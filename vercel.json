@@ -8,10 +8,17 @@
       "use": "@vercel/static-build",
       "config": { "distDir": "dist" }
     },
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    }
+    { "src": "api/health.js", "use": "@vercel/node" },
+    { "src": "api/me.js", "use": "@vercel/node" },
+    { "src": "api/wallet.js", "use": "@vercel/node" },
+    { "src": "api/transactions.js", "use": "@vercel/node" },
+    { "src": "api/auth/phone.js", "use": "@vercel/node" },
+    { "src": "api/auth/verify.js", "use": "@vercel/node" },
+    { "src": "api/auth/complete-profile.js", "use": "@vercel/node" },
+    { "src": "api/auth/refresh.js", "use": "@vercel/node" },
+    { "src": "api/transfers/send.js", "use": "@vercel/node" },
+    { "src": "api/admin/auth/login.js", "use": "@vercel/node" },
+    { "src": "api/admin/dashboard.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
@@ -19,11 +26,5 @@
     { "src": "/admin", "dest": "/admin/index.html" },
     { "src": "/admin/(.*)", "dest": "/admin/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/financial-integrity",
-      "schedule": "0 6 * * *"
-    }
   ]
 }
