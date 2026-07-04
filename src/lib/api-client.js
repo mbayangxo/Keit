@@ -18,9 +18,18 @@ export function clearApiCache() {
   prefsCache = null;
 }
 
+// EXPO_PUBLIC_API_URL is often set to a bare host (e.g. "keit-six.vercel.app",
+// copy-pasted from Vercel's dashboard without the scheme) — treat that as
+// https rather than hard-failing with a cryptic "requires HTTPS" error.
+function normalizeBase(base) {
+  if (!base) return base;
+  if (base.startsWith('http://') || base.startsWith('https://')) return base;
+  return `https://${base}`;
+}
+
 function resolveUrl(path) {
   if (path.startsWith('http')) return path;
-  const base = API_BASE || (Platform.OS === 'web' ? '' : 'https://localhost');
+  const base = normalizeBase(API_BASE) || (Platform.OS === 'web' ? '' : 'https://localhost');
   return `${base}${path.startsWith('/') ? path : `/${path}`}`;
 }
 

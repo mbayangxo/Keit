@@ -1,5 +1,5 @@
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AppLoadingScreen from '../screens/AppLoadingScreen';
 import SplashScreen from '../screens/SplashScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import AccountTypeScreen from '../screens/AccountTypeScreen';
@@ -24,7 +24,6 @@ import { useAppState } from '../state/AppState';
 import { useSession } from '../context/SessionContext';
 import { fetchSessionPayload } from '../lib/session';
 import { isPinConfigured } from '../lib/secure-storage';
-import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator();
 
@@ -45,11 +44,7 @@ export default function RootNavigator() {
   };
 
   if (!bootstrapped) {
-    return (
-      <View style={bootStyles.root}>
-        <ActivityIndicator color={colors.green} size="large" />
-      </View>
-    );
+    return <AppLoadingScreen />;
   }
 
   const stackKey = hasSession ? 'session' : 'guest';
@@ -153,7 +148,3 @@ export default function RootNavigator() {
     </Stack.Navigator>
   );
 }
-
-const bootStyles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-});
