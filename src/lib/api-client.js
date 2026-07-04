@@ -26,6 +26,8 @@ function resolveUrl(path) {
 
 function assertHttps(url) {
   if (__DEV__ && (url.includes('localhost') || url.includes('127.0.0.1'))) return;
+  // Web on Vercel: relative /api/* inherits HTTPS from the page origin.
+  if (url.startsWith('/')) return;
   if (!url.startsWith('https://')) {
     throw new Error('K21 requires HTTPS — connection refused');
   }
