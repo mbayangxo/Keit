@@ -1,4 +1,4 @@
-import { createHandler } from '../_lib/http.js';
+import { createHandler } from '../../api/_lib/http.js';
 import { cronFraudMonitor } from '../../lib/cron/http-handlers.js';
 
 export default createHandler({

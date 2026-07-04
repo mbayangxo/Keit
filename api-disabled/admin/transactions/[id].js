@@ -1,5 +1,5 @@
 import { adminTransactionDetail } from '../../../lib/admin-handlers.js';
-import { createAdminHandler, routeParam } from '../../_lib/admin-http.js';
+import { createAdminHandler, routeParam } from '../../../api/_lib/admin-http.js';
 
 export default createAdminHandler({
   methods: ['GET'],

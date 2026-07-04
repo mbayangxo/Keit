@@ -1,4 +1,4 @@
-import { createHandler, readJson } from '../../../_lib/http.js';
+import { createHandler, readJson } from '../../../../api/_lib/http.js';
 import { transfersRequestAccept } from '../../../../lib/handlers.js';
 
 export default createHandler({

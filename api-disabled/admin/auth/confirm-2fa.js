@@ -1,5 +1,5 @@
 import { adminAuthConfirm2fa } from '../../../lib/admin-handlers.js';
-import { createAdminHandler, readJson } from '../../_lib/admin-http.js';
+import { createAdminHandler, readJson } from '../../../api/_lib/admin-http.js';
 
 export default createAdminHandler({
   methods: ['POST'],

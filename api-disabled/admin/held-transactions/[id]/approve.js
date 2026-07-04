@@ -1,5 +1,5 @@
 import { adminHeldTransactionApprove } from '../../../../lib/admin-handlers.js';
-import { createAdminHandler, readJson, routeParam } from '../../../_lib/admin-http.js';
+import { createAdminHandler, readJson, routeParam } from '../../../../api/_lib/admin-http.js';
 
 export default createAdminHandler({
   methods: ['POST'],

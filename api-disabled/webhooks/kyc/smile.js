@@ -1,4 +1,4 @@
-import { createHandler } from '../../_lib/http.js';
+import { createHandler } from '../../../api/_lib/http.js';
 import { webhooksKycSmile } from '../../../lib/handlers.js';
 
 export const config = { api: { bodyParser: false } };
