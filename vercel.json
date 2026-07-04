@@ -20,11 +20,6 @@
     { "src": "/admin/(.*)", "dest": "/admin/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
-  "functions": {
-    "api/**/*.js": {
-      "maxDuration": 30
-    }
-  },
   "crons": [
     {
       "path": "/api/cron/financial-integrity",
