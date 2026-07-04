@@ -6,6 +6,7 @@ import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useLocale } from '../context/LocaleContext';
+import { t } from '../i18n/translations';
 
 const LANGS = ['FR', 'WO', 'EN'];
 const SPLASH_FROM_CODE = { fr: 'FR', wo: 'WO', en: 'EN' };
@@ -51,31 +52,31 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
               <View style={[styles.flagSeg, { backgroundColor: colors.flagGold }]} />
               <View style={[styles.flagSeg, { backgroundColor: colors.flagRed }]} />
             </View>
-            <Text style={styles.slogan}>Ton argent, ta culture, zéro frais.</Text>
+            <Text style={styles.slogan}>{t(langCode, 'splashSlogan')}</Text>
           </Animated.View>
 
           <View style={styles.cta}>
             <PressScale scaleTo={0.96} onPress={onContinueApple} style={styles.darkBtn}>
               <Text style={{ fontSize: 15 }}>🍎</Text>
-              <Text style={styles.darkBtnText}>Continuer avec Apple</Text>
+              <Text style={styles.darkBtnText}>{t(langCode, 'splashApple')}</Text>
             </PressScale>
 
             <PressScale scaleTo={0.96} onPress={onContinueGoogle} style={styles.lightBtn}>
               <View style={styles.googleG}>
                 <Text style={styles.googleGText}>G</Text>
               </View>
-              <Text style={styles.lightBtnText}>Continuer avec Google</Text>
+              <Text style={styles.lightBtnText}>{t(langCode, 'splashGoogle')}</Text>
             </PressScale>
 
             <PressScale scaleTo={0.96} onPress={onCreateAccount} style={styles.darkBtn}>
               <Text style={{ fontSize: 15 }}>✉️</Text>
-              <Text style={styles.darkBtnText}>Continuer avec Email</Text>
+              <Text style={styles.darkBtnText}>{t(langCode, 'splashEmail')}</Text>
             </PressScale>
           </View>
 
           <PressScale scaleTo={0.96} onPress={onHaveAccount} style={{ marginTop: spacing.xl }}>
             <Text style={styles.signInText}>
-              Déjà un compte ? <Text style={styles.signInBold}>Se connecter</Text>
+              {t(langCode, 'splashSignInPrefix')}<Text style={styles.signInBold}>{t(langCode, 'splashSignInAction')}</Text>
             </Text>
           </PressScale>
         </View>
