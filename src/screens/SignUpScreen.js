@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
@@ -11,6 +11,7 @@ import { authPhone, authVerify, authCompleteProfile, getMe } from '../lib/api-cl
 import { saveSessionTokens } from '../lib/secure-storage';
 import { toE164, isValidLocalPhone } from '../lib/phone';
 import { t } from '../i18n/translations';
+import { COUNTRIES, getCountryDisplayName } from '../i18n/countries';
 
 // Backend-driven signup: phone → OTP (API) → profile → intent → arrondissement → fund (optional).
 // CNI deferred to KYC flow (POST /api/kyc/cni/submit).
@@ -36,7 +37,14 @@ function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ /g, ' ');
 }
 
-function StepHeader({ title, step, onBack }) {
+function phonePlaceholder(country) {
+  if (country?.code === 'US') return '555 123 4567';
+  if (country?.code === 'FR') return '6 12 34 56 78';
+  if (country?.code === 'SN') return '77 000 00 00';
+  return '000 000 000';
+}
+
+function StepHeader({ lang, title, step, onBack }) {
   return (
     <>
       <View style={styles.headRow}>
@@ -52,17 +60,24 @@ function StepHeader({ title, step, onBack }) {
           </View>
         ))}
       </View>
-      <Text style={styles.stepLabel}>Étape {step} sur 4</Text>
+      <Text style={styles.stepLabel}>{t(lang, 'signupStepLabel', { n: step, total: 4 })}</Text>
     </>
   );
 }
 
-function PhoneStep({ lang, country, phone, setPhone, loading, onNext, onBack }) {
+function PhoneStep({ lang, country, phone, setPhone, loading, onNext, onBack, onCountryChange }) {
   const entrance = useEntrance(0, 350, 8);
+  const [showCountries, setShowCountries] = useState(false);
   const valid = isValidLocalPhone(country, phone);
+
+  const pickCountry = (c) => {
+    onCountryChange?.(c);
+    setShowCountries(false);
+  };
+
   return (
     <Animated.View style={[styles.body, entrance]}>
-      <StepHeader title="Créer mon compte" step={STEP_NUM.phone} onBack={onBack} />
+      <StepHeader lang={lang} title={t(lang, 'signupCreateAccount')} step={STEP_NUM.phone} onBack={onBack} />
       <Text style={styles.headline}>
         {t(lang, 'signupPhoneHead')}{'\n'}
         <Text style={styles.g}>{t(lang, 'signupPhoneTitle')}</Text>
@@ -70,27 +85,49 @@ function PhoneStep({ lang, country, phone, setPhone, loading, onNext, onBack }) 
       <Text style={styles.sub}>{t(lang, 'signupPhoneSub')}</Text>
 
       <View style={styles.phoneRow}>
-        <View style={styles.countrySel}>
+        <PressScale scaleTo={0.96} onPress={() => setShowCountries(true)} style={styles.countrySel} accessibilityLabel={t(lang, 'signupChangeCountry')}>
           <Text style={{ fontSize: 18 }}>{country?.flag ?? '🇸🇳'}</Text>
           <Text style={styles.countryCode}>{country?.dial ?? '+221'}</Text>
-        </View>
+          <Text style={styles.countryChevron}>▾</Text>
+        </PressScale>
         <TextInput
           style={[styles.phoneField, valid && styles.phoneFieldFilled]}
-          placeholder="77 000 00 00"
+          placeholder={phonePlaceholder(country)}
           placeholderTextColor={colors.whiteA20}
           keyboardType="number-pad"
           value={phone}
-          onChangeText={(t) => setPhone(t.replace(/[^0-9]/g, ''))}
+          onChangeText={(v) => setPhone(v.replace(/[^0-9]/g, ''))}
           maxLength={country?.phoneMax ?? 12}
         />
       </View>
-      <Text style={styles.fieldNote}>
-        Ton numéro est lié à <Text style={{ color: colors.whiteA55, fontFamily: fontFamily.bodyBold }}>ton identité K21</Text>, pas à ta SIM. Si tu perds ton téléphone, ton argent reste en sécurité.
-      </Text>
+      <Text style={styles.fieldNote}>{t(lang, 'signupPhoneNote')}</Text>
 
       <View style={{ flex: 1 }} />
       <GlowButton label={loading ? t(lang, 'signupSending') : t(lang, 'signupSendCode')} onPress={onNext} disabled={!valid || loading} />
       {loading && <ActivityIndicator color={colors.green} style={{ marginTop: spacing.md }} />}
+
+      <Modal visible={showCountries} animationType="slide" transparent onRequestClose={() => setShowCountries(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>{t(lang, 'signupSelectCountry')}</Text>
+            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+              {COUNTRIES.map((c) => (
+                <PressScale key={c.code} scaleTo={0.98} onPress={() => pickCountry(c)} style={[styles.modalRow, country?.code === c.code && styles.modalRowOn]}>
+                  <Text style={{ fontSize: 20 }}>{c.flag}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.modalRowTitle}>{getCountryDisplayName(c, lang)}</Text>
+                    <Text style={styles.modalRowSub}>{c.dial}</Text>
+                  </View>
+                  {country?.code === c.code ? <Text style={{ color: colors.green, fontWeight: '800' }}>✓</Text> : null}
+                </PressScale>
+              ))}
+            </ScrollView>
+            <PressScale scaleTo={0.96} onPress={() => setShowCountries(false)} style={styles.modalClose}>
+              <Text style={styles.modalCloseText}>{t(lang, 'backLabel')}</Text>
+            </PressScale>
+          </View>
+        </View>
+      </Modal>
     </Animated.View>
   );
 }
@@ -100,7 +137,7 @@ function OtpStep({ lang, displayPhone, otp, setOtp, loading, devHint, onResend, 
   const boxes = [0, 1, 2, 3, 4, 5];
   return (
     <Animated.View style={[styles.body, entrance]}>
-      <StepHeader title="Vérification" step={STEP_NUM.otp} onBack={onBack} />
+      <StepHeader lang={lang} title={t(lang, 'signupVerification')} step={STEP_NUM.otp} onBack={onBack} />
       <Text style={styles.headline}>
         {t(lang, 'signupOtpHeadPrefix')}{'\n'}
         <Text style={styles.g}>{t(lang, 'signupOtpHead')}</Text>
@@ -327,7 +364,7 @@ function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext,
 }
 
 export default function SignUpScreen({ mode = 'signup', onComplete, onLoginComplete, onCancel }) {
-  const { country, langCode, setOnboardingIntent } = useLocale();
+  const { country, langCode, setOnboardingIntent, setCountry } = useLocale();
   const showToast = useToast();
   const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
@@ -440,7 +477,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'phone' && (
-          <PhoneStep lang={langCode} country={country} phone={phone} setPhone={setPhone} loading={loading} onNext={requestOtp} onBack={phoneBack} />
+          <PhoneStep lang={langCode} country={country} phone={phone} setPhone={setPhone} loading={loading} onNext={requestOtp} onBack={phoneBack} onCountryChange={setCountry} />
         )}
         {step === 'otp' && (
           <OtpStep
@@ -501,6 +538,17 @@ const styles = StyleSheet.create({
   phoneRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
   countrySel: { height: 52, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
   countryCode: { fontSize: 13, fontWeight: '700', color: colors.white },
+  countryChevron: { fontSize: 10, color: colors.whiteA40, marginLeft: 2 },
+
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: colors.ink, borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, padding: spacing.xxl, borderWidth: 1, borderColor: colors.whiteA08 },
+  modalTitle: { fontFamily: fontFamily.displayBold, fontSize: 16, color: colors.white, marginBottom: spacing.lg },
+  modalRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.lg, paddingHorizontal: spacing.md, borderRadius: radius.lg, marginBottom: spacing.xs },
+  modalRowOn: { backgroundColor: colors.greenA10 },
+  modalRowTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white },
+  modalRowSub: { fontSize: 11, color: colors.whiteA35, marginTop: 2 },
+  modalClose: { marginTop: spacing.lg, alignItems: 'center', paddingVertical: spacing.lg },
+  modalCloseText: { fontSize: 13, fontWeight: '700', color: colors.whiteA50 },
   phoneField: { flex: 1, height: 52, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, paddingHorizontal: spacing.xxxl, fontSize: 16, fontWeight: '600', letterSpacing: 0.5, color: colors.white },
   phoneFieldFilled: { borderColor: colors.greenA30 },
   fieldNote: { fontSize: 10, color: colors.whiteA25, marginBottom: spacing.giant, lineHeight: 15.5 },

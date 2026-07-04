@@ -6,15 +6,12 @@ import GlowButton from '../components/GlowButton';
 import WaxPattern from '../components/WaxPattern';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useEntrance } from '../hooks/animations';
-import { COUNTRIES } from '../i18n/countries';
+import { COUNTRIES, getCountryDisplayName } from '../i18n/countries';
 import { LANGUAGES } from '../i18n/languages';
 import { t } from '../i18n/translations';
 import { useLocale } from '../context/LocaleContext';
 
-// No HTML prototype exists for onboarding — this screen is a new addition
-// designed to match the established system exactly (dark #050805 shell,
-// green accent, Unbounded display font, same card/row/button conventions
-// as every other screen) rather than a pixel-fidelity conversion.
+const POPULAR_LANG_CODES = ['en', 'fr', 'wo'];
 
 function Row({ leading, title, subtitle, selected, delay, onPress }) {
   const entrance = useEntrance(delay, 300, 8);
@@ -38,17 +35,29 @@ function Row({ leading, title, subtitle, selected, delay, onPress }) {
   );
 }
 
-function CountryStep({ lang, query, setQuery, selected, onSelect, onContinue }) {
-  const filtered = useMemo(
-    () => COUNTRIES.filter((c) => c.name.toLowerCase().includes(query.trim().toLowerCase())),
-    [query]
-  );
+function CountryStep({ lang, query, setQuery, selected, onSelect, onContinue, onBack }) {
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return COUNTRIES.filter(
+      (c) =>
+        getCountryDisplayName(c, lang).toLowerCase().includes(q) ||
+        c.name.toLowerCase().includes(q) ||
+        (c.nameEn ?? '').toLowerCase().includes(q)
+    );
+  }, [query, lang]);
 
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>{t(lang, 'countryLabel')}</Text>
-        <Text style={styles.title}>{t(lang, 'countryTitle')}</Text>
+        <View style={styles.headerRow}>
+          <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
+            <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
+          </PressScale>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.eyebrow}>{t(lang, 'countryLabel')}</Text>
+            <Text style={styles.title}>{t(lang, 'countryTitle')}</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.searchWrap}>
@@ -66,7 +75,8 @@ function CountryStep({ lang, query, setQuery, selected, onSelect, onContinue }) 
           <Row
             key={c.code}
             leading={c.flag}
-            title={c.name}
+            title={getCountryDisplayName(c, lang)}
+            subtitle={c.dial}
             selected={selected?.code === c.code}
             delay={i * 30}
             onPress={() => onSelect(c)}
@@ -81,48 +91,65 @@ function CountryStep({ lang, query, setQuery, selected, onSelect, onContinue }) 
   );
 }
 
-function LanguageStep({ lang, country, query, setQuery, selected, onSelect, onBack, onFinish }) {
+function LanguageStep({ lang, country, query, setQuery, selected, onSelect, onContinue, showBack, onBack }) {
   const uiLang = selected?.code ?? lang;
-  const suggested = (country?.languages ?? []).map((code) => LANGUAGES.find((l) => l.code === code)).filter(Boolean);
+  const suggested = (country?.languages ?? POPULAR_LANG_CODES)
+    .map((code) => LANGUAGES.find((l) => l.code === code))
+    .filter(Boolean);
   const suggestedCodes = new Set(suggested.map((l) => l.code));
   const filtered = useMemo(
     () =>
       LANGUAGES.filter(
-        (l) => !suggestedCodes.has(l.code) && (l.name.toLowerCase().includes(query.trim().toLowerCase()) || l.native.toLowerCase().includes(query.trim().toLowerCase()))
+        (l) =>
+          !suggestedCodes.has(l.code) &&
+          (l.name.toLowerCase().includes(query.trim().toLowerCase()) ||
+            l.native.toLowerCase().includes(query.trim().toLowerCase()))
       ),
-    [query, country]
+    [query, suggestedCodes]
   );
 
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-            <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
-          </PressScale>
+          {showBack ? (
+            <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
+              <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
+            </PressScale>
+          ) : (
+            <View style={{ width: 36 }} />
+          )}
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>{t(lang, 'languageLabel')}</Text>
-            <Text style={styles.title}>{t(lang, 'languageTitle')}</Text>
+            <Text style={styles.eyebrow}>{t(uiLang, 'languageLabel')}</Text>
+            <Text style={styles.title}>{t(uiLang, 'languageTitle')}</Text>
           </View>
         </View>
-        <Text style={styles.subtitle}>{t(lang, 'languageSubtitle')}</Text>
+        <Text style={styles.subtitle}>{t(uiLang, 'languageSubtitle')}</Text>
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
         {suggested.length > 0 && (
           <>
-            <Text style={styles.sectionLabel}>{t(lang, 'suggestedLabel')}</Text>
+            <Text style={styles.sectionLabel}>{t(uiLang, 'suggestedLabel')}</Text>
             {suggested.map((l, i) => (
-              <Row key={l.code} leading="🗣️" title={l.native} subtitle={l.name} selected={selected?.code === l.code} delay={i * 30} onPress={() => onSelect(l)} />
+              <Row
+                key={l.code}
+                leading="🗣️"
+                title={l.native}
+                subtitle={l.name}
+                selected={selected?.code === l.code}
+                delay={i * 30}
+                onPress={() => onSelect(l)}
+              />
             ))}
           </>
         )}
 
-        <Text style={[styles.sectionLabel, { marginTop: spacing.xxl }]}>{t(lang, 'allLanguagesLabel')}</Text>
+        <Text style={[styles.sectionLabel, { marginTop: spacing.xxl }]}>{t(uiLang, 'allLanguagesLabel')}</Text>
         <View style={styles.searchWrap}>
           <TextInput
             style={styles.searchInput}
-            placeholder={t(lang, 'searchLanguagePlaceholder')}
+            placeholder={t(uiLang, 'searchLanguagePlaceholder')}
             placeholderTextColor={colors.whiteA30}
             value={query}
             onChangeText={setQuery}
@@ -134,7 +161,7 @@ function LanguageStep({ lang, country, query, setQuery, selected, onSelect, onBa
       </ScrollView>
 
       <View style={styles.footer}>
-        <GlowButton label={`${t(uiLang, 'continueLabel')} →`} onPress={onFinish} disabled={!selected} />
+        <GlowButton label={`${t(uiLang, 'continueLabel')} →`} onPress={onContinue} disabled={!selected} />
       </View>
     </View>
   );
@@ -142,11 +169,13 @@ function LanguageStep({ lang, country, query, setQuery, selected, onSelect, onBa
 
 export default function OnboardingScreen({ onComplete }) {
   const { langCode, country: savedCountry, language: savedLanguage, setCountry, setLanguage } = useLocale();
-  const [step, setStep] = useState('country');
+  const [step, setStep] = useState('language');
   const [country, setCountryLocal] = useState(savedCountry);
   const [language, setLanguageLocal] = useState(savedLanguage);
   const [countryQuery, setCountryQuery] = useState('');
   const [languageQuery, setLanguageQuery] = useState('');
+
+  const activeLang = language?.code ?? langCode;
 
   const finish = async () => {
     if (country) await setCountry(country);
@@ -154,29 +183,35 @@ export default function OnboardingScreen({ onComplete }) {
     onComplete?.({ country, language });
   };
 
+  const continueFromLanguage = async () => {
+    if (language) await setLanguage(language);
+    setStep('country');
+  };
+
   return (
     <View style={styles.root}>
       <WaxPattern color="rgba(26,240,96,0.03)" size={18} animated={false} />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        {step === 'country' ? (
-          <CountryStep
-            lang={langCode}
-            query={countryQuery}
-            setQuery={setCountryQuery}
-            selected={country}
-            onSelect={setCountryLocal}
-            onContinue={() => setStep('language')}
-          />
-        ) : (
+        {step === 'language' ? (
           <LanguageStep
-            lang={langCode}
-            country={country}
+            lang={activeLang}
+            country={null}
             query={languageQuery}
             setQuery={setLanguageQuery}
             selected={language}
             onSelect={setLanguageLocal}
-            onBack={() => setStep('country')}
-            onFinish={finish}
+            showBack={false}
+            onContinue={continueFromLanguage}
+          />
+        ) : (
+          <CountryStep
+            lang={activeLang}
+            query={countryQuery}
+            setQuery={setCountryQuery}
+            selected={country}
+            onSelect={setCountryLocal}
+            onBack={() => setStep('language')}
+            onContinue={finish}
           />
         )}
       </SafeAreaView>
