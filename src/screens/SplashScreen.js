@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import K21Logo from '../components/K21Logo';
 import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
 import { colors, fontFamily, radius, spacing } from '../theme';
@@ -44,7 +45,9 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
               transform: [{ scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) }, { translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
             }}
           >
-            <Text style={styles.logo}>K21</Text>
+            <View style={styles.logoMark}>
+              <K21Logo size={88} />
+            </View>
             <View style={styles.flagStripe}>
               <View style={[styles.flagSeg, { backgroundColor: colors.ink }]} />
               <View style={[styles.flagSeg, { backgroundColor: colors.flagGold }]} />
@@ -102,9 +105,20 @@ const styles = StyleSheet.create({
   langBtnText: { fontSize: 11, fontWeight: '700', color: 'rgba(5,8,5,0.55)' },
   langBtnTextOn: { color: colors.green },
 
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center', width: '100%', paddingHorizontal: spacing.giant },
+  content: { flex: 1, alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: 400, alignSelf: 'center', paddingHorizontal: spacing.giant },
 
-  logo: { fontFamily: fontFamily.displayBlack, fontSize: 56, letterSpacing: -2, color: colors.ink },
+  logoMark: {
+    backgroundColor: colors.ink,
+    borderRadius: radius.xxxl,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.giant + 4,
+    marginBottom: spacing.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
   flagStripe: { flexDirection: 'row', height: 3, borderRadius: 2, overflow: 'hidden', width: 64, marginTop: spacing.md, marginBottom: spacing.lg },
   flagSeg: { flex: 1 },
   slogan: { fontFamily: fontFamily.displayBold, fontSize: 15, color: colors.ink, textAlign: 'center', marginBottom: spacing.sm },
@@ -114,7 +128,7 @@ const styles = StyleSheet.create({
   featurePill: { backgroundColor: 'rgba(5,8,5,0.12)', borderRadius: radius.round, paddingVertical: 4, paddingHorizontal: spacing.lg },
   featureText: { fontSize: 10, fontWeight: '700', color: colors.ink, letterSpacing: 0.3 },
 
-  cta: { width: '100%', gap: spacing.md },
+  cta: { width: '100%', maxWidth: 340, alignSelf: 'center', gap: spacing.md },
   darkBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md, height: 52, borderRadius: radius.xl, backgroundColor: colors.ink },
   darkBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white },
   lightBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md, height: 52, borderRadius: radius.xl, backgroundColor: colors.white },

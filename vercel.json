@@ -1,32 +1,26 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "dist",
   "installCommand": "npm install",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
-    },
-    { "src": "api/health.js", "use": "@vercel/node" },
-    { "src": "api/me.js", "use": "@vercel/node" },
-    { "src": "api/wallet.js", "use": "@vercel/node" },
-    { "src": "api/transactions.js", "use": "@vercel/node" },
-    { "src": "api/auth/phone.js", "use": "@vercel/node" },
-    { "src": "api/auth/verify.js", "use": "@vercel/node" },
-    { "src": "api/auth/complete-profile.js", "use": "@vercel/node" },
-    { "src": "api/auth/refresh.js", "use": "@vercel/node" },
-    { "src": "api/transfers/send.js", "use": "@vercel/node" },
-    { "src": "api/admin/auth/login.js", "use": "@vercel/node" },
-    { "src": "api/admin/dashboard.js", "use": "@vercel/node" },
-    { "src": "api/cron/daily.js", "use": "@vercel/node" }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "handle": "filesystem" },
-    { "src": "/admin", "dest": "/admin/index.html" },
-    { "src": "/admin/(.*)", "dest": "/admin/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "functions": {
+    "api/health.js": { "maxDuration": 30 },
+    "api/me.js": { "maxDuration": 30 },
+    "api/wallet.js": { "maxDuration": 30 },
+    "api/transactions.js": { "maxDuration": 30 },
+    "api/auth/phone.js": { "maxDuration": 30 },
+    "api/auth/verify.js": { "maxDuration": 30 },
+    "api/auth/complete-profile.js": { "maxDuration": 30 },
+    "api/auth/refresh.js": { "maxDuration": 30 },
+    "api/transfers/send.js": { "maxDuration": 30 },
+    "api/admin/auth/login.js": { "maxDuration": 30 },
+    "api/admin/dashboard.js": { "maxDuration": 30 },
+    "api/cron/daily.js": { "maxDuration": 30 }
+  },
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin/index.html" },
+    { "source": "/admin/:path*", "destination": "/admin/:path*" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "crons": [
     {

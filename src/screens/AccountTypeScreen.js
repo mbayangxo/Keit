@@ -4,32 +4,8 @@ import PressScale from '../components/PressScale';
 import WaxPattern from '../components/WaxPattern';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useEntrance } from '../hooks/animations';
-
-// New branch point before signup — not in any HTML prototype. Personal
-// accounts get an AFRI ID, business accounts get a KEBU ID and a
-// dedicated business signup flow + dashboard instead of the personal tabs.
-const OPTIONS = [
-  {
-    key: 'personal',
-    icon: '👤',
-    title: 'Compte personnel',
-    sub: "Envoie de l'argent, paye tes marchands, épargne avec ta tontine.",
-    idLabel: 'Reçois ton AFRI ID',
-    accent: colors.green,
-    accentBg: colors.greenA08,
-    accentBorder: colors.greenA20,
-  },
-  {
-    key: 'business',
-    icon: '🏪',
-    title: 'Compte business',
-    sub: 'Reçois des paiements clients et gère ton commerce sur K21.',
-    idLabel: 'Reçois ton KEBU ID',
-    accent: colors.flagGold,
-    accentBg: colors.goldA08,
-    accentBorder: colors.goldA20,
-  },
-];
+import { useLocale } from '../context/LocaleContext';
+import { t } from '../i18n/translations';
 
 function OptionCard({ opt, delay, onPress }) {
   const entrance = useEntrance(delay, 350, 10);
@@ -53,20 +29,43 @@ function OptionCard({ opt, delay, onPress }) {
 }
 
 export default function AccountTypeScreen({ onSelect }) {
+  const { langCode } = useLocale();
+
+  const options = [
+    {
+      key: 'personal',
+      icon: '👤',
+      title: t(langCode, 'accountPersonalTitle'),
+      sub: t(langCode, 'accountPersonalSub'),
+      idLabel: t(langCode, 'accountPersonalId'),
+      accent: colors.green,
+      accentBg: colors.greenA08,
+      accentBorder: colors.greenA20,
+    },
+    {
+      key: 'business',
+      icon: '🏪',
+      title: t(langCode, 'accountBusinessTitle'),
+      sub: t(langCode, 'accountBusinessSub'),
+      idLabel: t(langCode, 'accountBusinessId'),
+      accent: colors.flagGold,
+      accentBg: colors.goldA08,
+      accentBorder: colors.goldA20,
+    },
+  ];
+
   return (
     <View style={styles.root}>
       <WaxPattern color="rgba(255,255,255,0.03)" size={18} animated={false} />
       <SafeAreaView style={{ flex: 1 }}>
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>COMPTE K21</Text>
-            <Text style={styles.title}>
-              Comment veux-tu{'\n'}utiliser K21 ?
-            </Text>
+            <Text style={styles.eyebrow}>{t(langCode, 'accountEyebrow')}</Text>
+            <Text style={styles.title}>{t(langCode, 'accountTitle')}</Text>
           </View>
 
           <View style={{ gap: spacing.lg }}>
-            {OPTIONS.map((opt, i) => (
+            {options.map((opt, i) => (
               <OptionCard key={opt.key} opt={opt} delay={150 + i * 120} onPress={() => onSelect(opt.key)} />
             ))}
           </View>

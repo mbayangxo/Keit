@@ -29,6 +29,14 @@ function normalizeBase(base) {
 
 function resolveUrl(path) {
   if (path.startsWith('http')) return path;
+  // On web, prefer same-origin relative /api/* so Vercel routes hit serverless functions.
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const base = normalizeBase(API_BASE);
+    const origin = window.location.origin;
+    if (!base || base.replace(/\/$/, '') === origin) {
+      return path.startsWith('/') ? path : `/${path}`;
+    }
+  }
   const base = normalizeBase(API_BASE) || (Platform.OS === 'web' ? '' : 'https://localhost');
   return `${base}${path.startsWith('/') ? path : `/${path}`}`;
 }
@@ -119,7 +127,12 @@ export async function apiFetch(path, { method = 'GET', body, stepUpToken, auth =
             }
           }
         }
-        const error = new Error(data.error ?? 'Request failed');
+        const msg =
+          data.error ??
+          (data.details ? 'Validation failed — check your input' : null) ??
+          (response.status === 405 ? 'Server misconfigured — API route not found' : null) ??
+          `Request failed (${response.status})`;
+        const error = new Error(msg);
         error.status = response.status;
         error.code = data.code;
         error.data = data;

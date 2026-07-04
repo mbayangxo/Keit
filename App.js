@@ -7,6 +7,7 @@ import * as ExpoSplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { colors, fontsToLoad } from './src/theme';
 import RootNavigator from './src/navigation/RootNavigator';
+import WebAppShell from './src/components/WebAppShell';
 import { AppStateProvider } from './src/state/AppState';
 import { PreferencesProvider } from './src/context/PreferencesContext';
 import { LocaleProvider } from './src/context/LocaleContext';
@@ -53,28 +54,30 @@ export default Sentry.wrap(function App() {
 
   return (
     <SafeAreaProvider>
-      <View style={styles.root} onLayout={onLayout}>
-        <StatusBar style="light" />
-        <NavigationContainer
-          ref={navigationRef}
-          theme={navTheme}
-          onReady={() => navigationIntegration.registerNavigationContainer(navigationRef)}
-        >
-          <AppStateProvider>
-            <SessionProvider>
-              <PreferencesProvider>
-                <LocaleProvider>
-                  <SecurityProvider>
-                    <ToastProvider>
-                      <AppShell />
-                    </ToastProvider>
-                  </SecurityProvider>
-                </LocaleProvider>
-              </PreferencesProvider>
-            </SessionProvider>
-          </AppStateProvider>
-        </NavigationContainer>
-      </View>
+      <WebAppShell>
+        <View style={styles.root} onLayout={onLayout}>
+          <StatusBar style="light" />
+          <NavigationContainer
+            ref={navigationRef}
+            theme={navTheme}
+            onReady={() => navigationIntegration.registerNavigationContainer(navigationRef)}
+          >
+            <AppStateProvider>
+              <SessionProvider>
+                <PreferencesProvider>
+                  <LocaleProvider>
+                    <SecurityProvider>
+                      <ToastProvider>
+                        <AppShell />
+                      </ToastProvider>
+                    </SecurityProvider>
+                  </LocaleProvider>
+                </PreferencesProvider>
+              </SessionProvider>
+            </AppStateProvider>
+          </NavigationContainer>
+        </View>
+      </WebAppShell>
     </SafeAreaProvider>
   );
 });

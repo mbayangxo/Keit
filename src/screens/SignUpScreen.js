@@ -398,7 +398,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
       }
       goTo('otp');
     } catch (err) {
-      showToast(err.message ?? 'Impossible d\'envoyer le code');
+      showToast(err.message ?? t(langCode, 'signupSendFailed'));
     } finally {
       setLoading(false);
     }
@@ -414,7 +414,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
       }
       showToast('Code renvoyé ✓');
     } catch (err) {
-      showToast(err.message ?? 'Échec du renvoi');
+      showToast(err.message ?? t(langCode, 'signupResendFailed'));
     } finally {
       setLoading(false);
     }
@@ -434,7 +434,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
       }
       goTo('profile');
     } catch (err) {
-      showToast(err.message ?? 'Code invalide');
+      showToast(err.message ?? t(langCode, 'signupInvalidOtp'));
     } finally {
       setLoading(false);
     }
@@ -465,7 +465,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
         transactions: res.transactions,
       });
     } catch (err) {
-      showToast(err.message ?? 'Profil incomplet');
+      showToast(err.message ?? t(langCode, 'signupProfileFailed'));
     } finally {
       setLoading(false);
     }
