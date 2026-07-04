@@ -43,6 +43,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build": "npm run vercel-build",
     "vercel-build": "prisma generate && EXPO_NO_TELEMETRY=1 npx expo export --platform web",
     "dev:api": "vercel dev",
     "postinstall": "prisma generate",
