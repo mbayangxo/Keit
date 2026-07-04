@@ -1,3 +1,4 @@
+import '../../lib/env-bootstrap.js';
 import { getUserIdFromRequest } from './auth.js';
 import { logApiCall } from '../../lib/api-audit.js';
 import { databaseConfigured } from '../../lib/prisma.js';
