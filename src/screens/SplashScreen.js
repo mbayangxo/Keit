@@ -40,6 +40,8 @@ function GoogleMark({ size = 16 }) {
 // rest of the app keeps the locked dark #050805 shell.
 export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinueApple, onContinueGoogle }) {
   const sunrise = useRef(new Animated.Value(0)).current;
+  const pulse = useRef(new Animated.Value(0)).current;
+  const goldPulse = useRef(new Animated.Value(0)).current;
   const lines = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
   const ctas = useRef(new Animated.Value(0)).current;
   const { langCode, setLanguageFromSplash } = useLocale();
@@ -48,16 +50,45 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
   useEffect(() => {
     Animated.sequence([
       Animated.timing(sunrise, { toValue: 1, duration: 650, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.stagger(110, [
-        ...lines.map((v) => Animated.timing(v, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true })),
+      Animated.stagger(130, [
+        ...lines.map((v) =>
+          Animated.spring(v, { toValue: 1, friction: 7, tension: 60, useNativeDriver: true }),
+        ),
         Animated.timing(ctas, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]),
     ]).start();
+
+    // Living pulse — sunrise rings breathe, gold promise line glows.
+    const breathe = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
+    const glow = Animated.loop(
+      Animated.sequence([
+        Animated.timing(goldPulse, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(goldPulse, { toValue: 0, duration: 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
+    breathe.start();
+    glow.start();
+    return () => {
+      breathe.stop();
+      glow.stop();
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lineStyle = (v) => ({
-    opacity: v,
-    transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [26, 0] }) }],
+    opacity: v.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, 1, 1] }),
+    transform: [
+      { translateY: v.interpolate({ inputRange: [0, 1], outputRange: [34, 0] }) },
+      { scale: v.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) },
+    ],
+  });
+
+  const ringPulse = (from, to) => ({
+    transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [from, to] }) }],
   });
 
   return (
@@ -91,8 +122,8 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
               },
             ]}
           >
-            <View style={styles.ringOuter}>
-              <View style={styles.ringMid}>
+            <Animated.View style={[styles.ringOuter, ringPulse(1, 1.07)]}>
+              <Animated.View style={[styles.ringMid, ringPulse(1.04, 1)]}>
                 <View style={styles.sun}>
                   <Text style={styles.wordmark}>K21</Text>
                   <View style={styles.flagStripe}>
@@ -101,15 +132,28 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
                     <View style={[styles.flagSeg, { backgroundColor: colors.flagRed }]} />
                   </View>
                 </View>
-              </View>
-            </View>
+              </Animated.View>
+            </Animated.View>
           </Animated.View>
 
           {/* Editorial stacked headline */}
           <View style={styles.headline}>
             <Animated.Text style={[styles.headLine, lineStyle(lines[0])]}>{t(langCode, 'splashHead1')}</Animated.Text>
             <Animated.Text style={[styles.headLine, styles.headIndent, lineStyle(lines[1])]}>{t(langCode, 'splashHead2')}</Animated.Text>
-            <Animated.Text style={[styles.headLine, styles.headAccent, lineStyle(lines[2])]}>{t(langCode, 'splashHead3')}</Animated.Text>
+            <Animated.View style={lineStyle(lines[2])}>
+              <Animated.Text
+                style={[
+                  styles.headLine,
+                  styles.headAccent,
+                  {
+                    opacity: goldPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.72] }),
+                    transform: [{ scale: goldPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.02] }) }],
+                  },
+                ]}
+              >
+                {t(langCode, 'splashHead3')}
+              </Animated.Text>
+            </Animated.View>
           </View>
 
           <Animated.View style={[styles.ctaBlock, lineStyle(ctas)]}>
