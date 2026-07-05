@@ -49,7 +49,7 @@ function ZeroVisual() {
       <View style={vs.zeroStripe}>
         <View style={[vs.stripeSeg, { backgroundColor: colors.green }]} />
         <View style={[vs.stripeSeg, { backgroundColor: colors.flagGold }]} />
-        <View style={[vs.stripeSeg, { backgroundColor: colors.orange }]} />
+        <View style={[vs.stripeSeg, { backgroundColor: colors.terracotta }]} />
       </View>
     </View>
   );
@@ -88,10 +88,10 @@ function MusicVisual() {
   const bars = [
     { color: colors.green, tall: 74, delay: 0 },
     { color: colors.flagGold, tall: 120, delay: 140 },
-    { color: colors.orange, tall: 96, delay: 260 },
+    { color: colors.terracotta, tall: 96, delay: 260 },
     { color: colors.green, tall: 150, delay: 80 },
     { color: colors.flagGold, tall: 88, delay: 320 },
-    { color: colors.orange, tall: 128, delay: 200 },
+    { color: colors.terracotta, tall: 128, delay: 200 },
     { color: colors.green, tall: 66, delay: 380 },
   ];
   return (

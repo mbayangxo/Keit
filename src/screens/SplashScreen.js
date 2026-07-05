@@ -42,6 +42,8 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
   const sunrise = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
   const goldPulse = useRef(new Animated.Value(0)).current;
+  const spin = useRef(new Animated.Value(0)).current;
+  const sheen = useRef(new Animated.Value(0)).current;
   const lines = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
   const ctas = useRef(new Animated.Value(0)).current;
   const { langCode, setLanguageFromSplash } = useLocale();
@@ -71,11 +73,27 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
         Animated.timing(goldPulse, { toValue: 0, duration: 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ]),
     );
+    // Crisp logo motion — a dashed orbit slowly turning around the mark,
+    // and a light sweep crossing the disc every few seconds.
+    const orbit = Animated.loop(
+      Animated.timing(spin, { toValue: 1, duration: 24000, easing: Easing.linear, useNativeDriver: true }),
+    );
+    const sweep = Animated.loop(
+      Animated.sequence([
+        Animated.delay(2600),
+        Animated.timing(sheen, { toValue: 1, duration: 950, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(sheen, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ]),
+    );
     breathe.start();
     glow.start();
+    orbit.start();
+    sweep.start();
     return () => {
       breathe.stop();
       glow.stop();
+      orbit.stop();
+      sweep.stop();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -123,12 +141,29 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
           >
             <Animated.View style={[styles.ringOuter, ringPulse(1, 1.07)]}>
               <Animated.View style={[styles.ringMid, ringPulse(1.04, 1)]}>
+                <Animated.View
+                  style={[
+                    styles.dashRing,
+                    { transform: [{ rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] },
+                  ]}
+                />
                 <View style={styles.sun}>
+                  <Animated.View
+                    style={[
+                      styles.sunSheen,
+                      {
+                        transform: [
+                          { translateX: sheen.interpolate({ inputRange: [0, 1], outputRange: [-SUN, SUN] }) },
+                          { rotate: '22deg' },
+                        ],
+                      },
+                    ]}
+                  />
                   <Text style={styles.wordmark}>K21</Text>
                   <View style={styles.flagStripe}>
                     <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
                     <View style={[styles.flagSeg, { backgroundColor: colors.flagGold }]} />
-                    <View style={[styles.flagSeg, { backgroundColor: colors.orange }]} />
+                    <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
                   </View>
                 </View>
               </Animated.View>
@@ -208,12 +243,21 @@ const styles = StyleSheet.create({
     width: RING_MID, height: RING_MID, borderRadius: RING_MID / 2,
     backgroundColor: 'rgba(26,240,96,0.16)', alignItems: 'center', justifyContent: 'center',
   },
+  dashRing: {
+    position: 'absolute', width: SUN + 24, height: SUN + 24, borderRadius: (SUN + 24) / 2,
+    borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(15,188,72,0.6)',
+  },
   sun: {
     width: SUN, height: SUN, borderRadius: SUN / 2, backgroundColor: colors.ink,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.green, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 26, elevation: 10,
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+    shadowColor: colors.green, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 24, elevation: 10,
   },
-  wordmark: { fontFamily: fontFamily.displayBlack, fontSize: 44, letterSpacing: -2, color: colors.green, textShadowColor: 'rgba(26,240,96,0.5)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 18 },
+  sunSheen: {
+    position: 'absolute', top: -SUN * 0.3, bottom: -SUN * 0.3, width: 34,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  // Crisp wordmark — no text shadow (it read as blur), pure sharp letterforms.
+  wordmark: { fontFamily: fontFamily.displayBlack, fontSize: 46, letterSpacing: -2, color: colors.green },
   flagStripe: { flexDirection: 'row', height: 3, borderRadius: 2, overflow: 'hidden', width: 44, marginTop: spacing.sm },
   flagSeg: { flex: 1 },
 

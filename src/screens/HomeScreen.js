@@ -23,7 +23,7 @@ import {
 const ACTIONS = [
   { icon: '💸', label: 'Yónnee', gradient: ['#2dff7d', '#0fbc48'], glow: colors.green, route: 'SendMoney' },
   { icon: '📥', label: 'Jël', gradient: ['#ffe45c', '#e8920a'], glow: colors.flagGold, route: 'Receive' },
-  { icon: '🏪', label: 'Fey', gradient: ['#ff8c52', '#c44010'], glow: colors.orange, route: 'PayMerchant' },
+  { icon: '🏪', label: 'Fey', gradient: ['#ff8c52', '#c44010'], glow: colors.terracotta, route: 'PayMerchant' },
   { icon: '⋯', label: 'Plus', gradient: ['#fdf3cd', '#eeda96'], glow: colors.flagGold, route: 'MoreActions' },
 ];
 
@@ -145,13 +145,14 @@ function MbooloPulseCard({ onPress }) {
   );
 }
 
+// One uniform chip style - the color story lives in the big cards, not here.
 const DISCOVER_CHIPS = [
-  { icon: '🎉', label: 'Events', bg: colors.orangeA10, border: colors.orangeA20 },
-  { icon: '🍽️', label: 'Food', bg: colors.goldA10, border: colors.goldA20 },
-  { icon: '🛍️', label: 'Shopping', bg: colors.greenA08, border: colors.greenA18 },
-  { icon: '🏖️', label: 'Plages', bg: colors.goldA10, border: colors.goldA20 },
-  { icon: '⚽', label: 'Foot', bg: colors.greenA08, border: colors.greenA18 },
-  { icon: '🎵', label: 'Musique', bg: colors.orangeA10, border: colors.orangeA20 },
+  { icon: '🎉', label: 'Events' },
+  { icon: '🍽️', label: 'Food' },
+  { icon: '🛍️', label: 'Shopping' },
+  { icon: '🏖️', label: 'Plages' },
+  { icon: '⚽', label: 'Foot' },
+  { icon: '🎵', label: 'Musique' },
 ];
 
 function FeaturedEventCard({ onPress }) {
@@ -218,7 +219,7 @@ function DiscoverSection({ navigation }) {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
         {DISCOVER_CHIPS.map((c) => (
-          <PressScale key={c.label} scaleTo={0.93} onPress={goExplore} style={[styles.chip, { backgroundColor: c.bg, borderColor: c.border }]}>
+          <PressScale key={c.label} scaleTo={0.93} onPress={goExplore} style={styles.chip}>
             <Text style={{ fontSize: 13 }}>{c.icon}</Text>
             <Text style={styles.chipText}>{c.label}</Text>
           </PressScale>
@@ -322,7 +323,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.flagDiv}>
             <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
             <View style={[styles.flagSeg, { backgroundColor: colors.flagGold }]} />
-            <View style={[styles.flagSeg, { backgroundColor: colors.orange }]} />
+            <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
           </View>
 
           <View style={styles.homeCards}>
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
   greeting: { fontFamily: fontFamily.displayBold, fontSize: 17, letterSpacing: -0.4, color: 'rgba(5,8,5,0.55)' },
   greetingBold: { color: colors.ink, fontFamily: fontFamily.displayBlack },
   notifBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(5,8,5,0.05)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', alignItems: 'center', justifyContent: 'center' },
-  notifDot: { position: 'absolute', top: 8, right: 9, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.orange, borderWidth: 1.5, borderColor: '#f2f8ec' },
+  notifDot: { position: 'absolute', top: 8, right: 9, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.terracotta, borderWidth: 1.5, borderColor: '#f2f8ec' },
 
   balanceDisplay: { alignItems: 'center', marginBottom: spacing.giant },
   balanceEye: { ...type.bodySmall, color: 'rgba(5,8,5,0.45)', marginBottom: spacing.sm },
@@ -397,8 +398,8 @@ const styles = StyleSheet.create({
   rcTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
   rcTag: { fontFamily: fontFamily.bodyBold, fontSize: 8, letterSpacing: 1, color: colors.greenDark, textTransform: 'uppercase' },
   rcLive: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  rcDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.orange },
-  rcLiveText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.orange },
+  rcDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.terracotta },
+  rcLiveText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.terracotta },
   rcSong: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   rcCover: { width: 44, height: 44, borderRadius: radius.lg, backgroundColor: colors.greenDark, alignItems: 'center', justifyContent: 'center' },
   rcInfo: { flex: 1, minWidth: 0 },
@@ -434,15 +435,16 @@ const styles = StyleSheet.create({
   chipRow: { paddingHorizontal: spacing.xxxl, gap: spacing.sm, paddingBottom: spacing.lg },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    borderWidth: 1, borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: 7,
+    backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.09)',
+    borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: 7,
   },
   chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11.5, color: 'rgba(5,8,5,0.72)' },
 
   featCard: { marginHorizontal: spacing.xxxl, borderRadius: radius.xxxl, borderWidth: 1.5, borderColor: colors.greenA20, padding: spacing.xxl, overflow: 'hidden', marginBottom: spacing.md },
   featTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xl },
   featLivePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3 },
-  featLiveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.orange },
-  featLiveText: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: colors.orange },
+  featLiveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.terracotta },
+  featLiveText: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: colors.terracotta },
   featBars: { flexDirection: 'row', gap: 3, alignItems: 'flex-end', height: 18 },
   featBar: { width: 3.5, borderRadius: 2, backgroundColor: colors.flagGold },
   featTitle: { fontFamily: fontFamily.displayBlack, fontSize: 22, lineHeight: 27, letterSpacing: -0.8, color: colors.white, marginBottom: spacing.lg },

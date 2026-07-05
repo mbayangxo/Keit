@@ -7,7 +7,7 @@ import { useGlowPulse } from '../hooks/animations';
 const TONES = {
   green: { gradient: ['#3dff87', colors.green, colors.greenDark], glow: colors.green, label: colors.ink },
   gold: { gradient: ['#ffe45c', colors.flagGold, colors.goldDark], glow: colors.flagGold, label: colors.ink },
-  orange: { gradient: [colors.terracottaLight, colors.orange, colors.terracottaDark], glow: colors.orange, label: colors.white },
+  orange: { gradient: [colors.terracottaLight, colors.terracotta, colors.terracottaDark], glow: colors.terracotta, label: colors.white },
   ink: { gradient: ['#1a241a', '#0c120c', colors.ink], glow: colors.green, label: colors.green },
 };
 
