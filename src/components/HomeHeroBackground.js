@@ -48,16 +48,16 @@ export default function HomeHeroBackground() {
           <Stop offset="100%" stopColor="#050805" stopOpacity={1} />
         </LinearGradient>
         <RadialGradient id="hhGreen" cx="25%" cy="20%" r="50%">
-          <Stop offset="0%" stopColor="#1af060" stopOpacity={0.14} />
+          <Stop offset="0%" stopColor="#1af060" stopOpacity={0.11} />
           <Stop offset="100%" stopColor="#1af060" stopOpacity={0} />
         </RadialGradient>
-        <RadialGradient id="hhGold" cx="75%" cy="80%" r="50%">
-          <Stop offset="0%" stopColor="#fad836" stopOpacity={0.1} />
+        <RadialGradient id="hhGold" cx="80%" cy="30%" r="55%">
+          <Stop offset="0%" stopColor="#fad836" stopOpacity={0.16} />
           <Stop offset="100%" stopColor="#fad836" stopOpacity={0} />
         </RadialGradient>
-        <RadialGradient id="hhRed" cx="50%" cy="50%" r="60%">
-          <Stop offset="0%" stopColor="#e8192c" stopOpacity={0.06} />
-          <Stop offset="100%" stopColor="#e8192c" stopOpacity={0} />
+        <RadialGradient id="hhRed" cx="50%" cy="85%" r="65%">
+          <Stop offset="0%" stopColor="#e85c1a" stopOpacity={0.12} />
+          <Stop offset="100%" stopColor="#e85c1a" stopOpacity={0} />
         </RadialGradient>
       </Defs>
       <Rect width="100" height="100" fill="url(#hhBase)" />

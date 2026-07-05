@@ -1,20 +1,36 @@
-import { Animated, StyleSheet, Text } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import PressScale from './PressScale';
 import { colors, fontFamily, radius } from '../theme';
 import { useGlowPulse } from '../hooks/animations';
 
-// The `.btn-g` primary CTA used everywhere in the prototypes: full-width
-// green button, Unbounded 900 label, pulsing glow shadow (box-shadow
-// 0 4px 20px rgba(26,240,96,.3) <-> 0 4px 32px rgba(26,240,96,.55), 2.5s infinite).
-export default function GlowButton({ label, onPress, style, disabled = false }) {
+const TONES = {
+  green: { gradient: ['#3dff87', colors.green, colors.greenDark], glow: colors.green, label: colors.ink },
+  gold: { gradient: ['#ffe45c', colors.flagGold, colors.goldDark], glow: colors.flagGold, label: colors.ink },
+  orange: { gradient: [colors.terracottaLight, colors.orange, colors.terracottaDark], glow: colors.orange, label: colors.white },
+  ink: { gradient: ['#1a241a', '#0c120c', colors.ink], glow: colors.green, label: colors.green },
+};
+
+// The `.btn-g` primary CTA used everywhere: full-width pill, Unbounded 900
+// label, gradient fill + pulsing glow shadow. `tone` picks the color world.
+export default function GlowButton({ label, onPress, style, disabled = false, tone = 'green' }) {
   const glow = useGlowPulse(2500, 0.25);
+  const t = TONES[tone] ?? TONES.green;
   return (
     <PressScale
       scaleTo={0.96}
       onPress={disabled ? undefined : onPress}
-      style={[styles.btn, disabled && styles.btnDisabled, style, { shadowOpacity: Animated.add(0.3, glow) }]}
+      style={[
+        styles.btn,
+        { shadowColor: t.glow },
+        disabled && styles.btnDisabled,
+        style,
+        { shadowOpacity: Animated.add(0.3, glow) },
+      ]}
     >
-      <Text style={styles.label}>{label}</Text>
+      <LinearGradient colors={t.gradient} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={StyleSheet.absoluteFill} />
+      <View style={styles.sheen} />
+      <Text style={[styles.label, { color: t.label }]}>{label}</Text>
     </PressScale>
   );
 }
@@ -22,23 +38,29 @@ export default function GlowButton({ label, onPress, style, disabled = false }) 
 const styles = StyleSheet.create({
   btn: {
     width: '100%',
-    height: 52,
-    borderRadius: radius.xl,
-    backgroundColor: colors.green,
+    height: 54,
+    borderRadius: radius.round,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.green,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 5 },
+    shadowRadius: 22,
     elevation: 6,
   },
-  btnDisabled: {
-    opacity: 0.5,
+  // top-edge light catch — makes the pill read as a lit object, not a flat rect
+  sheen: {
+    position: 'absolute',
+    top: 0,
+    left: '8%',
+    right: '8%',
+    height: 1.5,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255,255,255,0.45)',
   },
+  btnDisabled: { opacity: 0.5 },
   label: {
     fontFamily: fontFamily.displayBlack,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 0.5,
-    color: colors.ink,
   },
 });

@@ -21,21 +21,23 @@ import {
 } from '../hooks/animations';
 
 const ACTIONS = [
-  { icon: '💸', label: 'Yónnee', bg: colors.greenA12, border: colors.greenA20, route: 'SendMoney' },
-  { icon: '📥', label: 'Jël', bg: colors.goldA10, border: colors.goldA20, route: 'Receive' },
-  { icon: '🏪', label: 'Fey', bg: colors.orangeA10, border: colors.orangeA20, route: 'PayMerchant' },
-  { icon: '⋯', label: 'Plus', bg: colors.whiteA06, border: colors.whiteA10, route: 'MoreActions' },
+  { icon: '💸', label: 'Yónnee', gradient: ['#2dff7d', '#0fbc48'], glow: colors.green, route: 'SendMoney' },
+  { icon: '📥', label: 'Jël', gradient: ['#ffe45c', '#e8920a'], glow: colors.flagGold, route: 'Receive' },
+  { icon: '🏪', label: 'Fey', gradient: ['#ff8c52', '#c44010'], glow: colors.orange, route: 'PayMerchant' },
+  { icon: '⋯', label: 'Plus', gradient: ['#212b21', '#0c110c'], glow: colors.whiteA20, route: 'MoreActions' },
 ];
 
 function formatAmount(n) {
   return Math.round(n).toLocaleString('fr-FR').replace(/ /g, ' ');
 }
 
-function ActionButton({ icon, label, bg, border, delay, onPress }) {
+function ActionButton({ icon, label, gradient, glow, delay, onPress }) {
   const float = useFloatLoop(delay);
   return (
     <PressScale scaleTo={0.9} onPress={onPress} style={styles.haItem}>
-      <View style={[styles.haBtn, { backgroundColor: bg, borderColor: border }]}>
+      <View style={[styles.haBtn, { shadowColor: glow }]}>
+        <LinearGradient colors={gradient} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={StyleSheet.absoluteFill} />
+        <View style={styles.haSheen} />
         <Animated.View style={{ transform: [{ translateY: float }] }}>
           <Text style={styles.haIcon}>{icon}</Text>
         </Animated.View>
@@ -144,12 +146,12 @@ function MbooloPulseCard({ onPress }) {
 }
 
 const DISCOVER_CHIPS = [
-  { icon: '🎉', label: 'Events' },
-  { icon: '🍽️', label: 'Food' },
-  { icon: '🛍️', label: 'Shopping' },
-  { icon: '🏖️', label: 'Plages' },
-  { icon: '⚽', label: 'Foot' },
-  { icon: '🎵', label: 'Musique' },
+  { icon: '🎉', label: 'Events', bg: colors.terracottaA10, border: colors.terracottaA25 },
+  { icon: '🍽️', label: 'Food', bg: colors.goldA10, border: colors.goldA20 },
+  { icon: '🛍️', label: 'Shopping', bg: 'rgba(232,25,44,0.09)', border: 'rgba(232,25,44,0.22)' },
+  { icon: '🏖️', label: 'Plages', bg: 'rgba(80,180,255,0.09)', border: 'rgba(80,180,255,0.22)' },
+  { icon: '⚽', label: 'Foot', bg: colors.greenA08, border: colors.greenA18 },
+  { icon: '🎵', label: 'Musique', bg: colors.orangeA10, border: colors.orangeA20 },
 ];
 
 function FeaturedEventCard({ onPress }) {
@@ -216,7 +218,7 @@ function DiscoverSection({ navigation }) {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
         {DISCOVER_CHIPS.map((c) => (
-          <PressScale key={c.label} scaleTo={0.93} onPress={goExplore} style={styles.chip}>
+          <PressScale key={c.label} scaleTo={0.93} onPress={goExplore} style={[styles.chip, { backgroundColor: c.bg, borderColor: c.border }]}>
             <Text style={{ fontSize: 13 }}>{c.icon}</Text>
             <Text style={styles.chipText}>{c.label}</Text>
           </PressScale>
@@ -362,23 +364,27 @@ const styles = StyleSheet.create({
   heroContent: { position: 'relative', zIndex: 2 },
   heroTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.huge },
   locationLabel: { ...type.tiny, fontSize: 9, letterSpacing: 1, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: 3 },
-  greeting: { ...type.bodySmall, color: colors.whiteA40 },
-  greetingBold: { color: colors.whiteA70, fontFamily: fontFamily.bodyBold },
+  greeting: { fontFamily: fontFamily.displayBold, fontSize: 17, letterSpacing: -0.4, color: colors.whiteA55 },
+  greetingBold: { color: colors.white, fontFamily: fontFamily.displayBlack },
   notifBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
   notifDot: { position: 'absolute', top: 8, right: 9, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.flagRed, borderWidth: 1.5, borderColor: colors.ink },
 
   balanceDisplay: { alignItems: 'center', marginBottom: spacing.giant },
   balanceEye: { ...type.bodySmall, color: colors.whiteA30, marginBottom: spacing.sm },
-  balanceAmount: { ...type.balanceAmount, color: colors.green, textAlign: 'center' },
-  balanceCurrency: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(26,240,96,0.5)' },
-  zeroFeesPill: { marginTop: spacing.md, alignSelf: 'center', backgroundColor: colors.greenA08, borderWidth: 1, borderColor: colors.greenA18, borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: spacing.xs },
-  zeroFeesText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: 'rgba(26,240,96,0.8)' },
+  balanceAmount: { ...type.balanceAmount, color: colors.white, textAlign: 'center', textShadowColor: 'rgba(26,240,96,0.35)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 24 },
+  balanceCurrency: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(26,240,96,0.7)' },
+  zeroFeesPill: { marginTop: spacing.md, alignSelf: 'center', backgroundColor: colors.goldA10, borderWidth: 1, borderColor: colors.goldA20, borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: spacing.xs },
+  zeroFeesText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.flagGold },
 
   homeActions: { flexDirection: 'row', justifyContent: 'space-between' },
   haItem: { alignItems: 'center', gap: spacing.xs },
-  haBtn: { width: 52, height: 52, borderRadius: radius.xxl, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  haIcon: { fontSize: 22 },
-  haLabel: { ...type.actionLabel, color: colors.whiteA40, textAlign: 'center' },
+  haBtn: {
+    width: 58, height: 58, borderRadius: 29, overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
+    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 7,
+  },
+  haSheen: { position: 'absolute', top: 3, left: 12, right: 12, height: 10, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.28)' },
+  haIcon: { fontSize: 23 },
+  haLabel: { ...type.actionLabel, color: colors.whiteA70, textAlign: 'center' },
 
   flagDiv: { flexDirection: 'row', height: 2, marginVertical: spacing.xxxl },
   flagSeg: { flex: 1 },
@@ -400,14 +406,14 @@ const styles = StyleSheet.create({
   rcBars: { flexDirection: 'row', gap: 2, alignItems: 'flex-end', height: 20 },
   rcBar: { width: 3, borderRadius: 2, backgroundColor: colors.green },
 
-  wakhnaMini: { backgroundColor: 'rgba(26,240,96,0.07)', borderWidth: 1, borderColor: colors.greenA15, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
-  wmScore: { ...type.wakhnaScore, color: colors.green },
+  wakhnaMini: { backgroundColor: colors.goldA08, borderWidth: 1, borderColor: colors.goldA20, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
+  wmScore: { ...type.wakhnaScore, color: colors.flagGold },
   wmBody: { flex: 1 },
-  wmLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: 'rgba(26,240,96,0.6)', textTransform: 'uppercase', marginBottom: 3 },
+  wmLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: 'rgba(250,216,54,0.7)', textTransform: 'uppercase', marginBottom: 3 },
   wmRank: { ...type.bodySmall, color: colors.whiteA40 },
-  wmRankBold: { fontFamily: fontFamily.bodyBold, color: colors.green },
+  wmRankBold: { fontFamily: fontFamily.bodyBold, color: colors.flagGold },
   wmBar: { height: 4, backgroundColor: colors.whiteA08, borderRadius: 2, overflow: 'hidden', marginTop: spacing.sm },
-  wmStar: { fontSize: 20, color: colors.green },
+  wmStar: { fontSize: 20, color: colors.flagGold },
 
   mbooloMini: { backgroundColor: 'rgba(232,92,26,0.1)', borderWidth: 1, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
   mmAvaStack: { flexDirection: 'row' },
@@ -426,10 +432,9 @@ const styles = StyleSheet.create({
   chipRow: { paddingHorizontal: spacing.xxxl, gap: spacing.sm, paddingBottom: spacing.lg },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA10,
-    borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: 7,
+    borderWidth: 1, borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: 7,
   },
-  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11.5, color: colors.whiteA70 },
+  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11.5, color: colors.whiteA85 },
 
   featCard: { marginHorizontal: spacing.xxxl, borderRadius: radius.xxxl, borderWidth: 1.5, borderColor: colors.greenA20, padding: spacing.xxl, overflow: 'hidden', marginBottom: spacing.md },
   featTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xl },
