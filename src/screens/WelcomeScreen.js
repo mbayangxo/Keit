@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import WaxPattern from '../components/WaxPattern';
+import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useLocale } from '../context/LocaleContext';
@@ -48,7 +47,7 @@ function ZeroVisual() {
         0%
       </Animated.Text>
       <View style={vs.zeroStripe}>
-        <View style={[vs.stripeSeg, { backgroundColor: colors.ink }]} />
+        <View style={[vs.stripeSeg, { backgroundColor: colors.green }]} />
         <View style={[vs.stripeSeg, { backgroundColor: colors.flagGold }]} />
         <View style={[vs.stripeSeg, { backgroundColor: colors.flagRed }]} />
       </View>
@@ -155,8 +154,8 @@ function TontineVisual() {
 
 const vs = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  zeroHalo: { position: 'absolute', width: 230, height: 230, borderRadius: 115, backgroundColor: 'rgba(5,8,5,0.09)' },
-  zeroText: { fontFamily: fontFamily.displayBlack, fontSize: 128, letterSpacing: -6, color: colors.ink },
+  zeroHalo: { position: 'absolute', width: 230, height: 230, borderRadius: 115, backgroundColor: colors.greenA08 },
+  zeroText: { fontFamily: fontFamily.displayBlack, fontSize: 128, letterSpacing: -6, color: colors.green, textShadowColor: 'rgba(26,240,96,0.4)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 30 },
   zeroStripe: { flexDirection: 'row', height: 4, borderRadius: 2, overflow: 'hidden', width: 74, marginTop: spacing.md },
   stripeSeg: { flex: 1 },
 
@@ -164,51 +163,38 @@ const vs = StyleSheet.create({
   eqBar: { width: 18, borderRadius: 9 },
   eqCaption: { fontFamily: fontFamily.displayBlack, fontSize: 15, letterSpacing: 4, color: colors.whiteA55, marginTop: spacing.xxl },
 
-  orbit: { position: 'absolute', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.22)', borderStyle: 'dashed' },
-  orbitDot: { position: 'absolute', width: 18, height: 18, borderRadius: 9, backgroundColor: colors.ink },
+  orbit: { position: 'absolute', borderWidth: 1.5, borderColor: colors.whiteA20, borderStyle: 'dashed' },
+  orbitDot: { position: 'absolute', width: 18, height: 18, borderRadius: 9, backgroundColor: colors.terracottaLight },
   pot: {
-    width: 108, height: 108, borderRadius: 54, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 18, elevation: 9,
+    width: 108, height: 108, borderRadius: 54, backgroundColor: colors.terracotta, alignItems: 'center', justifyContent: 'center',
+    shadowColor: colors.terracotta, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 26, elevation: 9,
   },
-  potText: { fontFamily: fontFamily.displayBlack, fontSize: 28, letterSpacing: -1, color: colors.flagGold },
+  potText: { fontFamily: fontFamily.displayBlack, fontSize: 28, letterSpacing: -1, color: colors.ink },
 });
 
+// One shared canvas (ScreenBackground) — each slide keeps its own color
+// identity in the artwork and CTA, not in the wallpaper.
 const SLIDES = [
   {
     key: 'payments',
     Visual: ZeroVisual,
-    field: ['#25ff77', colors.green, '#12d954'],
-    dark: false,
-    ctaBg: colors.flagGold,
+    ctaBg: colors.green,
     ctaColor: colors.ink,
-    titleColor: colors.ink,
-    accent: 'rgba(5,8,5,0.55)',
-    bodyColor: 'rgba(5,8,5,0.72)',
-    wax: 'rgba(5,8,5,0.045)',
+    accent: colors.green,
   },
   {
     key: 'music',
     Visual: MusicVisual,
-    field: ['#0a0f0a', colors.ink, '#050805'],
-    dark: true,
-    ctaBg: colors.green,
+    ctaBg: colors.flagGold,
     ctaColor: colors.ink,
-    titleColor: colors.white,
-    accent: colors.green,
-    bodyColor: colors.whiteA55,
-    wax: 'rgba(255,255,255,0.03)',
+    accent: colors.flagGold,
   },
   {
     key: 'community',
     Visual: TontineVisual,
-    field: ['#ff7a36', colors.terracotta, colors.terracottaDark],
-    dark: false,
-    ctaBg: colors.ink,
-    ctaColor: colors.flagGold,
-    titleColor: colors.ink,
-    accent: 'rgba(5,8,5,0.55)',
-    bodyColor: 'rgba(5,8,5,0.75)',
-    wax: 'rgba(5,8,5,0.05)',
+    ctaBg: colors.terracotta,
+    ctaColor: colors.white,
+    accent: colors.terracottaLight,
   },
 ];
 
@@ -249,17 +235,14 @@ export default function WelcomeScreen({ onComplete }) {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={slide.field} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={StyleSheet.absoluteFill} />
-      <WaxPattern color={slide.wax} size={22} durationMs={34000} />
+      <ScreenBackground />
 
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.frame}>
           <View style={styles.topBar}>
-            <Text style={[styles.brandMark, { color: slide.dark ? colors.green : colors.ink }]}>K21</Text>
+            <Text style={[styles.brandMark, { color: colors.green }]}>K21</Text>
             <PressScale scaleTo={0.94} onPress={onComplete}>
-              <Text style={[styles.skipText, { color: slide.dark ? colors.whiteA55 : 'rgba(5,8,5,0.6)' }]}>
-                {t(langCode, 'welcomeSkip')}
-              </Text>
+              <Text style={[styles.skipText, { color: colors.whiteA55 }]}>{t(langCode, 'welcomeSkip')}</Text>
             </PressScale>
           </View>
 
@@ -274,19 +257,19 @@ export default function WelcomeScreen({ onComplete }) {
                   key={s.key}
                   style={[
                     styles.dot,
-                    { backgroundColor: slide.dark ? colors.whiteA20 : 'rgba(5,8,5,0.2)' },
-                    i === index && { width: 22, backgroundColor: slide.dark ? colors.green : colors.ink },
+                    { backgroundColor: colors.whiteA20 },
+                    i === index && { width: 22, backgroundColor: slide.accent },
                   ]}
                 />
               ))}
             </View>
-            <Text style={[styles.title, { color: slide.titleColor }]}>
+            <Text style={[styles.title, { color: colors.white }]}>
               {slide.titleLine1}
               {'\n'}
               <Text style={{ color: slide.accent }}>{slide.titleLine2}</Text>
             </Text>
-            <Text style={[styles.body, { color: slide.bodyColor }]}>{slide.body}</Text>
-            <PressScale scaleTo={0.97} onPress={goNext} style={[styles.nextBtn, { backgroundColor: slide.ctaBg }]}>
+            <Text style={[styles.body, { color: colors.whiteA55 }]}>{slide.body}</Text>
+            <PressScale scaleTo={0.97} onPress={goNext} style={[styles.nextBtn, { backgroundColor: slide.ctaBg, shadowColor: slide.ctaBg }]}>
               <Text style={[styles.nextBtnText, { color: slide.ctaColor }]}>{slide.button}</Text>
             </PressScale>
           </Animated.View>

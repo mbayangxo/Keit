@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
-import WaxPattern from '../components/WaxPattern';
+import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useLocale } from '../context/LocaleContext';
@@ -93,8 +93,7 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={['#25ff77', colors.green, '#12d954']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={StyleSheet.absoluteFill} />
-      <WaxPattern color="rgba(5,8,5,0.045)" size={22} durationMs={34000} />
+      <ScreenBackground />
 
       <SafeAreaView style={{ flex: 1, width: '100%' }}>
         <View style={styles.frame}>
@@ -168,7 +167,7 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
             </View>
 
             <PressScale scaleTo={0.97} onPress={onContinueApple} style={styles.outlineBtn}>
-              <AppleMark />
+              <AppleMark color={colors.white} />
               <Text style={styles.outlineBtnText}>{t(langCode, 'splashApple')}</Text>
             </PressScale>
             <PressScale scaleTo={0.97} onPress={onContinueGoogle} style={styles.outlineBtn}>
@@ -194,53 +193,54 @@ const styles = StyleSheet.create({
 
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: spacing.lg },
   langRow: { flexDirection: 'row', gap: spacing.xs },
-  langBtn: { borderRadius: radius.round, paddingVertical: 5, paddingHorizontal: spacing.md + 2, backgroundColor: 'rgba(5,8,5,0.10)' },
-  langBtnOn: { backgroundColor: colors.ink },
-  langBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: 'rgba(5,8,5,0.55)' },
-  langBtnTextOn: { color: colors.green },
-  loginLink: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink, textDecorationLine: 'underline' },
+  langBtn: { borderRadius: radius.round, paddingVertical: 5, paddingHorizontal: spacing.md + 2, backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA08 },
+  langBtnOn: { backgroundColor: colors.green, borderColor: colors.green },
+  langBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.whiteA40 },
+  langBtnTextOn: { color: colors.ink },
+  loginLink: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.whiteA70, textDecorationLine: 'underline' },
 
   hero: { alignItems: 'center', marginTop: spacing.giant },
   ringOuter: {
     width: RING_OUTER, height: RING_OUTER, borderRadius: RING_OUTER / 2,
-    backgroundColor: 'rgba(5,8,5,0.07)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.greenA05, alignItems: 'center', justifyContent: 'center',
   },
   ringMid: {
     width: RING_MID, height: RING_MID, borderRadius: RING_MID / 2,
-    backgroundColor: 'rgba(5,8,5,0.10)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.greenA10, alignItems: 'center', justifyContent: 'center',
   },
   sun: {
-    width: SUN, height: SUN, borderRadius: SUN / 2, backgroundColor: colors.ink,
+    width: SUN, height: SUN, borderRadius: SUN / 2, backgroundColor: '#0a1a0c',
+    borderWidth: 1.5, borderColor: colors.greenA30,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.28, shadowRadius: 22, elevation: 10,
+    shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 30, elevation: 10,
   },
-  wordmark: { fontFamily: fontFamily.displayBlack, fontSize: 44, letterSpacing: -2, color: colors.green },
+  wordmark: { fontFamily: fontFamily.displayBlack, fontSize: 44, letterSpacing: -2, color: colors.green, textShadowColor: 'rgba(26,240,96,0.5)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 18 },
   flagStripe: { flexDirection: 'row', height: 3, borderRadius: 2, overflow: 'hidden', width: 44, marginTop: spacing.sm },
   flagSeg: { flex: 1 },
 
   headline: { marginTop: 'auto', marginBottom: 'auto', paddingVertical: spacing.giant },
-  headLine: { fontFamily: fontFamily.displayBlack, fontSize: 37, lineHeight: 46, letterSpacing: -1.6, color: colors.ink },
+  headLine: { fontFamily: fontFamily.displayBlack, fontSize: 37, lineHeight: 46, letterSpacing: -1.6, color: colors.white },
   headIndent: { marginLeft: 34 },
-  headAccent: { color: colors.flagGold, textShadowColor: 'rgba(5,8,5,0.18)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6 },
+  headAccent: { color: colors.flagGold, textShadowColor: 'rgba(250,216,54,0.35)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 16 },
 
   ctaBlock: { marginTop: 'auto', paddingBottom: spacing.xl },
   primaryBtn: {
     height: 58, borderRadius: radius.round, backgroundColor: colors.flagGold,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 14, elevation: 6,
+    shadowColor: colors.flagGold, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.35, shadowRadius: 18, elevation: 6,
   },
   primaryBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 15, color: colors.ink },
 
   orRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginVertical: spacing.lg },
-  orLine: { flex: 1, height: 1, backgroundColor: 'rgba(5,8,5,0.18)' },
-  orText: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: 'rgba(5,8,5,0.5)' },
+  orLine: { flex: 1, height: 1, backgroundColor: colors.whiteA12 },
+  orText: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: colors.whiteA40 },
 
   outlineBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md,
-    height: 52, borderRadius: radius.round, borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.75)',
-    marginBottom: spacing.md, backgroundColor: 'rgba(255,255,255,0.16)',
+    height: 52, borderRadius: radius.round, borderWidth: 1.5, borderColor: colors.whiteA25,
+    marginBottom: spacing.md, backgroundColor: colors.whiteA06,
   },
-  outlineBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 13.5, color: colors.ink },
+  outlineBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 13.5, color: colors.white },
 
-  caption: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: 'rgba(5,8,5,0.55)', textAlign: 'center', marginTop: spacing.sm, letterSpacing: 0.4 },
+  caption: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: colors.whiteA40, textAlign: 'center', marginTop: spacing.sm, letterSpacing: 0.4 },
 });
