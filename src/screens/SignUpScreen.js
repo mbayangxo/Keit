@@ -149,14 +149,28 @@ function OtpStep({ lang, displayPhone, otp, setOtp, loading, devHint, onResend, 
       </Text>
       {devHint ? <Text style={styles.devOtpHint}>Code: {devHint}</Text> : null}
 
-      <View style={styles.otpRow}>
-        {boxes.map((i) => (
-          <View key={i} style={[styles.otpBox, otp.length > i && styles.otpBoxFilled, otp.length === i && styles.otpBoxActive]}>
-            <Text style={styles.otpDigit}>{otp[i] ?? ''}</Text>
-          </View>
-        ))}
+      {/* The real input is stretched invisibly over the boxes: tapping a box
+          taps the input, so the keyboard opens from a genuine user gesture —
+          mobile browsers block programmatic autofocus, which froze this step
+          on phones (code visible, no way to type it). */}
+      <View style={{ position: 'relative' }}>
+        <View style={styles.otpRow}>
+          {boxes.map((i) => (
+            <View key={i} style={[styles.otpBox, otp.length > i && styles.otpBoxFilled, otp.length === i && styles.otpBoxActive]}>
+              <Text style={styles.otpDigit}>{otp[i] ?? ''}</Text>
+            </View>
+          ))}
+        </View>
+        <TextInput
+          style={styles.otpTouchInput}
+          value={otp}
+          onChangeText={(v) => setOtp(v.replace(/[^0-9]/g, '').slice(0, 6))}
+          keyboardType="number-pad"
+          autoFocus
+          maxLength={6}
+          caretHidden
+        />
       </View>
-      <TextInput style={styles.hiddenInput} value={otp} onChangeText={(t) => setOtp(t.replace(/[^0-9]/g, '').slice(0, 6))} keyboardType="number-pad" autoFocus maxLength={6} />
 
       <PressScale scaleTo={0.95} onPress={onResend} style={{ alignSelf: 'center' }}>
         <Text style={styles.resendText}>
@@ -567,6 +581,10 @@ const styles = StyleSheet.create({
   otpBoxActive: { borderColor: colors.green },
   otpDigit: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: colors.green },
   hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
+  otpTouchInput: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    opacity: 0.02, color: 'transparent', fontSize: 1, textAlign: 'center',
+  },
   resendText: { fontSize: 11, color: colors.whiteA30, marginBottom: spacing.xxl },
   devOtpHint: { fontSize: 10, color: colors.flagGold, textAlign: 'center', marginBottom: spacing.md },
 

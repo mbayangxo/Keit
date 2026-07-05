@@ -211,6 +211,14 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
           <Animated.View style={[styles.ctaBlock, lineStyle(ctas)]}>
             <PressScale scaleTo={0.97} onPress={onCreateAccount} style={styles.primaryBtn}>
               <Text style={styles.primaryBtnText}>{t(langCode, 'splashCreate')}</Text>
+              <View style={styles.primaryBtnBadge}>
+                <Text style={styles.primaryBtnBadgeArrow}>→</Text>
+              </View>
+              <View style={styles.primaryBtnStripe}>
+                <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
+                <View style={[styles.flagSeg, { backgroundColor: colors.ink }]} />
+                <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
+              </View>
             </PressScale>
 
             <View style={styles.orRow}>
@@ -248,20 +256,21 @@ const styles = StyleSheet.create({
   langRow: { flexDirection: 'row', gap: spacing.xs },
   langWrap: { position: 'relative', zIndex: 20 },
   langBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    borderRadius: radius.round, paddingVertical: 6, paddingHorizontal: spacing.lg,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    borderRadius: radius.round, paddingVertical: 4, paddingHorizontal: spacing.md + 2,
     backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)',
   },
-  langBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 11.5, color: 'rgba(5,8,5,0.75)' },
-  langCaret: { fontSize: 9, color: 'rgba(5,8,5,0.5)' },
+  langBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: 'rgba(5,8,5,0.75)' },
+  langCaret: { fontSize: 8, color: 'rgba(5,8,5,0.5)' },
+  // Thin, compact menu — must never reach down to the logo mark.
   langMenu: {
-    position: 'absolute', top: 34, left: 0, minWidth: 128,
-    backgroundColor: '#ffffff', borderRadius: radius.xl, borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)',
-    paddingVertical: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 18, elevation: 8,
+    position: 'absolute', top: 28, left: 0, minWidth: 92,
+    backgroundColor: '#ffffff', borderRadius: radius.lg, borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)',
+    paddingVertical: 2,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 8,
   },
-  langItem: { paddingVertical: 9, paddingHorizontal: spacing.xl },
-  langItemText: { fontFamily: fontFamily.bodySemiBold, fontSize: 12.5, color: colors.ink },
+  langItem: { paddingVertical: 6, paddingHorizontal: spacing.lg },
+  langItemText: { fontFamily: fontFamily.bodySemiBold, fontSize: 11.5, color: colors.ink },
   loginLink: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: 'rgba(5,8,5,0.75)', textDecorationLine: 'underline' },
 
   hero: { alignItems: 'center', marginTop: spacing.giant },
@@ -297,12 +306,21 @@ const styles = StyleSheet.create({
   headAccent: { color: colors.goldDark, textShadowColor: 'rgba(232,146,10,0.25)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10 },
 
   ctaBlock: { marginTop: 'auto', paddingBottom: spacing.xl },
+  // K21 signature button: pill with one "cut" corner (bottom-right), an ink
+  // arrow badge, and the flag micro-stripe — no other app has this shape.
   primaryBtn: {
-    height: 58, borderRadius: radius.round, backgroundColor: colors.flagGold,
+    height: 58, borderRadius: radius.round, borderBottomRightRadius: 10,
+    backgroundColor: colors.flagGold, overflow: 'hidden',
     alignItems: 'center', justifyContent: 'center',
     shadowColor: colors.goldDark, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 6,
   },
   primaryBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 15, color: colors.ink },
+  primaryBtnBadge: {
+    position: 'absolute', right: 10, width: 38, height: 38, borderRadius: 19, borderBottomRightRadius: 7,
+    backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center',
+  },
+  primaryBtnBadgeArrow: { fontSize: 16, color: colors.flagGold },
+  primaryBtnStripe: { position: 'absolute', bottom: 0, left: '38%', right: '38%', height: 3, flexDirection: 'row', borderRadius: 2, overflow: 'hidden' },
 
   orRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginVertical: spacing.lg },
   orLine: { flex: 1, height: 1, backgroundColor: 'rgba(5,8,5,0.14)' },
@@ -310,7 +328,8 @@ const styles = StyleSheet.create({
 
   outlineBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md,
-    height: 52, borderRadius: radius.round, borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.65)',
+    height: 52, borderRadius: radius.round, borderBottomRightRadius: 9,
+    borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.65)',
     marginBottom: spacing.md, backgroundColor: 'rgba(255,255,255,0.65)',
   },
   outlineBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 13.5, color: colors.ink },
