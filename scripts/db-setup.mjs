@@ -23,7 +23,8 @@ function loadEnvFile() {
     if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
-    if (!process.env[key]) process.env[key] = val;
+    // Always trust .env for setup (ignore stale DATABASE_URL exported in the shell).
+    process.env[key] = val;
   }
 }
 
@@ -55,14 +56,34 @@ if (url.startsWith('file:')) {
 }
 
 if (!/^postgres(ql)?:\/\//i.test(url)) {
-  fail(`DATABASE_URL must start with postgresql:// — got: ${url.slice(0, 40)}…`);
+  fail(
+    `DATABASE_URL must start with postgresql://\n` +
+      `You have: ${url.slice(0, 50)}${url.length > 50 ? '…' : ''}\n\n` +
+      'Do NOT type a label like "your-supabase-uri". Copy the full line from Supabase:\n' +
+      '  Dashboard → Project Settings → Database → Connection string\n' +
+      '  → URI tab → Method: Transaction pooler → Copy\n' +
+      'It looks like:\n' +
+      '  postgresql://postgres.xxxxx:YOUR_PASSWORD@aws-0-....pooler.supabase.com:6543/postgres\n\n' +
+      'Paste that entire string as DATABASE_URL in .env (quotes are fine).'
+  );
 }
 
-if (/USER|PASSWORD|HOST/.test(url)) {
+const PLACEHOLDER =
+  /:\/\/USER:|^postgresql:\/\/USER|@HOST[/:]|:PASSWORD@|your-supabase|replace-with|xxx\.supabase|example\.com/i;
+
+if (PLACEHOLDER.test(url)) {
   fail(
-    'DATABASE_URL still has placeholder text (USER, PASSWORD, or HOST).\n' +
-      'Replace with your real Supabase connection string from:\n' +
-      'Supabase → Project Settings → Database → Connection string → URI → Transaction pooler'
+    'DATABASE_URL still looks like the .env.example template (USER, PASSWORD, or HOST).\n' +
+      'Edit the file: /Users/mbayangdiallo/keit/.env — save it — then run npm run db:setup again.\n' +
+      'Supabase → Settings → Database → Connection string → URI'
+  );
+}
+
+// Unencoded @ in the password breaks parsing (shows up as !@@ before the hostname).
+if (/:[^/@]+@[^/@]+@/.test(url)) {
+  fail(
+    'Your password contains @ — it must be URL-encoded as %40 in DATABASE_URL.\n' +
+      'Example: if your password is MyPass@123, use MyPass%40123 in the connection string.'
   );
 }
 
