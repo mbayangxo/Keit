@@ -26,7 +26,7 @@ export default function TabBar({ state, navigation }) {
   if (getFocusedRouteNameFromRoute(focusedRoute) === 'MbooloChat') return null;
 
   return (
-    <BlurView intensity={40} tint="dark" style={styles.bottomNav}>
+    <BlurView intensity={45} tint="light" style={styles.bottomNav}>
       {state.routes.map((route, index) => {
         const focused = state.index === index;
         return (
@@ -40,7 +40,7 @@ export default function TabBar({ state, navigation }) {
           >
             <Text style={styles.navIcon}>{TAB_ICONS[route.name]}</Text>
             {focused && <View style={styles.navDot} />}
-            <Text style={[styles.navLabel, focused && { color: colors.green }]}>{TAB_LABELS[route.name]}</Text>
+            <Text style={[styles.navLabel, focused && { color: colors.greenDark }]}>{TAB_LABELS[route.name]}</Text>
           </Pressable>
         );
       })}
@@ -49,9 +49,9 @@ export default function TabBar({ state, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', paddingTop: spacing.lg, paddingBottom: spacing.xxxl, borderTopWidth: 1, borderTopColor: colors.whiteA08, overflow: 'hidden' },
+  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', paddingTop: spacing.lg, paddingBottom: spacing.xxxl, borderTopWidth: 1, borderTopColor: 'rgba(5,8,5,0.08)', overflow: 'hidden' },
   navItem: { flex: 1, alignItems: 'center', gap: 3 },
   navIcon: { fontSize: 20 },
-  navDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.green },
-  navLabel: { fontFamily: fontFamily.bodyBold, fontSize: 8, color: colors.whiteA30 },
+  navDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.greenDark },
+  navLabel: { fontFamily: fontFamily.bodyBold, fontSize: 8, color: 'rgba(5,8,5,0.45)' },
 });

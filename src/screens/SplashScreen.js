@@ -167,7 +167,7 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
             </View>
 
             <PressScale scaleTo={0.97} onPress={onContinueApple} style={styles.outlineBtn}>
-              <AppleMark color={colors.white} />
+              <AppleMark color={colors.ink} />
               <Text style={styles.outlineBtnText}>{t(langCode, 'splashApple')}</Text>
             </PressScale>
             <PressScale scaleTo={0.97} onPress={onContinueGoogle} style={styles.outlineBtn}>
@@ -188,59 +188,58 @@ const RING_MID = 214;
 const SUN = 168;
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
   frame: { flex: 1, width: '100%', maxWidth: 420, alignSelf: 'center', paddingHorizontal: spacing.giant },
 
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: spacing.lg },
   langRow: { flexDirection: 'row', gap: spacing.xs },
-  langBtn: { borderRadius: radius.round, paddingVertical: 5, paddingHorizontal: spacing.md + 2, backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA08 },
-  langBtnOn: { backgroundColor: colors.green, borderColor: colors.green },
-  langBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.whiteA40 },
-  langBtnTextOn: { color: colors.ink },
-  loginLink: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.whiteA70, textDecorationLine: 'underline' },
+  langBtn: { borderRadius: radius.round, paddingVertical: 5, paddingHorizontal: spacing.md + 2, backgroundColor: 'rgba(5,8,5,0.06)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)' },
+  langBtnOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  langBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: 'rgba(5,8,5,0.5)' },
+  langBtnTextOn: { color: colors.green },
+  loginLink: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: 'rgba(5,8,5,0.75)', textDecorationLine: 'underline' },
 
   hero: { alignItems: 'center', marginTop: spacing.giant },
   ringOuter: {
     width: RING_OUTER, height: RING_OUTER, borderRadius: RING_OUTER / 2,
-    backgroundColor: colors.greenA05, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(26,240,96,0.10)', alignItems: 'center', justifyContent: 'center',
   },
   ringMid: {
     width: RING_MID, height: RING_MID, borderRadius: RING_MID / 2,
-    backgroundColor: colors.greenA10, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(26,240,96,0.16)', alignItems: 'center', justifyContent: 'center',
   },
   sun: {
-    width: SUN, height: SUN, borderRadius: SUN / 2, backgroundColor: '#0a1a0c',
-    borderWidth: 1.5, borderColor: colors.greenA30,
+    width: SUN, height: SUN, borderRadius: SUN / 2, backgroundColor: colors.ink,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 30, elevation: 10,
+    shadowColor: colors.green, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 26, elevation: 10,
   },
   wordmark: { fontFamily: fontFamily.displayBlack, fontSize: 44, letterSpacing: -2, color: colors.green, textShadowColor: 'rgba(26,240,96,0.5)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 18 },
   flagStripe: { flexDirection: 'row', height: 3, borderRadius: 2, overflow: 'hidden', width: 44, marginTop: spacing.sm },
   flagSeg: { flex: 1 },
 
   headline: { marginTop: 'auto', marginBottom: 'auto', paddingVertical: spacing.giant },
-  headLine: { fontFamily: fontFamily.displayBlack, fontSize: 37, lineHeight: 46, letterSpacing: -1.6, color: colors.white },
+  headLine: { fontFamily: fontFamily.displayBlack, fontSize: 37, lineHeight: 46, letterSpacing: -1.6, color: colors.ink },
   headIndent: { marginLeft: 34 },
-  headAccent: { color: colors.flagGold, textShadowColor: 'rgba(250,216,54,0.35)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 16 },
+  headAccent: { color: colors.goldDark, textShadowColor: 'rgba(232,146,10,0.25)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10 },
 
   ctaBlock: { marginTop: 'auto', paddingBottom: spacing.xl },
   primaryBtn: {
     height: 58, borderRadius: radius.round, backgroundColor: colors.flagGold,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.flagGold, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.35, shadowRadius: 18, elevation: 6,
+    shadowColor: colors.goldDark, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 6,
   },
   primaryBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 15, color: colors.ink },
 
   orRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginVertical: spacing.lg },
-  orLine: { flex: 1, height: 1, backgroundColor: colors.whiteA12 },
-  orText: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: colors.whiteA40 },
+  orLine: { flex: 1, height: 1, backgroundColor: 'rgba(5,8,5,0.14)' },
+  orText: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: 'rgba(5,8,5,0.45)' },
 
   outlineBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md,
-    height: 52, borderRadius: radius.round, borderWidth: 1.5, borderColor: colors.whiteA25,
-    marginBottom: spacing.md, backgroundColor: colors.whiteA06,
+    height: 52, borderRadius: radius.round, borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.65)',
+    marginBottom: spacing.md, backgroundColor: 'rgba(255,255,255,0.65)',
   },
-  outlineBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 13.5, color: colors.white },
+  outlineBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 13.5, color: colors.ink },
 
-  caption: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: colors.whiteA40, textAlign: 'center', marginTop: spacing.sm, letterSpacing: 0.4 },
+  caption: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: 'rgba(5,8,5,0.5)', textAlign: 'center', marginTop: spacing.sm, letterSpacing: 0.4 },
 });

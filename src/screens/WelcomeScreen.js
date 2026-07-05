@@ -154,22 +154,22 @@ function TontineVisual() {
 
 const vs = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  zeroHalo: { position: 'absolute', width: 230, height: 230, borderRadius: 115, backgroundColor: colors.greenA08 },
-  zeroText: { fontFamily: fontFamily.displayBlack, fontSize: 128, letterSpacing: -6, color: colors.green, textShadowColor: 'rgba(26,240,96,0.4)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 30 },
+  zeroHalo: { position: 'absolute', width: 230, height: 230, borderRadius: 115, backgroundColor: 'rgba(26,240,96,0.14)' },
+  zeroText: { fontFamily: fontFamily.displayBlack, fontSize: 128, letterSpacing: -6, color: colors.greenDark, textShadowColor: 'rgba(26,240,96,0.45)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 24 },
   zeroStripe: { flexDirection: 'row', height: 4, borderRadius: 2, overflow: 'hidden', width: 74, marginTop: spacing.md },
   stripeSeg: { flex: 1 },
 
   eqRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, height: 160 },
   eqBar: { width: 18, borderRadius: 9 },
-  eqCaption: { fontFamily: fontFamily.displayBlack, fontSize: 15, letterSpacing: 4, color: colors.whiteA55, marginTop: spacing.xxl },
+  eqCaption: { fontFamily: fontFamily.displayBlack, fontSize: 15, letterSpacing: 4, color: 'rgba(5,8,5,0.55)', marginTop: spacing.xxl },
 
-  orbit: { position: 'absolute', borderWidth: 1.5, borderColor: colors.whiteA20, borderStyle: 'dashed' },
-  orbitDot: { position: 'absolute', width: 18, height: 18, borderRadius: 9, backgroundColor: colors.terracottaLight },
+  orbit: { position: 'absolute', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.22)', borderStyle: 'dashed' },
+  orbitDot: { position: 'absolute', width: 18, height: 18, borderRadius: 9, backgroundColor: colors.terracotta },
   pot: {
     width: 108, height: 108, borderRadius: 54, backgroundColor: colors.terracotta, alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.terracotta, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 26, elevation: 9,
+    shadowColor: colors.terracotta, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 20, elevation: 9,
   },
-  potText: { fontFamily: fontFamily.displayBlack, fontSize: 28, letterSpacing: -1, color: colors.ink },
+  potText: { fontFamily: fontFamily.displayBlack, fontSize: 28, letterSpacing: -1, color: colors.white },
 });
 
 // One shared canvas (ScreenBackground) — each slide keeps its own color
@@ -180,21 +180,21 @@ const SLIDES = [
     Visual: ZeroVisual,
     ctaBg: colors.green,
     ctaColor: colors.ink,
-    accent: colors.green,
+    accent: colors.greenDark,
   },
   {
     key: 'music',
     Visual: MusicVisual,
     ctaBg: colors.flagGold,
     ctaColor: colors.ink,
-    accent: colors.flagGold,
+    accent: colors.goldDark,
   },
   {
     key: 'community',
     Visual: TontineVisual,
     ctaBg: colors.terracotta,
     ctaColor: colors.white,
-    accent: colors.terracottaLight,
+    accent: colors.terracotta,
   },
 ];
 
@@ -240,9 +240,9 @@ export default function WelcomeScreen({ onComplete }) {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.frame}>
           <View style={styles.topBar}>
-            <Text style={[styles.brandMark, { color: colors.green }]}>K21</Text>
+            <Text style={[styles.brandMark, { color: colors.greenDark }]}>K21</Text>
             <PressScale scaleTo={0.94} onPress={onComplete}>
-              <Text style={[styles.skipText, { color: colors.whiteA55 }]}>{t(langCode, 'welcomeSkip')}</Text>
+              <Text style={[styles.skipText, { color: 'rgba(5,8,5,0.55)' }]}>{t(langCode, 'welcomeSkip')}</Text>
             </PressScale>
           </View>
 
@@ -257,18 +257,18 @@ export default function WelcomeScreen({ onComplete }) {
                   key={s.key}
                   style={[
                     styles.dot,
-                    { backgroundColor: colors.whiteA20 },
+                    { backgroundColor: 'rgba(5,8,5,0.18)' },
                     i === index && { width: 22, backgroundColor: slide.accent },
                   ]}
                 />
               ))}
             </View>
-            <Text style={[styles.title, { color: colors.white }]}>
+            <Text style={[styles.title, { color: colors.ink }]}>
               {slide.titleLine1}
               {'\n'}
               <Text style={{ color: slide.accent }}>{slide.titleLine2}</Text>
             </Text>
-            <Text style={[styles.body, { color: colors.whiteA55 }]}>{slide.body}</Text>
+            <Text style={[styles.body, { color: 'rgba(5,8,5,0.62)' }]}>{slide.body}</Text>
             <PressScale scaleTo={0.97} onPress={goNext} style={[styles.nextBtn, { backgroundColor: slide.ctaBg, shadowColor: slide.ctaBg }]}>
               <Text style={[styles.nextBtnText, { color: slide.ctaColor }]}>{slide.button}</Text>
             </PressScale>
@@ -280,7 +280,7 @@ export default function WelcomeScreen({ onComplete }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
   frame: { flex: 1, width: '100%', maxWidth: 420, alignSelf: 'center' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xxl, paddingTop: spacing.lg },
   brandMark: { fontFamily: fontFamily.displayBlack, fontSize: 17, letterSpacing: -0.5 },

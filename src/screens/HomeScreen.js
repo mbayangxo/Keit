@@ -2,7 +2,7 @@ import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import WaxPattern from '../components/WaxPattern';
-import HomeHeroBackground from '../components/HomeHeroBackground';
+import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
 import { useAppState } from '../state/AppState';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
@@ -273,7 +273,7 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-      <WaxPattern color="rgba(255,255,255,0.025)" size={18} durationMs={motion.waxDrift} />
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
           style={{ flex: 1 }}
@@ -282,8 +282,6 @@ export default function HomeScreen({ navigation }) {
         >
           {/* Hero */}
           <View style={styles.hero}>
-            <HomeHeroBackground />
-            <WaxPattern color="rgba(26,240,96,0.04)" size={18} animated={false} />
             <View style={styles.heroContent}>
               <View style={styles.heroTopRow}>
                 <View>
@@ -345,7 +343,7 @@ export default function HomeScreen({ navigation }) {
                     title={tx.title}
                     subtitle={tx.subtitle}
                     amount={`${tx.amount > 0 ? '+' : ''}${formatAmount(tx.amount)} F`}
-                    amountColor={tx.amount > 0 ? colors.green : colors.flagRed}
+                    amountColor={tx.amount > 0 ? colors.greenDark : colors.flagRed}
                   />
                 ))}
               </View>
@@ -358,23 +356,23 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
 
   hero: { position: 'relative', overflow: 'hidden', paddingHorizontal: spacing.huge, paddingTop: spacing.giant, paddingBottom: 22 },
   heroContent: { position: 'relative', zIndex: 2 },
   heroTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.huge },
-  locationLabel: { ...type.tiny, fontSize: 9, letterSpacing: 1, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: 3 },
-  greeting: { fontFamily: fontFamily.displayBold, fontSize: 17, letterSpacing: -0.4, color: colors.whiteA55 },
-  greetingBold: { color: colors.white, fontFamily: fontFamily.displayBlack },
-  notifBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
-  notifDot: { position: 'absolute', top: 8, right: 9, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.flagRed, borderWidth: 1.5, borderColor: colors.ink },
+  locationLabel: { ...type.tiny, fontSize: 9, letterSpacing: 1, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginBottom: 3 },
+  greeting: { fontFamily: fontFamily.displayBold, fontSize: 17, letterSpacing: -0.4, color: 'rgba(5,8,5,0.55)' },
+  greetingBold: { color: colors.ink, fontFamily: fontFamily.displayBlack },
+  notifBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(5,8,5,0.05)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', alignItems: 'center', justifyContent: 'center' },
+  notifDot: { position: 'absolute', top: 8, right: 9, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.flagRed, borderWidth: 1.5, borderColor: '#f2f8ec' },
 
   balanceDisplay: { alignItems: 'center', marginBottom: spacing.giant },
-  balanceEye: { ...type.bodySmall, color: colors.whiteA30, marginBottom: spacing.sm },
-  balanceAmount: { ...type.balanceAmount, color: colors.white, textAlign: 'center', textShadowColor: 'rgba(26,240,96,0.35)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 24 },
-  balanceCurrency: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(26,240,96,0.7)' },
-  zeroFeesPill: { marginTop: spacing.md, alignSelf: 'center', backgroundColor: colors.goldA10, borderWidth: 1, borderColor: colors.goldA20, borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: spacing.xs },
-  zeroFeesText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.flagGold },
+  balanceEye: { ...type.bodySmall, color: 'rgba(5,8,5,0.45)', marginBottom: spacing.sm },
+  balanceAmount: { ...type.balanceAmount, color: colors.ink, textAlign: 'center', textShadowColor: 'rgba(26,240,96,0.3)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 18 },
+  balanceCurrency: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: colors.greenDark },
+  zeroFeesPill: { marginTop: spacing.md, alignSelf: 'center', backgroundColor: 'rgba(247,183,49,0.14)', borderWidth: 1, borderColor: 'rgba(232,146,10,0.3)', borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: spacing.xs },
+  zeroFeesText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.goldDark },
 
   homeActions: { flexDirection: 'row', justifyContent: 'space-between' },
   haItem: { alignItems: 'center', gap: spacing.xs },
@@ -384,7 +382,7 @@ const styles = StyleSheet.create({
   },
   haSheen: { position: 'absolute', top: 3, left: 12, right: 12, height: 10, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.28)' },
   haIcon: { fontSize: 23 },
-  haLabel: { ...type.actionLabel, color: colors.whiteA70, textAlign: 'center' },
+  haLabel: { ...type.actionLabel, color: 'rgba(5,8,5,0.65)', textAlign: 'center' },
 
   flagDiv: { flexDirection: 'row', height: 2, marginVertical: spacing.xxxl },
   flagSeg: { flex: 1 },
@@ -406,35 +404,35 @@ const styles = StyleSheet.create({
   rcBars: { flexDirection: 'row', gap: 2, alignItems: 'flex-end', height: 20 },
   rcBar: { width: 3, borderRadius: 2, backgroundColor: colors.green },
 
-  wakhnaMini: { backgroundColor: colors.goldA08, borderWidth: 1, borderColor: colors.goldA20, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
-  wmScore: { ...type.wakhnaScore, color: colors.flagGold },
+  wakhnaMini: { backgroundColor: 'rgba(247,183,49,0.14)', borderWidth: 1, borderColor: 'rgba(232,146,10,0.28)', borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
+  wmScore: { ...type.wakhnaScore, color: colors.goldDark },
   wmBody: { flex: 1 },
-  wmLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: 'rgba(250,216,54,0.7)', textTransform: 'uppercase', marginBottom: 3 },
-  wmRank: { ...type.bodySmall, color: colors.whiteA40 },
-  wmRankBold: { fontFamily: fontFamily.bodyBold, color: colors.flagGold },
-  wmBar: { height: 4, backgroundColor: colors.whiteA08, borderRadius: 2, overflow: 'hidden', marginTop: spacing.sm },
-  wmStar: { fontSize: 20, color: colors.flagGold },
+  wmLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: colors.goldDark, textTransform: 'uppercase', marginBottom: 3 },
+  wmRank: { ...type.bodySmall, color: 'rgba(5,8,5,0.55)' },
+  wmRankBold: { fontFamily: fontFamily.bodyBold, color: colors.goldDark },
+  wmBar: { height: 4, backgroundColor: 'rgba(5,8,5,0.08)', borderRadius: 2, overflow: 'hidden', marginTop: spacing.sm },
+  wmStar: { fontSize: 20, color: colors.goldDark },
 
   mbooloMini: { backgroundColor: 'rgba(232,92,26,0.1)', borderWidth: 1, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
   mmAvaStack: { flexDirection: 'row' },
-  mmAva: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.whiteA08, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
+  mmAva: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(5,8,5,0.06)', borderWidth: 2, borderColor: '#f2f8ec', alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
   mmAvaText: { fontSize: 13 },
   mmBody: { flex: 1 },
-  mmTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: 'rgba(255,180,100,0.9)' },
-  mmSub: { ...type.caption, color: colors.whiteA30 },
+  mmTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.terracottaDark },
+  mmSub: { ...type.caption, color: 'rgba(5,8,5,0.5)' },
   mmBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.terracotta, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   mmBadgeText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.white },
 
   discover: { paddingBottom: spacing.xxxl },
   discHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xxxl, marginBottom: spacing.lg },
-  discLabel: { fontFamily: fontFamily.displayBlack, fontSize: 15, letterSpacing: -0.4, color: colors.white },
-  discAll: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.green },
+  discLabel: { fontFamily: fontFamily.displayBlack, fontSize: 15, letterSpacing: -0.4, color: colors.ink },
+  discAll: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.greenDark },
   chipRow: { paddingHorizontal: spacing.xxxl, gap: spacing.sm, paddingBottom: spacing.lg },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     borderWidth: 1, borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: 7,
   },
-  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11.5, color: colors.whiteA85 },
+  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11.5, color: 'rgba(5,8,5,0.72)' },
 
   featCard: { marginHorizontal: spacing.xxxl, borderRadius: radius.xxxl, borderWidth: 1.5, borderColor: colors.greenA20, padding: spacing.xxl, overflow: 'hidden', marginBottom: spacing.md },
   featTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xl },
@@ -456,11 +454,11 @@ const styles = StyleSheet.create({
   miniMeta: { fontFamily: fontFamily.bodyRegular, fontSize: 10.5, color: colors.whiteA55 },
 
   txSection: { paddingHorizontal: spacing.huge, paddingBottom: spacing.xxxl },
-  txLabel: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.lg },
-  txEmpty: { fontSize: 11, color: colors.whiteA30 },
-  txRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, paddingHorizontal: spacing.xl, paddingVertical: 9, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg },
+  txLabel: { ...type.eyebrow, color: 'rgba(5,8,5,0.45)', marginBottom: spacing.lg },
+  txEmpty: { fontSize: 11, color: 'rgba(5,8,5,0.45)' },
+  txRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, paddingHorizontal: spacing.xl, paddingVertical: 9, backgroundColor: 'rgba(255,255,255,0.65)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.07)', borderRadius: radius.lg },
   txIcon: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  txTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
-  txSub: { ...type.caption, color: colors.whiteA30 },
+  txTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.ink },
+  txSub: { ...type.caption, color: 'rgba(5,8,5,0.5)' },
   txAmount: { fontFamily: fontFamily.bodyBold, fontSize: 13 },
 });
