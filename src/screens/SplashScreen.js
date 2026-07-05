@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +10,7 @@ import { useLocale } from '../context/LocaleContext';
 import { t } from '../i18n/translations';
 
 const LANGS = ['FR', 'WO', 'EN'];
+const LANG_NAMES = { FR: 'Français', WO: 'Wolof', EN: 'English' };
 const SPLASH_FROM_CODE = { fr: 'FR', wo: 'WO', en: 'EN' };
 
 function AppleMark({ size = 16, color = colors.ink }) {
@@ -35,9 +36,8 @@ function GoogleMark({ size = 16 }) {
 }
 
 // Entry screen — editorial "lifestyle brand" treatment (no photos):
-// sunrise mark + giant stacked display headline + one loud gold CTA.
-// Deliberately bright (brand green field, ink accents) as a one-off; the
-// rest of the app keeps the locked dark #050805 shell.
+// crisp animated sunrise mark + stacked display headline + one gold CTA,
+// on the shared bright canvas (ScreenBackground) used across the app.
 export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinueApple, onContinueGoogle }) {
   const sunrise = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
@@ -48,6 +48,7 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
   const ctas = useRef(new Animated.Value(0)).current;
   const { langCode, setLanguageFromSplash } = useLocale();
   const lang = SPLASH_FROM_CODE[langCode] ?? 'FR';
+  const [langOpen, setLangOpen] = useState(false);
 
   useEffect(() => {
     Animated.sequence([
@@ -117,12 +118,29 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
         <View style={styles.frame}>
           {/* Top bar — language switch left, sign-in right (Sendwave-style "Log in") */}
           <View style={styles.topBar}>
-            <View style={styles.langRow}>
-              {LANGS.map((l) => (
-                <PressScale key={l} scaleTo={0.92} onPress={() => setLanguageFromSplash(l)} style={[styles.langBtn, l === lang && styles.langBtnOn]}>
-                  <Text style={[styles.langBtnText, l === lang && styles.langBtnTextOn]}>{l}</Text>
-                </PressScale>
-              ))}
+            {/* One quiet dropdown instead of a row of pills */}
+            <View style={styles.langWrap}>
+              <PressScale scaleTo={0.94} onPress={() => setLangOpen((o) => !o)} style={styles.langBtn}>
+                <Text style={styles.langBtnText}>🌍 {lang}</Text>
+                <Text style={styles.langCaret}>{langOpen ? '▴' : '▾'}</Text>
+              </PressScale>
+              {langOpen && (
+                <View style={styles.langMenu}>
+                  {LANGS.filter((l) => l !== lang).map((l) => (
+                    <PressScale
+                      key={l}
+                      scaleTo={0.95}
+                      onPress={() => {
+                        setLanguageFromSplash(l);
+                        setLangOpen(false);
+                      }}
+                      style={styles.langItem}
+                    >
+                      <Text style={styles.langItemText}>{LANG_NAMES[l]}</Text>
+                    </PressScale>
+                  ))}
+                </View>
+              )}
             </View>
             <PressScale scaleTo={0.94} onPress={onHaveAccount}>
               <Text style={styles.loginLink}>{t(langCode, 'splashSignInAction')}</Text>
@@ -226,12 +244,24 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f2f8ec' },
   frame: { flex: 1, width: '100%', maxWidth: 420, alignSelf: 'center', paddingHorizontal: spacing.giant },
 
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: spacing.lg },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: spacing.lg, zIndex: 30 },
   langRow: { flexDirection: 'row', gap: spacing.xs },
-  langBtn: { borderRadius: radius.round, paddingVertical: 5, paddingHorizontal: spacing.md + 2, backgroundColor: 'rgba(5,8,5,0.06)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)' },
-  langBtnOn: { backgroundColor: colors.ink, borderColor: colors.ink },
-  langBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: 'rgba(5,8,5,0.5)' },
-  langBtnTextOn: { color: colors.green },
+  langWrap: { position: 'relative', zIndex: 20 },
+  langBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    borderRadius: radius.round, paddingVertical: 6, paddingHorizontal: spacing.lg,
+    backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)',
+  },
+  langBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 11.5, color: 'rgba(5,8,5,0.75)' },
+  langCaret: { fontSize: 9, color: 'rgba(5,8,5,0.5)' },
+  langMenu: {
+    position: 'absolute', top: 34, left: 0, minWidth: 128,
+    backgroundColor: '#ffffff', borderRadius: radius.xl, borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)',
+    paddingVertical: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 18, elevation: 8,
+  },
+  langItem: { paddingVertical: 9, paddingHorizontal: spacing.xl },
+  langItemText: { fontFamily: fontFamily.bodySemiBold, fontSize: 12.5, color: colors.ink },
   loginLink: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: 'rgba(5,8,5,0.75)', textDecorationLine: 'underline' },
 
   hero: { alignItems: 'center', marginTop: spacing.giant },
