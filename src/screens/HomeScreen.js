@@ -143,6 +143,110 @@ function MbooloPulseCard({ onPress }) {
   );
 }
 
+const DISCOVER_CHIPS = [
+  { icon: '🎉', label: 'Events' },
+  { icon: '🍽️', label: 'Food' },
+  { icon: '🛍️', label: 'Shopping' },
+  { icon: '🏖️', label: 'Plages' },
+  { icon: '⚽', label: 'Foot' },
+  { icon: '🎵', label: 'Musique' },
+];
+
+function FeaturedEventCard({ onPress }) {
+  const glow = useGlowPulse(motion.pulseSlow, 0.4);
+  const bar1 = useBarLoop(0);
+  const bar2 = useBarLoop(120);
+  const bar3 = useBarLoop(240);
+  const dotBlink = useBlink();
+
+  return (
+    <PressScale scaleTo={0.98} onPress={onPress}>
+      <Animated.View
+        style={[
+          styles.featCard,
+          { shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowRadius: 26, shadowOpacity: glow, elevation: 5 },
+        ]}
+      >
+        <LinearGradient colors={['#0d3b1c', '#0a1a0c', colors.ink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        <WaxPattern color="rgba(26,240,96,0.05)" size={16} animated={false} />
+        <View style={styles.featTop}>
+          <View style={styles.featLivePill}>
+            <Animated.View style={[styles.featLiveDot, { opacity: dotBlink }]} />
+            <Text style={styles.featLiveText}>CE SOIR</Text>
+          </View>
+          <View style={styles.featBars}>
+            <Animated.View style={[styles.featBar, { height: 10, transform: [{ scaleY: bar1 }] }]} />
+            <Animated.View style={[styles.featBar, { height: 18, transform: [{ scaleY: bar2 }] }]} />
+            <Animated.View style={[styles.featBar, { height: 13, transform: [{ scaleY: bar3 }] }]} />
+          </View>
+        </View>
+        <Text style={styles.featTitle}>Afrobeats{'\n'}Rooftop Party</Text>
+        <View style={styles.featMetaRow}>
+          <Text style={styles.featMeta}>📍 Almadies · 21h</Text>
+          <View style={styles.featTicket}>
+            <Text style={styles.featTicketText}>Billets · 5 000 F</Text>
+          </View>
+        </View>
+      </Animated.View>
+    </PressScale>
+  );
+}
+
+function MiniEventCard({ gradient, tag, tagColor, title, meta, onPress }) {
+  return (
+    <PressScale scaleTo={0.97} onPress={onPress} style={styles.miniCard}>
+      <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <Text style={[styles.miniTag, { color: tagColor }]}>{tag}</Text>
+      <Text style={styles.miniTitle} numberOfLines={2}>{title}</Text>
+      <Text style={styles.miniMeta}>{meta}</Text>
+    </PressScale>
+  );
+}
+
+function DiscoverSection({ navigation }) {
+  const goExplore = () => navigation.navigate('ExplorerTab');
+  return (
+    <View style={styles.discover}>
+      <View style={styles.discHead}>
+        <Text style={styles.discLabel}>Découvre Dakar</Text>
+        <PressScale scaleTo={0.94} onPress={goExplore}>
+          <Text style={styles.discAll}>Voir tout →</Text>
+        </PressScale>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        {DISCOVER_CHIPS.map((c) => (
+          <PressScale key={c.label} scaleTo={0.93} onPress={goExplore} style={styles.chip}>
+            <Text style={{ fontSize: 13 }}>{c.icon}</Text>
+            <Text style={styles.chipText}>{c.label}</Text>
+          </PressScale>
+        ))}
+      </ScrollView>
+
+      <FeaturedEventCard onPress={goExplore} />
+
+      <View style={styles.miniRow}>
+        <MiniEventCard
+          gradient={['#5c2410', '#3d1608', colors.ink]}
+          tag="MARCHÉ"
+          tagColor={colors.terracottaLight}
+          title="Marché des tissus"
+          meta="Sandaga · Sam 10h"
+          onPress={goExplore}
+        />
+        <MiniEventCard
+          gradient={['#4d3a08', '#332605', colors.ink]}
+          tag="FESTIVAL"
+          tagColor={colors.flagGold}
+          title="Yoff Beach Festival"
+          meta="Yoff · Dim 15h"
+          onPress={goExplore}
+        />
+      </View>
+    </View>
+  );
+}
+
 function TransactionRow({ icon, iconBg, title, subtitle, amount, amountColor }) {
   return (
     <View style={styles.txRow}>
@@ -222,6 +326,8 @@ export default function HomeScreen({ navigation }) {
             <WakhnaMiniCard onPress={() => navigation.navigate('MoiTab')} />
             <MbooloPulseCard onPress={() => navigation.navigate('MbooloTab')} />
           </View>
+
+          <DiscoverSection navigation={navigation} />
 
           <View style={styles.txSection}>
             <Text style={styles.txLabel}>Transactions récentes</Text>
@@ -312,6 +418,37 @@ const styles = StyleSheet.create({
   mmSub: { ...type.caption, color: colors.whiteA30 },
   mmBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.terracotta, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   mmBadgeText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.white },
+
+  discover: { paddingBottom: spacing.xxxl },
+  discHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xxxl, marginBottom: spacing.lg },
+  discLabel: { fontFamily: fontFamily.displayBlack, fontSize: 15, letterSpacing: -0.4, color: colors.white },
+  discAll: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.green },
+  chipRow: { paddingHorizontal: spacing.xxxl, gap: spacing.sm, paddingBottom: spacing.lg },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA10,
+    borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: 7,
+  },
+  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11.5, color: colors.whiteA70 },
+
+  featCard: { marginHorizontal: spacing.xxxl, borderRadius: radius.xxxl, borderWidth: 1.5, borderColor: colors.greenA20, padding: spacing.xxl, overflow: 'hidden', marginBottom: spacing.md },
+  featTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xl },
+  featLivePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(232,25,44,0.15)', borderWidth: 1, borderColor: 'rgba(232,25,44,0.35)', borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3 },
+  featLiveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.flagRed },
+  featLiveText: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: colors.flagRed },
+  featBars: { flexDirection: 'row', gap: 3, alignItems: 'flex-end', height: 18 },
+  featBar: { width: 3.5, borderRadius: 2, backgroundColor: colors.green },
+  featTitle: { fontFamily: fontFamily.displayBlack, fontSize: 22, lineHeight: 27, letterSpacing: -0.8, color: colors.white, marginBottom: spacing.lg },
+  featMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  featMeta: { fontFamily: fontFamily.bodySemiBold, fontSize: 11.5, color: colors.whiteA55 },
+  featTicket: { backgroundColor: colors.flagGold, borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: 6 },
+  featTicketText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.ink },
+
+  miniRow: { flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.xxxl },
+  miniCard: { flex: 1, borderRadius: radius.xxl, borderWidth: 1, borderColor: colors.whiteA08, padding: spacing.xl, overflow: 'hidden', minHeight: 108 },
+  miniTag: { fontFamily: fontFamily.bodyBold, fontSize: 8.5, letterSpacing: 1.2, marginBottom: spacing.sm },
+  miniTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13.5, lineHeight: 18, color: colors.white, marginBottom: 4 },
+  miniMeta: { fontFamily: fontFamily.bodyRegular, fontSize: 10.5, color: colors.whiteA55 },
 
   txSection: { paddingHorizontal: spacing.huge, paddingBottom: spacing.xxxl },
   txLabel: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.lg },
