@@ -24,7 +24,7 @@ const ACTIONS = [
   { icon: '💸', label: 'Yónnee', gradient: ['#2dff7d', '#0fbc48'], glow: colors.green, route: 'SendMoney' },
   { icon: '📥', label: 'Jël', gradient: ['#ffe45c', '#e8920a'], glow: colors.flagGold, route: 'Receive' },
   { icon: '🏪', label: 'Fey', gradient: ['#ff8c52', '#c44010'], glow: colors.orange, route: 'PayMerchant' },
-  { icon: '⋯', label: 'Plus', gradient: ['#212b21', '#0c110c'], glow: colors.whiteA20, route: 'MoreActions' },
+  { icon: '⋯', label: 'Plus', gradient: ['#fdf3cd', '#eeda96'], glow: colors.flagGold, route: 'MoreActions' },
 ];
 
 function formatAmount(n) {
@@ -146,10 +146,10 @@ function MbooloPulseCard({ onPress }) {
 }
 
 const DISCOVER_CHIPS = [
-  { icon: '🎉', label: 'Events', bg: colors.terracottaA10, border: colors.terracottaA25 },
+  { icon: '🎉', label: 'Events', bg: colors.orangeA10, border: colors.orangeA20 },
   { icon: '🍽️', label: 'Food', bg: colors.goldA10, border: colors.goldA20 },
-  { icon: '🛍️', label: 'Shopping', bg: 'rgba(232,25,44,0.09)', border: 'rgba(232,25,44,0.22)' },
-  { icon: '🏖️', label: 'Plages', bg: 'rgba(80,180,255,0.09)', border: 'rgba(80,180,255,0.22)' },
+  { icon: '🛍️', label: 'Shopping', bg: colors.greenA08, border: colors.greenA18 },
+  { icon: '🏖️', label: 'Plages', bg: colors.goldA10, border: colors.goldA20 },
   { icon: '⚽', label: 'Foot', bg: colors.greenA08, border: colors.greenA18 },
   { icon: '🎵', label: 'Musique', bg: colors.orangeA10, border: colors.orangeA20 },
 ];
@@ -169,8 +169,8 @@ function FeaturedEventCard({ onPress }) {
           { shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowRadius: 26, shadowOpacity: glow, elevation: 5 },
         ]}
       >
-        <LinearGradient colors={['#0d3b1c', '#0a1a0c', colors.ink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-        <WaxPattern color="rgba(26,240,96,0.05)" size={16} animated={false} />
+        <LinearGradient colors={['#13d95c', colors.greenDark, '#0a8a36']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        <WaxPattern color="rgba(255,255,255,0.07)" size={16} animated={false} />
         <View style={styles.featTop}>
           <View style={styles.featLivePill}>
             <Animated.View style={[styles.featLiveDot, { opacity: dotBlink }]} />
@@ -194,13 +194,13 @@ function FeaturedEventCard({ onPress }) {
   );
 }
 
-function MiniEventCard({ gradient, tag, tagColor, title, meta, onPress }) {
+function MiniEventCard({ gradient, tag, tagColor, textColor, metaColor, title, meta, onPress }) {
   return (
     <PressScale scaleTo={0.97} onPress={onPress} style={styles.miniCard}>
       <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <Text style={[styles.miniTag, { color: tagColor }]}>{tag}</Text>
-      <Text style={styles.miniTitle} numberOfLines={2}>{title}</Text>
-      <Text style={styles.miniMeta}>{meta}</Text>
+      <Text style={[styles.miniTitle, { color: textColor }]} numberOfLines={2}>{title}</Text>
+      <Text style={[styles.miniMeta, { color: metaColor }]}>{meta}</Text>
     </PressScale>
   );
 }
@@ -229,17 +229,21 @@ function DiscoverSection({ navigation }) {
 
       <View style={styles.miniRow}>
         <MiniEventCard
-          gradient={['#5c2410', '#3d1608', colors.ink]}
+          gradient={['#ff8c52', colors.terracotta, colors.terracottaDark]}
           tag="MARCHÉ"
-          tagColor={colors.terracottaLight}
+          tagColor="rgba(255,255,255,0.85)"
+          textColor={colors.white}
+          metaColor="rgba(255,255,255,0.75)"
           title="Marché des tissus"
           meta="Sandaga · Sam 10h"
           onPress={goExplore}
         />
         <MiniEventCard
-          gradient={['#4d3a08', '#332605', colors.ink]}
+          gradient={['#ffe45c', colors.flagGold, colors.goldDark]}
           tag="FESTIVAL"
-          tagColor={colors.flagGold}
+          tagColor="rgba(5,8,5,0.55)"
+          textColor={colors.ink}
+          metaColor="rgba(5,8,5,0.6)"
           title="Yoff Beach Festival"
           meta="Yoff · Dim 15h"
           onPress={goExplore}
@@ -318,7 +322,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.flagDiv}>
             <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
             <View style={[styles.flagSeg, { backgroundColor: colors.flagGold }]} />
-            <View style={[styles.flagSeg, { backgroundColor: colors.flagRed }]} />
+            <View style={[styles.flagSeg, { backgroundColor: colors.orange }]} />
           </View>
 
           <View style={styles.homeCards}>
@@ -343,7 +347,7 @@ export default function HomeScreen({ navigation }) {
                     title={tx.title}
                     subtitle={tx.subtitle}
                     amount={`${tx.amount > 0 ? '+' : ''}${formatAmount(tx.amount)} F`}
-                    amountColor={tx.amount > 0 ? colors.greenDark : colors.flagRed}
+                    amountColor={tx.amount > 0 ? colors.greenDark : colors.terracottaDark}
                   />
                 ))}
               </View>
@@ -365,7 +369,7 @@ const styles = StyleSheet.create({
   greeting: { fontFamily: fontFamily.displayBold, fontSize: 17, letterSpacing: -0.4, color: 'rgba(5,8,5,0.55)' },
   greetingBold: { color: colors.ink, fontFamily: fontFamily.displayBlack },
   notifBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(5,8,5,0.05)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', alignItems: 'center', justifyContent: 'center' },
-  notifDot: { position: 'absolute', top: 8, right: 9, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.flagRed, borderWidth: 1.5, borderColor: '#f2f8ec' },
+  notifDot: { position: 'absolute', top: 8, right: 9, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.orange, borderWidth: 1.5, borderColor: '#f2f8ec' },
 
   balanceDisplay: { alignItems: 'center', marginBottom: spacing.giant },
   balanceEye: { ...type.bodySmall, color: 'rgba(5,8,5,0.45)', marginBottom: spacing.sm },
@@ -389,20 +393,20 @@ const styles = StyleSheet.create({
 
   homeCards: { paddingHorizontal: spacing.xxxl, paddingBottom: spacing.xxxl, gap: spacing.lg },
 
-  rectCard: { backgroundColor: '#0a1a0c', borderWidth: 1.5, borderColor: colors.greenA20, borderRadius: radius.xxxl, padding: spacing.xxl },
+  rectCard: { backgroundColor: 'rgba(26,240,96,0.1)', borderWidth: 1.5, borderColor: 'rgba(15,188,72,0.3)', borderRadius: radius.xxxl, padding: spacing.xxl },
   rcTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
-  rcTag: { fontFamily: fontFamily.bodyBold, fontSize: 8, letterSpacing: 1, color: 'rgba(26,240,96,0.6)', textTransform: 'uppercase' },
+  rcTag: { fontFamily: fontFamily.bodyBold, fontSize: 8, letterSpacing: 1, color: colors.greenDark, textTransform: 'uppercase' },
   rcLive: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  rcDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.flagRed },
-  rcLiveText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.flagRed },
+  rcDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.orange },
+  rcLiveText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.orange },
   rcSong: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-  rcCover: { width: 44, height: 44, borderRadius: radius.lg, backgroundColor: '#1a5e30', alignItems: 'center', justifyContent: 'center' },
+  rcCover: { width: 44, height: 44, borderRadius: radius.lg, backgroundColor: colors.greenDark, alignItems: 'center', justifyContent: 'center' },
   rcInfo: { flex: 1, minWidth: 0 },
-  rcTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white },
-  rcArtist: { ...type.bodySmall, color: colors.whiteA40 },
-  rcChart: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.green, marginTop: 2 },
+  rcTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
+  rcArtist: { ...type.bodySmall, color: 'rgba(5,8,5,0.5)' },
+  rcChart: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.greenDark, marginTop: 2 },
   rcBars: { flexDirection: 'row', gap: 2, alignItems: 'flex-end', height: 20 },
-  rcBar: { width: 3, borderRadius: 2, backgroundColor: colors.green },
+  rcBar: { width: 3, borderRadius: 2, backgroundColor: colors.greenDark },
 
   wakhnaMini: { backgroundColor: 'rgba(247,183,49,0.14)', borderWidth: 1, borderColor: 'rgba(232,146,10,0.28)', borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
   wmScore: { ...type.wakhnaScore, color: colors.goldDark },
@@ -436,14 +440,14 @@ const styles = StyleSheet.create({
 
   featCard: { marginHorizontal: spacing.xxxl, borderRadius: radius.xxxl, borderWidth: 1.5, borderColor: colors.greenA20, padding: spacing.xxl, overflow: 'hidden', marginBottom: spacing.md },
   featTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xl },
-  featLivePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(232,25,44,0.15)', borderWidth: 1, borderColor: 'rgba(232,25,44,0.35)', borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3 },
-  featLiveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.flagRed },
-  featLiveText: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: colors.flagRed },
+  featLivePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3 },
+  featLiveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.orange },
+  featLiveText: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: colors.orange },
   featBars: { flexDirection: 'row', gap: 3, alignItems: 'flex-end', height: 18 },
-  featBar: { width: 3.5, borderRadius: 2, backgroundColor: colors.green },
+  featBar: { width: 3.5, borderRadius: 2, backgroundColor: colors.flagGold },
   featTitle: { fontFamily: fontFamily.displayBlack, fontSize: 22, lineHeight: 27, letterSpacing: -0.8, color: colors.white, marginBottom: spacing.lg },
   featMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  featMeta: { fontFamily: fontFamily.bodySemiBold, fontSize: 11.5, color: colors.whiteA55 },
+  featMeta: { fontFamily: fontFamily.bodySemiBold, fontSize: 11.5, color: 'rgba(255,255,255,0.85)' },
   featTicket: { backgroundColor: colors.flagGold, borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: 6 },
   featTicketText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.ink },
 

@@ -128,7 +128,7 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
                   <View style={styles.flagStripe}>
                     <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
                     <View style={[styles.flagSeg, { backgroundColor: colors.flagGold }]} />
-                    <View style={[styles.flagSeg, { backgroundColor: colors.flagRed }]} />
+                    <View style={[styles.flagSeg, { backgroundColor: colors.orange }]} />
                   </View>
                 </View>
               </Animated.View>
