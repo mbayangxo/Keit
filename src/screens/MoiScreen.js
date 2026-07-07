@@ -169,6 +169,12 @@ export default function MoiScreen({ navigation }) {
                     </View>
                     <Text style={styles.handle}>@{profile.handle}</Text>
                     <Text style={styles.location}>📍 {profile.arrondissement.name} · Dakar</Text>
+                    {profile.phone ? (
+                      <Text style={styles.contactLine}>📱 {profile.phone}</Text>
+                    ) : null}
+                    {profile.email ? (
+                      <Text style={styles.contactLine}>✉️ {profile.email}</Text>
+                    ) : null}
                     {profile.afriId ? (
                       <View style={styles.afriPill}>
                         <Text style={styles.afriPillText}>✦ {profile.afriId}</Text>
@@ -178,7 +184,7 @@ export default function MoiScreen({ navigation }) {
                 </View>
                 <PressScale
                   scaleTo={0.94}
-                  onPress={() => navigation.navigate('Info', { title: 'Modifier le profil', subtitle: 'L’édition du profil arrive bientôt.', icon: '✏️' })}
+                  onPress={() => navigation.navigate('EditProfile')}
                   style={styles.editBtn}
                 >
                   <Text style={styles.editBtnText}>Modifier</Text>
@@ -244,8 +250,16 @@ export default function MoiScreen({ navigation }) {
                 key={s.key}
                 item={s}
                 onPress={() => {
+                  if (s.key === 'account') {
+                    navigation.navigate('EditProfile');
+                    return;
+                  }
                   if (s.key === 'accessibility') {
                     navigation.navigate('Accessibility');
+                    return;
+                  }
+                  if (s.key === 'notifs') {
+                    navigation.navigate('Notifications');
                     return;
                   }
                   navigation.navigate('Info', { title: s.title, subtitle: `${s.subtitle} — bientôt disponible.`, icon: s.icon });
@@ -276,6 +290,7 @@ const styles = StyleSheet.create({
   ppImg: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: colors.ink, backgroundColor: colors.whiteA08, textAlign: 'center', textAlignVertical: 'center', fontSize: 11, overflow: 'hidden' },
   handle: { fontSize: 11, color: colors.green, marginBottom: 2 },
   location: { fontSize: 10, color: colors.whiteA30 },
+  contactLine: { fontSize: 10, color: colors.whiteA45, marginTop: 2 },
   afriPill: { alignSelf: 'flex-start', marginTop: spacing.sm, backgroundColor: colors.greenA08, borderWidth: 1, borderColor: colors.greenA20, borderRadius: radius.round, paddingHorizontal: spacing.md, paddingVertical: 2 },
   afriPillText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.green },
   editBtn: { height: 30, paddingHorizontal: spacing.xl, borderRadius: radius.round, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },

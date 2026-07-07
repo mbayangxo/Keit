@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import StepTransition from '../components/StepTransition';
@@ -9,19 +10,10 @@ import AmountChips from '../components/AmountChips';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
-
-// No HTML prototype exists for Receive (Jël) — only the Home Dashboard
-// action label. Designed to mirror Send Money's structure per brief §05:
-// "Request money with context... one-tap payment for the person receiving
-// the request." The second step previews what the other person sees.
+import { useToast } from '../components/Toast';
+import { transferRequest, getTransferRequests, acceptTransferRequest, denyTransferRequest } from '../lib/api-client';
 
 const QUICK_AMOUNTS = [1000, 2000, 5000, 10000];
-
-const CONTACTS = [
-  { key: 'fatou', name: 'Fatou Diallo', handle: '@fatou_medina', emoji: '👩🏾' },
-  { key: 'ibou', name: 'Ibou Ndiaye', handle: '@ibou_ndiaye', emoji: '👦🏿' },
-  { key: 'aminata', name: 'Aminata Sarr', handle: '@aminata_s', emoji: '👩🏿' },
-];
 
 function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ /g, ' ');
@@ -32,7 +24,7 @@ function AmountCursor() {
   return <Animated.View style={[styles.ahCursor, { opacity: blink }]} />;
 }
 
-function RequestStep({ amount, setAmount, reason, setReason, contact, setContact, onSend, onBack }) {
+function RequestStep({ amount, setAmount, reason, setReason, handle, setHandle, loading, onSend, onBack }) {
   const inputRef = useRef(null);
   const [focused, setFocused] = useState(false);
   const popIn = usePopIn(0, 400, 0.8);
@@ -76,23 +68,15 @@ function RequestStep({ amount, setAmount, reason, setReason, contact, setContact
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.lbl}>À qui demander ?</Text>
-          {CONTACTS.map((c) => (
-            <PressScale key={c.key} scaleTo={0.98} onPress={() => setContact(c)} style={[styles.contactRow, contact?.key === c.key && styles.contactRowOn]}>
-              <View style={styles.contactAva}>
-                <Text style={{ fontSize: 20 }}>{c.emoji}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.contactName}>{c.name}</Text>
-                <Text style={styles.contactHandle}>{c.handle}</Text>
-              </View>
-              {contact?.key === c.key && (
-                <View style={styles.checkDot}>
-                  <Text style={{ fontSize: 10, fontWeight: '900', color: colors.ink }}>✓</Text>
-                </View>
-              )}
-            </PressScale>
-          ))}
+          <Text style={styles.lbl}>À qui demander ? (@handle K21)</Text>
+          <TextInput
+            style={styles.handleField}
+            placeholder="@handle"
+            placeholderTextColor={colors.whiteA30}
+            autoCapitalize="none"
+            value={handle}
+            onChangeText={setHandle}
+          />
         </View>
 
         <View style={styles.section}>
@@ -109,17 +93,54 @@ function RequestStep({ amount, setAmount, reason, setReason, contact, setContact
       </ScrollView>
 
       <View style={styles.footer}>
-        <GlowButton label={`Demander ${formatAmount(amount)} F →`} onPress={onSend} disabled={!contact || amount <= 0} />
+        <GlowButton
+          label={loading ? 'Envoi…' : `Demander ${formatAmount(amount)} F →`}
+          onPress={onSend}
+          disabled={!handle.trim() || amount <= 0 || loading}
+        />
       </View>
     </View>
   );
 }
 
-function SentStep({ amount, reason, contact, name, onDone }) {
+function InboxStep({ requests, loading, onAccept, onDeny, onBack }) {
+  const pending = requests.filter((r) => r.status === 'pending');
+
+  return (
+    <View style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.huge }}>
+        <ScreenHeader onBack={onBack} title="Demandes reçues" style={styles.topRow} />
+        {loading ? <Text style={styles.reasonHint}>Chargement…</Text> : null}
+        {!loading && pending.length === 0 ? (
+          <Text style={styles.reasonHint}>Aucune demande en attente.</Text>
+        ) : null}
+        {pending.map((req) => (
+          <View key={req.id} style={styles.inboxCard}>
+            <Text style={styles.inboxTitle}>
+              {req.requester?.name ?? req.requester?.handle} demande {formatAmount(req.amount)} F
+            </Text>
+            {req.note ? <Text style={styles.inboxNote}>{req.note}</Text> : null}
+            <View style={styles.inboxActions}>
+              <PressScale scaleTo={0.95} onPress={() => onDeny(req.id)} style={styles.denyBtn}>
+                <Text style={styles.denyText}>Refuser</Text>
+              </PressScale>
+              <PressScale scaleTo={0.95} onPress={() => onAccept(req.id)} style={styles.acceptBtn}>
+                <Text style={styles.acceptText}>Payer</Text>
+              </PressScale>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function SentStep({ amount, reason, handle, name, onDone }) {
   useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.3);
   const title = useEntrance(200, 500, 10);
   const previewEntrance = useEntrance(400, 500, 10);
+  const displayHandle = handle.startsWith('@') ? handle : `@${handle}`;
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.sentRoot} showsVerticalScrollIndicator={false}>
@@ -128,11 +149,11 @@ function SentStep({ amount, reason, contact, name, onDone }) {
       </Animated.View>
       <Animated.Text style={[styles.ssTitle, title]}>Demande envoyée !</Animated.Text>
       <Animated.Text style={[styles.ssSub, title]}>
-        {contact.name.split(' ')[0]} peut payer en un tap.{'\n'}Tu seras notifié dès que c'est fait.
+        {displayHandle} peut payer en un tap.{'\n'}Tu seras notifié dès que c'est fait.
       </Animated.Text>
 
       <Animated.View style={[styles.previewCard, previewEntrance]}>
-        <Text style={styles.previewLabel}>Aperçu — ce que {contact.name.split(' ')[0]} voit</Text>
+        <Text style={styles.previewLabel}>Aperçu — ce que la personne voit</Text>
         <View style={styles.previewNotif}>
           <View style={styles.previewAva}>
             <Text style={{ fontSize: 18 }}>👤</Text>
@@ -157,40 +178,113 @@ function SentStep({ amount, reason, contact, name, onDone }) {
 }
 
 export default function ReceiveScreen({ navigation }) {
+  const showToast = useToast();
+  const [mode, setMode] = useState('request');
   const [step, setStep] = useState('request');
   const [amount, setAmount] = useState(2000);
-  const [reason, setReason] = useState('Pour le taxi 🚕');
-  const [contact, setContact] = useState(null);
-  const { profile } = useAppState();
+  const [reason, setReason] = useState('');
+  const [handle, setHandle] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [inbox, setInbox] = useState([]);
+  const { profile, refreshWallet } = useAppState();
+
+  const loadInbox = useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = await getTransferRequests('incoming');
+      setInbox(Array.isArray(list) ? list : []);
+    } catch (err) {
+      showToast(err.message ?? 'Impossible de charger');
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (mode === 'inbox') loadInbox();
+    }, [mode, loadInbox]),
+  );
+
+  const acceptRequest = async (id) => {
+    setLoading(true);
+    try {
+      await acceptTransferRequest(id);
+      await refreshWallet();
+      showToast('Paiement envoyé ✓');
+      loadInbox();
+    } catch (err) {
+      showToast(err.message ?? 'Paiement impossible');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const denyRequest = async (id) => {
+    setLoading(true);
+    try {
+      await denyTransferRequest(id);
+      showToast('Demande refusée');
+      loadInbox();
+    } catch (err) {
+      showToast(err.message ?? 'Erreur');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const finish = () => {
     setStep('request');
     setAmount(2000);
-    setReason('Pour le taxi 🚕');
-    setContact(null);
+    setReason('');
+    setHandle('');
     navigation.goBack();
+  };
+
+  const sendRequest = async () => {
+    setLoading(true);
+    try {
+      await transferRequest({ recipientHandle: handle, amount, note: reason.trim() || undefined });
+      setStep('sent');
+    } catch (err) {
+      showToast(err.message ?? 'Demande impossible');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        {step === 'request' && (
+        <View style={styles.modeRow}>
+          <PressScale scaleTo={0.96} onPress={() => { setMode('request'); setStep('request'); }} style={[styles.modePill, mode === 'request' && styles.modePillOn]}>
+            <Text style={[styles.modeText, mode === 'request' && styles.modeTextOn]}>Demander</Text>
+          </PressScale>
+          <PressScale scaleTo={0.96} onPress={() => setMode('inbox')} style={[styles.modePill, mode === 'inbox' && styles.modePillOn]}>
+            <Text style={[styles.modeText, mode === 'inbox' && styles.modeTextOn]}>Reçues</Text>
+          </PressScale>
+        </View>
+        {mode === 'inbox' ? (
+          <InboxStep requests={inbox} loading={loading} onAccept={acceptRequest} onDeny={denyRequest} onBack={() => navigation.goBack()} />
+        ) : null}
+        {mode === 'request' && step === 'request' && (
           <StepTransition>
             <RequestStep
               amount={amount}
               setAmount={setAmount}
               reason={reason}
               setReason={setReason}
-              contact={contact}
-              setContact={setContact}
-              onSend={() => setStep('sent')}
+              handle={handle}
+              setHandle={setHandle}
+              loading={loading}
+              onSend={sendRequest}
               onBack={() => navigation.goBack()}
             />
           </StepTransition>
         )}
-        {step === 'sent' && contact && (
+        {mode === 'request' && step === 'sent' && (
           <StepTransition>
-            <SentStep amount={amount} reason={reason} contact={contact} name={profile.name.split(' ')[0]} onDone={finish} />
+            <SentStep amount={amount} reason={reason} handle={handle} name={profile.name.split(' ')[0]} onDone={finish} />
           </StepTransition>
         )}
       </SafeAreaView>
@@ -200,45 +294,45 @@ export default function ReceiveScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-
-  hero: { paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.huge, backgroundColor: colors.goldA08, borderBottomWidth: 1, borderBottomColor: 'rgba(250,216,54,0.12)' },
-  topRow: { marginBottom: spacing.giant },
-
-  amountHero: { alignItems: 'center' },
-  ahLbl: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: 'rgba(250,216,54,0.7)', textTransform: 'uppercase', marginBottom: spacing.lg },
+  hero: { paddingHorizontal: spacing.huge },
+  topRow: { paddingTop: spacing.md },
+  amountHero: { alignItems: 'center', paddingVertical: spacing.giant },
+  ahLbl: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.whiteA35, textTransform: 'uppercase', marginBottom: spacing.md },
   ahRow: { flexDirection: 'row', alignItems: 'center' },
-  ahNum: { fontFamily: fontFamily.displayBlack, fontSize: 48, letterSpacing: -3, lineHeight: 48, color: colors.flagGold },
-  ahCurr: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(250,216,54,0.5)' },
+  ahNum: { fontFamily: fontFamily.displayBlack, fontSize: 44, letterSpacing: -2, color: colors.flagGold },
+  ahCurr: { fontSize: 18, color: colors.whiteA40 },
   ahCursor: { width: 2, height: 36, backgroundColor: colors.flagGold, marginLeft: 4 },
-  hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
-
-  quickRow: { justifyContent: 'center', marginTop: spacing.xl },
-
-  section: { paddingHorizontal: spacing.huge, paddingVertical: spacing.xxl, gap: spacing.sm },
-  lbl: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.xs },
-  contactRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA12, borderRadius: radius.xxl, padding: spacing.xl },
-  contactRowOn: { borderColor: 'rgba(250,216,54,0.4)', backgroundColor: colors.goldA08 },
-  contactAva: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.goldA10, alignItems: 'center', justifyContent: 'center' },
-  contactName: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white },
-  contactHandle: { fontSize: 11, color: colors.flagGold, marginTop: 1 },
-  checkDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.flagGold, alignItems: 'center', justifyContent: 'center' },
-
-  reasonField: { width: '100%', height: 48, borderRadius: radius.lg, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA12, paddingHorizontal: spacing.xxxl, fontFamily: fontFamily.bodyRegular, fontSize: 13, color: colors.white },
-  reasonHint: { fontSize: 10, color: colors.whiteA30, marginTop: spacing.xs },
-
-  footer: { paddingHorizontal: spacing.huge, paddingVertical: spacing.xxl },
-
-  sentRoot: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.giant },
-  ssRing: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.goldA10, borderWidth: 3, borderColor: colors.flagGold, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xxxl },
-  ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 22, letterSpacing: -0.6, color: colors.white, marginBottom: spacing.md, textAlign: 'center' },
-  ssSub: { fontSize: 12, color: colors.whiteA40, marginBottom: spacing.giant, lineHeight: 19, textAlign: 'center' },
-
+  hiddenInput: { position: 'absolute', opacity: 0, height: 0, width: 0 },
+  quickRow: { marginTop: spacing.xxl },
+  section: { paddingHorizontal: spacing.huge, marginBottom: spacing.xxl },
+  lbl: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.md },
+  handleField: { height: 48, borderRadius: radius.lg, backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA12, paddingHorizontal: spacing.xl, fontSize: 14, color: colors.white },
+  reasonField: { height: 48, borderRadius: radius.lg, backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA12, paddingHorizontal: spacing.xl, fontSize: 13, color: colors.white },
+  reasonHint: { ...type.bodySmall, color: colors.whiteA30, marginTop: spacing.sm },
+  footer: { padding: spacing.huge, paddingBottom: spacing.xxl },
+  sentRoot: { padding: spacing.huge, alignItems: 'center', flexGrow: 1 },
+  ssRing: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.goldA10, borderWidth: 2, borderColor: 'rgba(250,216,54,0.3)', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xl },
+  ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: colors.white, marginBottom: spacing.sm, textAlign: 'center' },
+  ssSub: { fontSize: 12, color: colors.whiteA40, textAlign: 'center', lineHeight: 18, marginBottom: spacing.giant },
   previewCard: { width: '100%', backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA10, borderRadius: radius.xxl, padding: spacing.xxl },
-  previewLabel: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.lg },
-  previewNotif: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, marginBottom: spacing.xl },
-  previewAva: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
-  previewText: { fontSize: 12, color: colors.white, lineHeight: 17 },
-  previewReason: { fontSize: 10, color: colors.whiteA35, marginTop: 2 },
+  previewLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.lg },
+  previewNotif: { flexDirection: 'row', gap: spacing.lg, marginBottom: spacing.lg },
+  previewAva: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
+  previewText: { fontSize: 12, color: colors.whiteA70, lineHeight: 18 },
+  previewReason: { fontSize: 11, color: colors.whiteA40, marginTop: 4 },
   previewPayBtn: { backgroundColor: colors.green, borderRadius: radius.lg, paddingVertical: spacing.lg, alignItems: 'center' },
-  previewPayText: { fontFamily: fontFamily.displayBlack, fontSize: 11, color: colors.ink },
+  previewPayText: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
+  modeRow: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.huge, paddingTop: spacing.md },
+  modePill: { flex: 1, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA06, alignItems: 'center', justifyContent: 'center' },
+  modePillOn: { backgroundColor: colors.goldA15 },
+  modeText: { fontSize: 11, fontWeight: '700', color: colors.whiteA40 },
+  modeTextOn: { color: colors.flagGold },
+  inboxCard: { backgroundColor: colors.whiteA04, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.whiteA08, padding: spacing.lg, marginBottom: spacing.md },
+  inboxTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white },
+  inboxNote: { fontSize: 11, color: colors.whiteA40, marginTop: spacing.xs },
+  inboxActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+  denyBtn: { flex: 1, paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.whiteA06, alignItems: 'center' },
+  denyText: { fontSize: 12, fontWeight: '700', color: colors.whiteA50 },
+  acceptBtn: { flex: 1, paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.greenA12, alignItems: 'center' },
+  acceptText: { fontSize: 12, fontWeight: '700', color: colors.green },
 });

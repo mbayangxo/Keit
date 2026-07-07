@@ -9,42 +9,44 @@ datasource db {
 }
 
 model User {
-  id                String    @id @default(cuid())
-  phone             String    @unique
-  country           String    @default("SN")
-  name              String?
-  handle            String?   @unique
-  arrondissementKey String?
-  arrondissementIcon String?
-  arrondissementName String?
-  avatarEmoji       String?
-  identityChoice    String?
-  otpVerifiedAt     DateTime?
-  pinHash           String?
-  pinFailedAttempts Int       @default(0)
-  accountLockedAt   DateTime?
-  accountLockReason String?
-  frozenByAdminAt   DateTime?
-  adminFreezeReason String?
-  lastActivityAt    DateTime?
-  cniNumberEnc      String?
-  biometricEnabled  Boolean   @default(false)
-  stepUpVerifiedAt  DateTime?
-  isDiaspora        Boolean   @default(false)
-  verificationTier  Int       @default(1)
-  verificationStatus String   @default("phone_only")
-  cniVerifiedAt     DateTime?
-  addressVerifiedAt DateTime?
-  dateOfBirth       DateTime?
-  cniHash           String?   @unique
+  id                     String    @id @default(cuid())
+  phone                  String    @unique
+  country                String    @default("SN")
+  name                   String?
+  handle                 String?   @unique
+  arrondissementKey      String?
+  arrondissementIcon     String?
+  arrondissementName     String?
+  avatarEmoji            String?
+  identityChoice         String?
+  otpVerifiedAt          DateTime?
+  pinHash                String?
+  pinFailedAttempts      Int       @default(0)
+  accountLockedAt        DateTime?
+  accountLockReason      String?
+  frozenByAdminAt        DateTime?
+  adminFreezeReason      String?
+  lastActivityAt         DateTime?
+  cniNumberEnc           String?
+  biometricEnabled       Boolean   @default(false)
+  stepUpVerifiedAt       DateTime?
+  isDiaspora             Boolean   @default(false)
+  verificationTier       Int       @default(1)
+  verificationStatus     String    @default("phone_only")
+  cniVerifiedAt          DateTime?
+  addressVerifiedAt      DateTime?
+  dateOfBirth            DateTime?
+  cniHash                String?   @unique
   smsAlertsEnabled       Boolean   @default(true)
   smsBalanceQueryEnabled Boolean   @default(true)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  email                  String?   @unique
+  emailVerifiedAt        DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   wallet                Wallet?
-  koriSent              KoriTransaction[] @relation("KoriSender")
-  koriReceived          KoriTransaction[] @relation("KoriRecipient")
+  koriSent              KoriTransaction[]      @relation("KoriSender")
+  koriReceived          KoriTransaction[]      @relation("KoriRecipient")
   roles                 AccountRole[]
   refreshTokens         RefreshToken[]
   notifications         Notification[]
@@ -52,17 +54,17 @@ model User {
   sellerProfile         SellerProfile?
   driverProfile         DriverProfile?
   businessMemberships   BusinessMember[]
-  ownedBusinesses       Business[]       @relation("BusinessOwner")
+  ownedBusinesses       Business[]             @relation("BusinessOwner")
   sentMessages          MboloMessage[]
   mboloMemberships      MboloMember[]
-  createdThreads        MboloThread[]    @relation("ThreadCreator")
-  createdTontines       TontineGroup[]   @relation("TontineCreator")
+  createdThreads        MboloThread[]          @relation("ThreadCreator")
+  createdTontines       TontineGroup[]         @relation("TontineCreator")
   tontineMemberships    TontineMembership[]
-  createdEvents         Event[]          @relation("EventPromoter")
+  createdEvents         Event[]                @relation("EventPromoter")
   tickets               Ticket[]
-  deliveryAssignments   DeliveryTask[]   @relation("AssignedDriver")
-  moneyRequestsSent     MoneyRequest[]   @relation("MoneyRequester")
-  moneyRequestsReceived MoneyRequest[]   @relation("MoneyPayer")
+  deliveryAssignments   DeliveryTask[]         @relation("AssignedDriver")
+  moneyRequestsSent     MoneyRequest[]         @relation("MoneyRequester")
+  moneyRequestsReceived MoneyRequest[]         @relation("MoneyPayer")
   railTransactions      RailTransaction[]
   apiIdempotencyKeys    ApiIdempotency[]
   apiAuditLogs          ApiAuditLog[]
@@ -70,14 +72,23 @@ model User {
   devices               UserDevice[]
   heldTransactions      HeldTransaction[]
   fraudAlerts           FraudAlert[]
-  cniVerificationJobs CniVerificationJob[]
+  cniVerificationJobs   CniVerificationJob[]
   dailyUsage            UserDailyUsage[]
   smsMessages           SmsMessage[]
   supportTickets        SupportTicket[]
   supportTicketMessages SupportTicketMessage[]
-  adminRefundsReceived  AdminRefund[] @relation("RefundRecipient")
-  transferUndosSent     TransferUndo[] @relation("UndoSender")
-  transferUndosReceived TransferUndo[] @relation("UndoRecipient")
+  adminRefundsReceived  AdminRefund[]          @relation("RefundRecipient")
+  transferUndosSent     TransferUndo[]         @relation("UndoSender")
+  transferUndosReceived TransferUndo[]         @relation("UndoRecipient")
+  payrollEmployments    PayrollEmployee[]      @relation("PayrollEmployeeUser")
+  schoolChildren        SchoolStudent[]        @relation("SchoolParent")
+  farmerDeliveries      FarmerDeliveryLog[]    @relation("FarmerDeliveries")
+  verifiedDeliveries    FarmerDeliveryLog[]    @relation("VerifiedDeliveries")
+  blocksCreated         UserBlock[]            @relation("Blocker")
+  blocksReceived        UserBlock[]            @relation("BlockedUser")
+  reportsFiled          ContentReport[]        @relation("Reporter")
+  reportsReceived       ContentReport[]        @relation("ReportedUser")
+  offlineSyncItems      OfflineSyncQueue[]
 
   @@index([phone])
   @@index([frozenByAdminAt])
@@ -189,20 +200,31 @@ model Business {
   id             String   @id @default(cuid())
   ownerId        String
   name           String
+  type           String   @default("merchant")
   category       String?
   arrondissement String?
+  kebuId         String?  @unique
+  description    String?
   verified       Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  owner      User             @relation("BusinessOwner", fields: [ownerId], references: [id])
-  members    BusinessMember[]
-  products   Product[]
-  orders     Order[]
-  events     Event[]
+  owner            User               @relation("BusinessOwner", fields: [ownerId], references: [id])
+  members          BusinessMember[]
+  products         Product[]
+  orders           Order[]
+  events           Event[]
+  payrollGroups    PayrollGroup[]
+  payrollEmployees PayrollEmployee[]
+  schoolStudents   SchoolStudent[]
+  schoolFeePeriods SchoolFeePeriod[]
+  deliveryLogs     FarmerDeliveryLog[]
+  contentReports   ContentReport[]
+  blocksReceived   UserBlock[]
 
   @@index([ownerId])
   @@index([category])
+  @@index([type])
 }
 
 model BusinessMember {
@@ -223,11 +245,11 @@ model BusinessMember {
 model SellerProfile {
   id        String   @id @default(cuid())
   userId    String   @unique
-  shopName   String
-  category   String?
-  status     String   @default("active")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  shopName  String
+  category  String?
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   products Product[]
@@ -260,8 +282,8 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  seller    SellerProfile? @relation(fields: [sellerId], references: [id])
-  business  Business?      @relation(fields: [businessId], references: [id])
+  seller     SellerProfile? @relation(fields: [sellerId], references: [id])
+  business   Business?      @relation(fields: [businessId], references: [id])
   orderItems OrderItem[]
 
   @@index([sellerId])
@@ -270,16 +292,16 @@ model Product {
 }
 
 model Order {
-  id             String   @id @default(cuid())
-  buyerId        String
-  businessId     String?
-  status         String   @default("pending")
-  totalAmount    Int
+  id              String   @id @default(cuid())
+  buyerId         String
+  businessId      String?
+  status          String   @default("pending")
+  totalAmount     Int
   deliveryAddress String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  business Business?      @relation(fields: [businessId], references: [id])
+  business Business?     @relation(fields: [businessId], references: [id])
   items    OrderItem[]
   delivery DeliveryTask?
 
@@ -466,7 +488,9 @@ model MboloMessage {
   id        String   @id @default(cuid())
   threadId  String
   senderId  String
-  body      String
+  body      String   @default("")
+  kind      String   @default("text")
+  mediaUrl  String?  @db.Text
   createdAt DateTime @default(now())
 
   thread MboloThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
@@ -549,22 +573,22 @@ model MoneyRequest {
 }
 
 model RailTransaction {
-  id              String    @id @default(cuid())
-  userId          String
-  provider        String    @default("julaya")
-  direction       String
-  amount          Int
-  operator        String?
-  phone           String?
-  status          String    @default("pending")
-  externalId      String?
-  reference       String    @unique
-  idempotencyKey  String?   @unique
-  walletDebited   Boolean   @default(false)
-  failureReason   String?
-  completedAt     DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  userId         String
+  provider       String    @default("julaya")
+  direction      String
+  amount         Int
+  operator       String?
+  phone          String?
+  status         String    @default("pending")
+  externalId     String?
+  reference      String    @unique
+  idempotencyKey String?   @unique
+  walletDebited  Boolean   @default(false)
+  failureReason  String?
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -608,12 +632,12 @@ model ApiAuditLog {
 }
 
 model UserRateLimit {
-  userId       String   @id
+  userId       String    @id
   windowStart  DateTime
-  requestCount Int      @default(0)
+  requestCount Int       @default(0)
   blockedUntil DateTime?
-  flagCount    Int      @default(0)
-  updatedAt    DateTime @updatedAt
+  flagCount    Int       @default(0)
+  updatedAt    DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -663,14 +687,14 @@ model HeldTransaction {
 }
 
 model FraudAlert {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   userId            String
   heldTransactionId String?
-  severity          String   @default("high")
+  severity          String    @default("high")
   code              String
   message           String
   acknowledgedAt    DateTime?
-  createdAt         DateTime @default(now())
+  createdAt         DateTime  @default(now())
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   heldTransaction HeldTransaction? @relation(fields: [heldTransactionId], references: [id], onDelete: SetNull)
@@ -716,7 +740,9 @@ model UserDailyUsage {
   @@id([userId, usageDate])
 }
 
-/** Audit log for inbound/outbound SMS — balance queries, receive alerts, OTP. */
+/**
+ * Audit log for inbound/outbound SMS — balance queries, receive alerts, OTP.
+ */
 model SmsMessage {
   id         String   @id @default(cuid())
   userId     String?
@@ -736,7 +762,9 @@ model SmsMessage {
   @@index([purpose, createdAt])
 }
 
-/** Immutable audit trail for cron reports, integrity alerts, compliance. */
+/**
+ * Immutable audit trail for cron reports, integrity alerts, compliance.
+ */
 model SecureLog {
   id          String   @id @default(cuid())
   category    String
@@ -749,7 +777,9 @@ model SecureLog {
   @@index([severity, createdAt])
 }
 
-/** Separate admin operators — not linked to app User accounts. */
+/**
+ * Separate admin operators — not linked to app User accounts.
+ */
 model AdminUser {
   id              String    @id @default(cuid())
   email           String    @unique
@@ -763,11 +793,11 @@ model AdminUser {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  sessions   AdminSession[]
-  auditLogs  AdminAuditLog[]
-  tickets    SupportTicket[]        @relation("TicketAssignee")
-  messages   SupportTicketMessage[]
-  refunds    AdminRefund[]
+  sessions  AdminSession[]
+  auditLogs AdminAuditLog[]
+  tickets   SupportTicket[]        @relation("TicketAssignee")
+  messages  SupportTicketMessage[]
+  refunds   AdminRefund[]
 
   @@index([active])
 }
@@ -814,8 +844,8 @@ model SupportTicket {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  user     User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignee AdminUser?              @relation("TicketAssignee", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  user     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignee AdminUser?             @relation("TicketAssignee", fields: [assignedAdminId], references: [id], onDelete: SetNull)
   messages SupportTicketMessage[]
 
   @@index([userId, status])
@@ -839,7 +869,9 @@ model SupportTicketMessage {
   @@index([ticketId, createdAt])
 }
 
-/** Admin-issued refunds — always via ledger transfer, never direct balance patch. */
+/**
+ * Admin-issued refunds — always via ledger transfer, never direct balance patch.
+ */
 model AdminRefund {
   id              String   @id @default(cuid())
   adminUserId     String
@@ -859,7 +891,9 @@ model AdminRefund {
   @@index([adminUserId, createdAt])
 }
 
-/** 60-second undo window for P2P and merchant payments — reversal is atomic. */
+/**
+ * 60-second undo window for P2P and merchant payments — reversal is atomic.
+ */
 model TransferUndo {
   id                 String    @id @default(cuid())
   senderUserId       String
@@ -881,4 +915,205 @@ model TransferUndo {
   @@index([senderUserId, status])
   @@index([recipientUserId])
   @@index([reversibleUntil])
+}
+
+/** Payroll group — HR, corporate, staff, farmers, etc. */
+model PayrollGroup {
+  id               String   @id @default(cuid())
+  businessId       String
+  name             String
+  defaultPayAmount Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  business  Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  employees PayrollEmployee[]
+
+  @@index([businessId])
+}
+
+/** Employee on a business payroll (includes cooperative farmers). */
+model PayrollEmployee {
+  id            String    @id @default(cuid())
+  businessId    String
+  userId        String
+  groupId       String?
+  jobTitle      String?
+  payAmount     Int?
+  paySchedule   String    @default("manual")
+  payDayOfWeek  Int?
+  payDayOfMonth Int?
+  status        String    @default("active")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  business Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User          @relation("PayrollEmployeeUser", fields: [userId], references: [id], onDelete: Cascade)
+  group    PayrollGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  payRuns  PayrollRun[]
+
+  @@unique([businessId, userId])
+  @@index([businessId, status])
+  @@index([userId])
+  @@index([groupId])
+}
+
+/** Record of a payroll payment. */
+model PayrollRun {
+  id          String    @id @default(cuid())
+  businessId  String
+  employeeId  String
+  amount      Int
+  status      String    @default("completed")
+  reference   String    @unique
+  note        String?
+  scheduledAt DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  employee PayrollEmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+  @@index([employeeId, createdAt])
+}
+
+/** Student enrolled at a school institution. */
+model SchoolStudent {
+  id           String   @id @default(cuid())
+  businessId   String
+  studentName  String
+  parentUserId String
+  gradeLabel   String?
+  externalId   String?
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  business Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  parent   User                @relation("SchoolParent", fields: [parentUserId], references: [id], onDelete: Cascade)
+  payments SchoolFeePayment[]
+
+  @@index([businessId, status])
+  @@index([parentUserId])
+}
+
+/** Monthly or term fee period for a school. */
+model SchoolFeePeriod {
+  id         String   @id @default(cuid())
+  businessId String
+  label      String
+  amount     Int
+  dueDate    DateTime
+  status     String   @default("open")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  payments SchoolFeePayment[]
+
+  @@index([businessId, status])
+  @@index([dueDate])
+}
+
+/** Parent fee payment for a student in a period. */
+model SchoolFeePayment {
+  id             String    @id @default(cuid())
+  periodId       String
+  studentId      String
+  parentUserId   String
+  amount         Int
+  status         String    @default("pending")
+  paidAt         DateTime?
+  ledgerReference String?  @unique
+  reminderSentAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  period  SchoolFeePeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  student SchoolStudent   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([periodId, studentId])
+  @@index([parentUserId, status])
+  @@index([periodId, status])
+}
+
+/** Farmer delivery log for cooperatives — verified in person, syncs offline. */
+model FarmerDeliveryLog {
+  id               String    @id @default(cuid())
+  businessId       String
+  farmerUserId     String
+  quantityTons     Float
+  periodStart      DateTime
+  periodEnd        DateTime
+  verifiedByUserId String?
+  verifiedAt       DateTime?
+  status           String    @default("pending")
+  note             String?
+  offlineClientId  String?   @unique
+  payoutReference  String?   @unique
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  farmer     User     @relation("FarmerDeliveries", fields: [farmerUserId], references: [id], onDelete: Cascade)
+  verifiedBy User?    @relation("VerifiedDeliveries", fields: [verifiedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status])
+  @@index([farmerUserId, createdAt])
+}
+
+/** User blocked another user or business. */
+model UserBlock {
+  id                String   @id @default(cuid())
+  blockerId         String
+  blockedUserId     String?
+  blockedBusinessId String?
+  createdAt         DateTime @default(now())
+
+  blocker         User      @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser     User?     @relation("BlockedUser", fields: [blockedUserId], references: [id], onDelete: Cascade)
+  blockedBusiness Business? @relation(fields: [blockedBusinessId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+  @@unique([blockerId, blockedBusinessId])
+  @@index([blockerId])
+}
+
+/** User report — routed to K21 admin review queue. */
+model ContentReport {
+  id                String   @id @default(cuid())
+  reporterId        String
+  targetUserId      String?
+  targetBusinessId  String?
+  category          String
+  reason            String
+  status            String   @default("open")
+  adminNotes        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  reporter       User      @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetUser     User?     @relation("ReportedUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  targetBusiness Business? @relation(fields: [targetBusinessId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([reporterId])
+  @@index([targetUserId])
+  @@index([targetBusinessId])
+}
+
+/** Offline-first queue — cooperative delivery logs, etc. */
+model OfflineSyncQueue {
+  id         String    @id @default(cuid())
+  userId     String
+  entityType String
+  payload    String
+  clientId   String    @unique
+  syncedAt   DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, syncedAt])
+  @@index([entityType])
 }

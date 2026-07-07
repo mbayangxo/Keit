@@ -1,17 +1,16 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
-import WaxPattern from '../components/WaxPattern';
-import { colors, fontFamily, radius, spacing, type } from '../theme';
+import OnboardingShell from '../components/OnboardingShell';
+import ExpandableSearch from '../components/ExpandableSearch';
+import { fontFamily, radius, spacing, type } from '../theme';
+import { ob } from '../theme/onboarding';
 import { useEntrance } from '../hooks/animations';
 import { COUNTRIES, getCountryDisplayName } from '../i18n/countries';
 import { LANGUAGES } from '../i18n/languages';
 import { t } from '../i18n/translations';
 import { useLocale } from '../context/LocaleContext';
-
-const POPULAR_LANG_CODES = ['en', 'fr', 'wo'];
 
 function Row({ leading, title, subtitle, selected, delay, onPress }) {
   const entrance = useEntrance(delay, 300, 8);
@@ -27,7 +26,7 @@ function Row({ leading, title, subtitle, selected, delay, onPress }) {
         </View>
         {selected && (
           <View style={styles.checkDot}>
-            <Text style={{ fontSize: 10, fontWeight: '900', color: colors.ink }}>✓</Text>
+            <Text style={{ fontSize: 10, fontWeight: '900', color: ob.ink }}>✓</Text>
           </View>
         )}
       </View>
@@ -36,13 +35,18 @@ function Row({ leading, title, subtitle, selected, delay, onPress }) {
 }
 
 function CountryStep({ lang, query, setQuery, selected, onSelect, onContinue, onBack }) {
+  const [listOpen, setListOpen] = useState(true);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    if (!q) return COUNTRIES;
     return COUNTRIES.filter(
       (c) =>
         getCountryDisplayName(c, lang).toLowerCase().includes(q) ||
         c.name.toLowerCase().includes(q) ||
-        (c.nameEn ?? '').toLowerCase().includes(q)
+        (c.nameEn ?? '').toLowerCase().includes(q) ||
+        c.dial.includes(q) ||
+        c.code.toLowerCase().includes(q),
     );
   }, [query, lang]);
 
@@ -51,38 +55,53 @@ function CountryStep({ lang, query, setQuery, selected, onSelect, onContinue, on
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-            <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
+            <Text style={{ fontSize: 14, color: ob.ink }}>←</Text>
           </PressScale>
           <View style={{ flex: 1 }}>
             <Text style={styles.eyebrow}>{t(lang, 'countryLabel')}</Text>
             <Text style={styles.title}>{t(lang, 'countryTitle')}</Text>
           </View>
-        </View>
-      </View>
-
-      <View style={styles.searchWrap}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t(lang, 'countrySearchPlaceholder')}
-          placeholderTextColor={colors.whiteA30}
-          value={query}
-          onChangeText={setQuery}
-        />
-      </View>
-
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
-        {filtered.map((c, i) => (
-          <Row
-            key={c.code}
-            leading={c.flag}
-            title={getCountryDisplayName(c, lang)}
-            subtitle={c.dial}
-            selected={selected?.code === c.code}
-            delay={i * 30}
-            onPress={() => onSelect(c)}
+          <ExpandableSearch
+            value={query}
+            onChangeText={(v) => {
+              setQuery(v);
+              setListOpen(true);
+            }}
+            placeholder={t(lang, 'countrySearchPlaceholder')}
           />
-        ))}
-      </ScrollView>
+        </View>
+
+        <PressScale scaleTo={0.98} onPress={() => setListOpen((o) => !o)} style={styles.selectedPill}>
+          <Text style={{ fontSize: 20 }}>{selected?.flag ?? '🌍'}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.pillLabel}>{selected ? getCountryDisplayName(selected, lang) : t(lang, 'countryPickOne')}</Text>
+            <Text style={styles.pillSub}>{selected?.dial ?? t(lang, 'countryTapList')}</Text>
+          </View>
+          <Text style={styles.pillChevron}>{listOpen ? '▴' : '▾'}</Text>
+        </PressScale>
+      </View>
+
+      {listOpen ? (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {filtered.map((c, i) => (
+            <Row
+              key={c.code}
+              leading={c.flag}
+              title={getCountryDisplayName(c, lang)}
+              subtitle={c.dial}
+              selected={selected?.code === c.code}
+              delay={Math.min(i * 20, 200)}
+              onPress={() => {
+                onSelect(c);
+                setListOpen(false);
+                setQuery('');
+              }}
+            />
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={{ flex: 1 }} />
+      )}
 
       <View style={styles.footer}>
         <GlowButton label={`${t(lang, 'continueLabel')} →`} onPress={onContinue} disabled={!selected} />
@@ -91,22 +110,20 @@ function CountryStep({ lang, query, setQuery, selected, onSelect, onContinue, on
   );
 }
 
-function LanguageStep({ lang, country, query, setQuery, selected, onSelect, onContinue, showBack, onBack }) {
+function LanguageStep({ lang, query, setQuery, selected, onSelect, onContinue, showBack, onBack }) {
   const uiLang = selected?.code ?? lang;
-  const suggested = (country?.languages ?? POPULAR_LANG_CODES)
-    .map((code) => LANGUAGES.find((l) => l.code === code))
-    .filter(Boolean);
-  const suggestedCodes = new Set(suggested.map((l) => l.code));
-  const filtered = useMemo(
-    () =>
-      LANGUAGES.filter(
-        (l) =>
-          !suggestedCodes.has(l.code) &&
-          (l.name.toLowerCase().includes(query.trim().toLowerCase()) ||
-            l.native.toLowerCase().includes(query.trim().toLowerCase()))
-      ),
-    [query, suggestedCodes]
-  );
+  const [listOpen, setListOpen] = useState(true);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return LANGUAGES;
+    return LANGUAGES.filter(
+      (l) =>
+        l.name.toLowerCase().includes(q) ||
+        l.native.toLowerCase().includes(q) ||
+        l.code.toLowerCase().includes(q),
+    );
+  }, [query]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -114,7 +131,7 @@ function LanguageStep({ lang, country, query, setQuery, selected, onSelect, onCo
         <View style={styles.headerRow}>
           {showBack ? (
             <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-              <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
+              <Text style={{ fontSize: 14, color: ob.ink }}>←</Text>
             </PressScale>
           ) : (
             <View style={{ width: 36 }} />
@@ -123,42 +140,48 @@ function LanguageStep({ lang, country, query, setQuery, selected, onSelect, onCo
             <Text style={styles.eyebrow}>{t(uiLang, 'languageLabel')}</Text>
             <Text style={styles.title}>{t(uiLang, 'languageTitle')}</Text>
           </View>
-        </View>
-        <Text style={styles.subtitle}>{t(uiLang, 'languageSubtitle')}</Text>
-      </View>
-
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
-        {suggested.length > 0 && (
-          <>
-            <Text style={styles.sectionLabel}>{t(uiLang, 'suggestedLabel')}</Text>
-            {suggested.map((l, i) => (
-              <Row
-                key={l.code}
-                leading="🗣️"
-                title={l.native}
-                subtitle={l.name}
-                selected={selected?.code === l.code}
-                delay={i * 30}
-                onPress={() => onSelect(l)}
-              />
-            ))}
-          </>
-        )}
-
-        <Text style={[styles.sectionLabel, { marginTop: spacing.xxl }]}>{t(uiLang, 'allLanguagesLabel')}</Text>
-        <View style={styles.searchWrap}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t(uiLang, 'searchLanguagePlaceholder')}
-            placeholderTextColor={colors.whiteA30}
+          <ExpandableSearch
             value={query}
-            onChangeText={setQuery}
+            onChangeText={(v) => {
+              setQuery(v);
+              setListOpen(true);
+            }}
+            placeholder={t(uiLang, 'searchLanguagePlaceholder')}
           />
         </View>
-        {filtered.map((l, i) => (
-          <Row key={l.code} leading="🗣️" title={l.native} subtitle={l.name} selected={selected?.code === l.code} delay={i * 20} onPress={() => onSelect(l)} />
-        ))}
-      </ScrollView>
+        <Text style={styles.subtitle}>{t(uiLang, 'languageSubtitle')}</Text>
+
+        <PressScale scaleTo={0.98} onPress={() => setListOpen((o) => !o)} style={styles.selectedPill}>
+          <Text style={{ fontSize: 20 }}>🗣️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.pillLabel}>{selected?.native ?? t(uiLang, 'languagePickOne')}</Text>
+            <Text style={styles.pillSub}>{selected?.name ?? t(uiLang, 'languageTapList')}</Text>
+          </View>
+          <Text style={styles.pillChevron}>{listOpen ? '▴' : '▾'}</Text>
+        </PressScale>
+      </View>
+
+      {listOpen ? (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {filtered.map((l, i) => (
+            <Row
+              key={l.code}
+              leading="🗣️"
+              title={l.native}
+              subtitle={l.name}
+              selected={selected?.code === l.code}
+              delay={Math.min(i * 15, 180)}
+              onPress={() => {
+                onSelect(l);
+                setListOpen(false);
+                setQuery('');
+              }}
+            />
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={{ flex: 1 }} />
+      )}
 
       <View style={styles.footer}>
         <GlowButton label={`${t(uiLang, 'continueLabel')} →`} onPress={onContinue} disabled={!selected} />
@@ -189,57 +212,62 @@ export default function OnboardingScreen({ onComplete }) {
   };
 
   return (
-    <View style={styles.root}>
-      <WaxPattern color="rgba(26,240,96,0.03)" size={18} animated={false} />
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        {step === 'language' ? (
-          <LanguageStep
-            lang={activeLang}
-            country={null}
-            query={languageQuery}
-            setQuery={setLanguageQuery}
-            selected={language}
-            onSelect={setLanguageLocal}
-            showBack={false}
-            onContinue={continueFromLanguage}
-          />
-        ) : (
-          <CountryStep
-            lang={activeLang}
-            query={countryQuery}
-            setQuery={setCountryQuery}
-            selected={country}
-            onSelect={setCountryLocal}
-            onBack={() => setStep('language')}
-            onContinue={finish}
-          />
-        )}
-      </SafeAreaView>
-    </View>
+    <OnboardingShell>
+      {step === 'language' ? (
+        <LanguageStep
+          lang={activeLang}
+          query={languageQuery}
+          setQuery={setLanguageQuery}
+          selected={language}
+          onSelect={setLanguageLocal}
+          showBack={false}
+          onContinue={continueFromLanguage}
+        />
+      ) : (
+        <CountryStep
+          lang={activeLang}
+          query={countryQuery}
+          setQuery={setCountryQuery}
+          selected={country}
+          onSelect={setCountryLocal}
+          onBack={() => setStep('language')}
+          onContinue={finish}
+        />
+      )}
+    </OnboardingShell>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  header: { paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.md },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, marginBottom: spacing.lg },
+  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: ob.orangeSoft, borderWidth: 1, borderColor: ob.orangeBorder, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  eyebrow: { ...type.eyebrow, color: ob.green, marginBottom: 4 },
+  title: { fontFamily: fontFamily.displayBlack, fontSize: 22, color: ob.ink, letterSpacing: -0.5 },
+  subtitle: { fontSize: 12, color: ob.muted, marginBottom: spacing.md },
 
-  header: { paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.xl },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginBottom: spacing.sm },
-  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
-  eyebrow: { ...type.eyebrow, color: colors.green, marginBottom: 4 },
-  title: { fontFamily: fontFamily.displayBlack, fontSize: 22, color: colors.white, letterSpacing: -0.5 },
-  subtitle: { fontSize: 12, color: colors.whiteA40, marginTop: spacing.xs },
+  selectedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    backgroundColor: ob.surface,
+    borderWidth: 1.5,
+    borderColor: ob.border,
+    borderRadius: radius.xl,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  pillLabel: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: ob.ink },
+  pillSub: { fontSize: 10, color: ob.muted, marginTop: 2 },
+  pillChevron: { fontSize: 12, color: ob.muted },
 
-  searchWrap: { paddingHorizontal: spacing.huge, marginBottom: spacing.lg },
-  searchInput: { height: 44, borderRadius: radius.lg, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA12, paddingHorizontal: spacing.xxxl, fontFamily: fontFamily.bodyRegular, fontSize: 13, color: colors.white },
-
-  sectionLabel: { ...type.eyebrow, color: colors.whiteA30, paddingHorizontal: spacing.huge, marginBottom: spacing.sm },
-
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginHorizontal: spacing.huge, marginBottom: spacing.sm, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, borderRadius: radius.lg, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06 },
-  rowSelected: { backgroundColor: colors.greenA10, borderColor: colors.greenA30 },
-  rowLeading: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.whiteA06 },
-  rowTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white },
-  rowSubtitle: { fontSize: 10, color: colors.whiteA30, marginTop: 1 },
-  checkDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginHorizontal: spacing.huge, marginBottom: spacing.sm, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, borderRadius: radius.lg, backgroundColor: ob.surface, borderWidth: 1, borderColor: ob.border },
+  rowSelected: { backgroundColor: ob.greenSoft, borderColor: ob.greenBorder },
+  rowLeading: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: ob.orangeSoft },
+  rowTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: ob.ink },
+  rowSubtitle: { fontSize: 10, color: ob.faint, marginTop: 1 },
+  checkDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: ob.green, alignItems: 'center', justifyContent: 'center' },
 
   footer: { paddingHorizontal: spacing.huge, paddingVertical: spacing.xxl },
 });

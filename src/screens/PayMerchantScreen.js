@@ -17,7 +17,7 @@ import { colors, fontFamily, radius, spacing } from '../theme';
 import { useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { useToast } from '../components/Toast';
-import { merchantPay } from '../lib/api-client';
+import { merchantPay, getBusinesses } from '../lib/api-client';
 
 // design/k21-four-flows.html, FLOW 4 — MERCHANT QR PAYMENT (Screens M1-M3):
 // Scan QR (merchant card + scanner + amount) -> Confirm payment -> Payment done.
@@ -29,26 +29,17 @@ const QUICK_AMOUNTS = [
   { key: '5k', value: 5000, label: '5k F' },
 ];
 
-const MERCHANT = {
-  name: 'Dibiterie Chez Papa',
-  arr: 'Médina · Dakar',
-  emoji: '🍖',
+const DEFAULT_MERCHANT = {
+  name: 'Choisir un marchand',
+  arr: 'Liste K21',
+  emoji: '🏪',
   businessId: process.env.EXPO_PUBLIC_DEMO_MERCHANT_ID ?? '',
-};
-
-/** Maps agent UI keys to Julaya operator ids (backend abstraction). */
-const AGENT_OPERATORS = {
-  ndiaye: 'orange_money',
-  sandaga: 'wave',
-  'medina-tel': 'free_money',
-  'aminata-shop': 'orange_money',
 };
 
 function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ /g, ' ');
 }
 
-// `qsa-scan-line`: top 25% -> 70% -> 25%, ease-in-out, infinite.
 function useScanLine(frameSize, periodMs = 2000) {
   const val = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -56,7 +47,7 @@ function useScanLine(frameSize, periodMs = 2000) {
       Animated.sequence([
         Animated.timing(val, { toValue: 1, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         Animated.timing(val, { toValue: 0, duration: periodMs / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
+      ]),
     );
     anim.start();
     return () => anim.stop();
@@ -66,12 +57,12 @@ function useScanLine(frameSize, periodMs = 2000) {
 
 const FRAME_SIZE = 200;
 
-function ScanStep({ amount, setAmount, onBack, onContinue }) {
+function ScanStep({ merchant, merchants, onSelectMerchant, amount, setAmount, onBack, onContinue }) {
   const scanY = useScanLine(FRAME_SIZE);
   const entrance = useEntrance(0, 350, 10);
   const historyEntrance = useEntrance(150, 350, 10);
   const { transactions } = useAppState();
-  const history = transactions.filter((tx) => tx.title === MERCHANT.name).slice(0, 3);
+  const history = transactions.filter((tx) => tx.type === 'pay_merchant' || tx.title?.includes(merchant.name)).slice(0, 3);
   const pressDigit = (d) => setAmount((prev) => Math.min(999999, Number(`${prev === 0 ? '' : prev}${d}`)));
   const pressBackspace = () => setAmount((prev) => Math.floor(prev / 10));
 
@@ -89,16 +80,30 @@ function ScanStep({ amount, setAmount, onBack, onContinue }) {
 
           <Animated.View style={[styles.merchantCard, entrance]}>
             <View style={styles.merchantIcon}>
-              <Text style={{ fontSize: 22 }}>{MERCHANT.emoji}</Text>
+              <Text style={{ fontSize: 22 }}>{merchant.emoji}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.merchantName}>{MERCHANT.name}</Text>
-              <Text style={styles.merchantArr}>📍 {MERCHANT.arr}</Text>
+              <Text style={styles.merchantName}>{merchant.name}</Text>
+              <Text style={styles.merchantArr}>📍 {merchant.arr}</Text>
             </View>
             <View style={styles.verifiedPill}>
               <Text style={styles.verifiedPillText}>✓ K21</Text>
             </View>
           </Animated.View>
+          {merchants.length > 1 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: spacing.md, maxHeight: 44 }}>
+              {merchants.map((m) => (
+                <PressScale
+                  key={m.id}
+                  scaleTo={0.96}
+                  onPress={() => onSelectMerchant(m)}
+                  style={[styles.merchantChip, merchant.businessId === m.id && styles.merchantChipOn]}
+                >
+                  <Text style={[styles.merchantChipText, merchant.businessId === m.id && styles.merchantChipTextOn]}>{m.name}</Text>
+                </PressScale>
+              ))}
+            </ScrollView>
+          ) : null}
         </LinearGradient>
 
         <View style={styles.scannerArea}>
@@ -129,7 +134,7 @@ function ScanStep({ amount, setAmount, onBack, onContinue }) {
           {history.length === 0 ? (
             <View style={styles.historyEmpty}>
               <Text style={{ fontSize: 16 }}>🆕</Text>
-              <Text style={styles.historyEmptyText}>Ton premier paiement chez {MERCHANT.name}</Text>
+              <Text style={styles.historyEmptyText}>Ton premier paiement chez {merchant.name}</Text>
             </View>
           ) : (
             <View style={{ gap: spacing.sm }}>
@@ -154,7 +159,7 @@ function ScanStep({ amount, setAmount, onBack, onContinue }) {
   );
 }
 
-function ConfirmStep({ amount, balance, onPay, onCancel, submitting }) {
+function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting }) {
   const entrance = useEntrance(0, 350, 10);
 
   return (
@@ -164,10 +169,10 @@ function ConfirmStep({ amount, balance, onPay, onCancel, submitting }) {
           <WaxPattern color="rgba(255,255,255,0.06)" size={18} animated={false} />
           <Animated.View style={[{ alignItems: 'center' }, entrance]}>
             <View style={styles.confirmAva}>
-              <Text style={{ fontSize: 28 }}>{MERCHANT.emoji}</Text>
+              <Text style={{ fontSize: 28 }}>{merchant.emoji}</Text>
             </View>
-            <Text style={styles.confirmMerchantName}>{MERCHANT.name}</Text>
-            <Text style={styles.confirmMerchantArr}>📍 Médina · Marchand vérifié K21</Text>
+            <Text style={styles.confirmMerchantName}>{merchant.name}</Text>
+            <Text style={styles.confirmMerchantArr}>📍 {merchant.arr} · Marchand vérifié K21</Text>
             <Text style={styles.confirmAmount}>
               {formatAmount(amount)} <Text style={styles.confirmCurr}>F</Text>
             </Text>
@@ -180,7 +185,7 @@ function ConfirmStep({ amount, balance, onPay, onCancel, submitting }) {
         <View style={styles.confirmBody}>
           <View style={styles.confirmRow}>
             <Text style={styles.confirmRowLabel}>Marchand</Text>
-            <Text style={styles.confirmRowVal}>{MERCHANT.name}</Text>
+            <Text style={styles.confirmRowVal}>{merchant.name}</Text>
           </View>
           <View style={styles.confirmRow}>
             <Text style={styles.confirmRowLabel}>Montant</Text>
@@ -211,7 +216,7 @@ function ConfirmStep({ amount, balance, onPay, onCancel, submitting }) {
   );
 }
 
-function SuccessStep({ amount, oldBalance, newBalance, reference, onDone, onMarkedUndone, onShareMbolo, undone }) {
+function SuccessStep({ merchant, amount, oldBalance, newBalance, reference, onDone, onMarkedUndone, onShareMbolo, undone }) {
   useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.4);
   const title = useEntrance(200, 500, 10);
@@ -228,7 +233,7 @@ function SuccessStep({ amount, oldBalance, newBalance, reference, onDone, onMark
       </Animated.View>
       <Animated.Text style={[styles.ssTitle, title]}>{undone ? 'Annulé' : 'Payé !'}</Animated.Text>
       <Animated.Text style={[styles.ssSub, sub]}>
-        {undone ? 'Paiement annulé — argent récupéré.' : `${MERCHANT.name} a reçu\nton paiement instantanément.`}
+        {undone ? 'Paiement annulé — argent récupéré.' : `${merchant.name} a reçu\nton paiement instantanément.`}
       </Animated.Text>
 
       {!undone && <UndoTransferBar reference={reference} amount={amount} onUndone={onMarkedUndone} />}
@@ -237,7 +242,7 @@ function SuccessStep({ amount, oldBalance, newBalance, reference, onDone, onMark
         <ReceiptCard
           style={{ marginBottom: spacing.lg }}
           rows={[
-            { key: 'merchant', label: 'Marchand', value: MERCHANT.name },
+            { key: 'merchant', label: 'Marchand', value: merchant.name },
             { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.green },
             { key: 'fee', label: 'Frais', value: '0 F ✦', color: colors.green },
             { key: 'balance', label: 'Nouveau solde', value: `${formatAmount(balanceCount)} F` },
@@ -248,7 +253,7 @@ function SuccessStep({ amount, oldBalance, newBalance, reference, onDone, onMark
           <ReceiptShareButtons
             type="merchant"
             amount={amount}
-            counterparty={MERCHANT.name}
+            counterparty={merchant.name}
             reference={reference}
             onShareMbolo={onShareMbolo}
           />
@@ -279,17 +284,45 @@ export default function PayMerchantScreen({ navigation }) {
   const [reference, setReference] = useState('');
   const [undone, setUndone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [merchants, setMerchants] = useState([]);
+  const [merchant, setMerchant] = useState(DEFAULT_MERCHANT);
   const { balance, refreshWallet, setPendingMboloShare } = useAppState();
 
+  useEffect(() => {
+    getBusinesses()
+      .then((list) => {
+        const items = Array.isArray(list) ? list : [];
+        setMerchants(items);
+        if (items[0]) {
+          setMerchant({
+            name: items[0].name,
+            arr: items[0].arrondissement ?? items[0].category ?? 'K21',
+            emoji: items[0].type === 'cooperative' ? '🌾' : '🏪',
+            businessId: items[0].id,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const selectMerchant = (m) => {
+    setMerchant({
+      name: m.name,
+      arr: m.arrondissement ?? m.category ?? 'K21',
+      emoji: m.type === 'cooperative' ? '🌾' : '🏪',
+      businessId: m.id,
+    });
+  };
+
   const pay = async () => {
-    if (!MERCHANT.businessId) {
-      showToast('Marchand demo non configuré — définis EXPO_PUBLIC_DEMO_MERCHANT_ID');
+    if (!merchant.businessId) {
+      showToast('Aucun marchand K21 — crée un commerce ou choisis dans la liste');
       return;
     }
     setSubmitting(true);
     setOldBalance(balance);
     try {
-      const result = await merchantPay(MERCHANT.businessId, { amount });
+      const result = await merchantPay(merchant.businessId, { amount });
       setReference(result.reference);
       setUndone(false);
       const wallet = await refreshWallet();
@@ -324,17 +357,26 @@ export default function PayMerchantScreen({ navigation }) {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'scan' && (
           <StepTransition>
-            <ScanStep amount={amount} setAmount={setAmount} onBack={() => navigation.goBack()} onContinue={() => setStep('confirm')} />
+            <ScanStep
+              merchant={merchant}
+              merchants={merchants}
+              onSelectMerchant={selectMerchant}
+              amount={amount}
+              setAmount={setAmount}
+              onBack={() => navigation.goBack()}
+              onContinue={() => setStep('confirm')}
+            />
           </StepTransition>
         )}
         {step === 'confirm' && (
           <StepTransition>
-            <ConfirmStep amount={amount} balance={balance} onPay={pay} onCancel={() => setStep('scan')} submitting={submitting} />
+            <ConfirmStep merchant={merchant} amount={amount} balance={balance} onPay={pay} onCancel={() => setStep('scan')} submitting={submitting} />
           </StepTransition>
         )}
         {step === 'success' && (
           <StepTransition>
             <SuccessStep
+              merchant={merchant}
               amount={amount}
               oldBalance={oldBalance}
               newBalance={newBalance}
@@ -364,6 +406,10 @@ const styles = StyleSheet.create({
   merchantArr: { fontSize: 10, color: colors.whiteA40 },
   verifiedPill: { backgroundColor: colors.greenA15, borderWidth: 1, borderColor: colors.greenA30, borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 3 },
   verifiedPillText: { fontSize: 8, fontWeight: '700', color: colors.green },
+  merchantChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.round, backgroundColor: colors.whiteA08, marginRight: spacing.sm },
+  merchantChipOn: { backgroundColor: colors.greenA15, borderColor: colors.greenA30 },
+  merchantChipText: { fontSize: 10, color: colors.whiteA50 },
+  merchantChipTextOn: { color: colors.green, fontWeight: '700' },
 
   scannerArea: { marginHorizontal: spacing.xl, marginTop: spacing.lg, borderRadius: radius.xxl, overflow: 'hidden', backgroundColor: '#111', height: 220, alignItems: 'center', justifyContent: 'center' },
   scannerBackdrop: { position: 'absolute', fontSize: 140, opacity: 0.05 },

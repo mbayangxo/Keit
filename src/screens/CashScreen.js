@@ -13,7 +13,9 @@ import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { useToast } from '../components/Toast';
-import { cashIn, cashOut } from '../lib/api-client';
+import { cashIn, cashOut, depositNational } from '../lib/api-client';
+
+const BETA_DEPOSITS = process.env.EXPO_PUBLIC_ALLOW_BETA_DEPOSITS === 'true';
 
 /** Maps agent UI keys to Julaya operator ids (backend abstraction). */
 const AGENT_OPERATORS = {
@@ -59,7 +61,7 @@ function ModeToggle({ mode, setMode }) {
   );
 }
 
-function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onBack }) {
+function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onBetaDeposit, onBack, betaLoading }) {
   const label = mode === 'in' ? 'Combien déposer ?' : 'Combien retirer ?';
   const pressDigit = (d) => setAmount((prev) => Math.min(999999, Number(`${prev === 0 ? '' : prev}${d}`)));
   const pressBackspace = () => setAmount((prev) => Math.floor(prev / 10));
@@ -98,12 +100,27 @@ function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onB
 
         <View style={styles.feeNote}>
           <Text style={styles.feeNoteText}>
-            Frais agent estimés : <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.white }}>{formatAmount(agentFee(amount))} F</Text>
+            {mode === 'in' && BETA_DEPOSITS
+              ? 'Beta US/diaspora : crédit test instantané ci-dessous. Agents Julaya pour le Sénégal via « Choisir un agent ».'
+              : (
+                <>
+                  Frais agent estimés :{' '}
+                  <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.white }}>{formatAmount(agentFee(amount))} F</Text>
+                </>
+              )}
           </Text>
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
+        {mode === 'in' && BETA_DEPOSITS && (
+          <GlowButton
+            label={betaLoading ? 'Ajout en cours…' : `Crédit test +${formatAmount(amount)} F`}
+            onPress={onBetaDeposit}
+            disabled={betaLoading || amount <= 0}
+            style={{ marginBottom: spacing.md }}
+          />
+        )}
         <GlowButton label="Choisir un agent →" onPress={onContinue} disabled={amount <= 0 || (mode === 'out' && amount > balance)} />
       </View>
     </View>
@@ -198,6 +215,7 @@ function SuccessStep({ mode, amount, agent, oldBalance, newBalance, onDone }) {
   const receipt = useEntrance(400, 500, 10);
   const fee = agentFee(amount);
   const balanceCount = useCountUp(oldBalance, newBalance, 700);
+  const agentName = agent?.name ?? 'Crédit test beta';
 
   return (
     <View style={styles.successRoot}>
@@ -213,9 +231,9 @@ function SuccessStep({ mode, amount, agent, oldBalance, newBalance, onDone }) {
         <ReceiptCard
           style={{ marginBottom: spacing.giant }}
           rows={[
-            { key: 'agent', label: 'Agent', value: agent.name },
+            { key: 'agent', label: agent?.name ? 'Agent' : 'Source', value: agentName },
             { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.green },
-            { key: 'fee', label: 'Frais agent', value: `${formatAmount(fee)} F` },
+            ...(agent ? [{ key: 'fee', label: 'Frais agent', value: `${formatAmount(fee)} F` }] : []),
             { key: 'balance', label: 'Nouveau solde', value: `${formatAmount(balanceCount)} F` },
           ]}
         />
@@ -266,6 +284,21 @@ export default function CashScreen({ navigation }) {
     }
   };
 
+  const completeBetaDeposit = async () => {
+    setLoading(true);
+    setOldBalance(balance);
+    try {
+      await depositNational({ amount, source: 'cash_screen' });
+      const wallet = await refreshWallet();
+      setNewBalance(wallet.nationalBalance ?? wallet.balance ?? balance);
+      setStep('success');
+    } catch (err) {
+      showToast(err.message ?? 'Crédit test indisponible');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -277,6 +310,8 @@ export default function CashScreen({ navigation }) {
               amount={amount}
               setAmount={setAmount}
               balance={balance}
+              betaLoading={loading}
+              onBetaDeposit={completeBetaDeposit}
               onContinue={() => setStep('agent')}
               onBack={() => navigation.goBack()}
             />
@@ -300,7 +335,7 @@ export default function CashScreen({ navigation }) {
             <CodeStep mode={mode} amount={amount} agent={agent} onDone={completeAtAgent} loading={loading} />
           </StepTransition>
         )}
-        {step === 'success' && agent && (
+        {step === 'success' && (
           <StepTransition>
             <SuccessStep mode={mode} amount={amount} agent={agent} oldBalance={oldBalance} newBalance={newBalance} onDone={finish} />
           </StepTransition>

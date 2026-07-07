@@ -165,16 +165,45 @@ export async function apiFetch(path, { method = 'GET', body, stepUpToken, auth =
   throw lastError;
 }
 
+export function lookupUser(query) {
+  const q = String(query).trim();
+  if (q.length < 3) return Promise.reject(new Error('Query too short'));
+  return apiFetch(`/api/users/lookup?q=${encodeURIComponent(q)}`, { skipCache: true });
+}
+
 export function transferUndo(reference) {
   return apiFetch(`/api/transfers/${encodeURIComponent(reference)}/undo`, { method: 'POST', skipCache: true });
 }
 
-export function authPhone(phone) {
-  return apiFetch('/api/auth/phone', { method: 'POST', body: { phone }, auth: false, skipCache: true });
+export function getCultureFeed(country = 'SN', query = '') {
+  const params = new URLSearchParams({ country });
+  if (query) params.set('q', query);
+  return apiFetch(`/api/culture/feed?${params.toString()}`, { skipCache: true });
 }
 
-export function authVerify(phone, otp) {
-  return apiFetch('/api/auth/verify', { method: 'POST', body: { phone, otp }, auth: false, skipCache: true });
+export function authRecover(phone, email) {
+  return apiFetch('/api/auth/recover', { method: 'POST', body: { phone, email: email.trim().toLowerCase() }, auth: false, skipCache: true });
+}
+
+export function authEmail(email, intent = 'login') {
+  return apiFetch('/api/auth/email', {
+    method: 'POST',
+    body: { email: email.trim().toLowerCase(), intent },
+    auth: false,
+    skipCache: true,
+  });
+}
+
+export function authPhone(phone, intent = 'signup') {
+  return apiFetch('/api/auth/phone', { method: 'POST', body: { phone, intent }, auth: false, skipCache: true });
+}
+
+export function authVerify(phoneOrOpts, otp, intent = 'signup') {
+  const body =
+    typeof phoneOrOpts === 'object' && phoneOrOpts !== null
+      ? { ...phoneOrOpts, otp: String(phoneOrOpts.otp ?? '').trim() }
+      : { phone: phoneOrOpts, otp: String(otp).trim(), intent };
+  return apiFetch('/api/auth/verify', { method: 'POST', body, auth: false, skipCache: true });
 }
 
 export function authCompleteProfile(body) {
@@ -187,6 +216,18 @@ export function authRefreshToken(refreshToken) {
 
 export function getMe() {
   return apiFetch('/api/me', { skipCache: true });
+}
+
+export function patchMe(body) {
+  return apiFetch('/api/me', { method: 'PATCH', body, skipCache: true });
+}
+
+export function mePhoneRequest(phone) {
+  return apiFetch('/api/me/phone', { method: 'POST', body: { phone }, skipCache: true });
+}
+
+export function mePhoneConfirm(phone, otp) {
+  return apiFetch('/api/me/phone/confirm', { method: 'POST', body: { phone, otp: String(otp).trim() }, skipCache: true });
 }
 
 export function getWallet() {
@@ -231,6 +272,252 @@ export function cashOut({ amount, operator = 'orange_money', phone, stepUpToken 
     stepUpToken,
     skipCache: true,
   });
+}
+
+/** Beta / diaspora test credits — requires ALLOW_BETA_DEPOSITS on the server. */
+export function depositNational({ amount, source = 'beta' }) {
+  return apiFetch('/api/deposits/national', {
+    method: 'POST',
+    body: { amount, source },
+    skipCache: true,
+  });
+}
+
+export function getMboloThreads() {
+  return apiFetch('/api/mbolo/threads', { skipCache: true });
+}
+
+export function createMboloThread({ name, memberHandles = [] }) {
+  return apiFetch('/api/mbolo/threads', {
+    method: 'POST',
+    body: { name, memberHandles },
+    skipCache: true,
+  });
+}
+
+export function getMboloMessages(threadId) {
+  return apiFetch(`/api/mbolo/threads/${encodeURIComponent(threadId)}/messages`, { skipCache: true });
+}
+
+export function sendMboloMessage(threadId, payload) {
+  return apiFetch(`/api/mbolo/threads/${encodeURIComponent(threadId)}/messages`, {
+    method: 'POST',
+    body: payload,
+    skipCache: true,
+  });
+}
+
+export function getEvents() {
+  return apiFetch('/api/events', { skipCache: true });
+}
+
+export function purchaseEventTickets(eventId, quantity = 1) {
+  return apiFetch(`/api/events/${encodeURIComponent(eventId)}/tickets`, {
+    method: 'POST',
+    body: { quantity },
+    skipCache: true,
+  });
+}
+
+export function getProducts(category) {
+  const q = category ? `?category=${encodeURIComponent(category)}` : '';
+  return apiFetch(`/api/products${q}`, { skipCache: true });
+}
+
+export function getBusinesses(category) {
+  const q = category ? `?category=${encodeURIComponent(category)}` : '';
+  return apiFetch(`/api/businesses${q}`, { skipCache: true });
+}
+
+export function createBusiness({ name, type = 'merchant', category, arrondissement, description }) {
+  return apiFetch('/api/businesses', {
+    method: 'POST',
+    body: { name, type, category, arrondissement, description },
+    skipCache: true,
+  });
+}
+
+export function getMyBusinesses() {
+  return apiFetch('/api/businesses/mine', { skipCache: true });
+}
+
+export function getBusiness(id) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(id)}`, { skipCache: true });
+}
+
+export function getPayrollGroups(businessId) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/payroll/groups`, { skipCache: true });
+}
+
+export function createPayrollGroup(businessId, body) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/payroll/groups`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function getPayrollEmployees(businessId) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/payroll/employees`, { skipCache: true });
+}
+
+export function addPayrollEmployee(businessId, body) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/payroll/employees`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function payPayrollEmployee(businessId, body) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/payroll/pay`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function runPayrollBatch(businessId, body = {}) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/payroll/run`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function getSchoolStudents(businessId) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/school/students`, { skipCache: true });
+}
+
+export function enrollSchoolStudent(businessId, body) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/school/students`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function getSchoolFeePeriods(businessId) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/school/periods`, { skipCache: true });
+}
+
+export function createSchoolFeePeriod(businessId, body) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/school/periods`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function getSchoolPeriodStatus(businessId, periodId) {
+  return apiFetch(
+    `/api/businesses/${encodeURIComponent(businessId)}/school/periods/${encodeURIComponent(periodId)}/status`,
+    { skipCache: true },
+  );
+}
+
+export function paySchoolFee(businessId, body) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/school/pay`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function remindSchoolFees(businessId, periodId) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/school/remind`, {
+    method: 'POST',
+    body: { periodId },
+    skipCache: true,
+  });
+}
+
+export function getCooperativeDeliveries(businessId, query = {}) {
+  const params = new URLSearchParams(query);
+  const q = params.toString() ? `?${params}` : '';
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/cooperative/deliveries${q}`, {
+    skipCache: true,
+  });
+}
+
+export function logCooperativeDelivery(businessId, body) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/cooperative/deliveries`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function verifyCooperativeDelivery(businessId, deliveryId, body) {
+  return apiFetch(
+    `/api/businesses/${encodeURIComponent(businessId)}/cooperative/deliveries/${encodeURIComponent(deliveryId)}/verify`,
+    { method: 'POST', body, skipCache: true },
+  );
+}
+
+export function payoutCooperativeFarmer(businessId, body) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/cooperative/payout`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function syncOfflineQueue(items) {
+  return apiFetch('/api/offline/sync', { method: 'POST', body: { items }, skipCache: true });
+}
+
+export function getBlocks() {
+  return apiFetch('/api/trust/blocks', { skipCache: true });
+}
+
+export function blockTarget(body) {
+  return apiFetch('/api/trust/block', { method: 'POST', body, skipCache: true });
+}
+
+export function unblockTarget(blockId) {
+  return apiFetch(`/api/trust/block/${encodeURIComponent(blockId)}`, { method: 'DELETE', skipCache: true });
+}
+
+export function submitReport(body) {
+  return apiFetch('/api/trust/report', { method: 'POST', body, skipCache: true });
+}
+
+export function getTontineGroups() {
+  return apiFetch('/api/tontine/groups', { skipCache: true });
+}
+
+export function createTontineGroup(body) {
+  return apiFetch('/api/tontine/groups', { method: 'POST', body, skipCache: true });
+}
+
+export function getNotifications() {
+  return apiFetch('/api/notifications', { skipCache: true });
+}
+
+export function markNotificationRead(id) {
+  return apiFetch(`/api/notifications/${encodeURIComponent(id)}/read`, { method: 'POST', skipCache: true });
+}
+
+export function transferRequest({ recipientHandle, amount, note }) {
+  const handle = String(recipientHandle).replace(/^@/, '');
+  return apiFetch('/api/transfers/request', {
+    method: 'POST',
+    body: { recipientHandle: handle, amount, currency: 'national', note },
+    skipCache: true,
+  });
+}
+
+export function getTransferRequests(role = 'all') {
+  return apiFetch(`/api/transfers/requests?role=${encodeURIComponent(role)}`, { skipCache: true });
+}
+
+export function acceptTransferRequest(id) {
+  return apiFetch(`/api/transfers/requests/${encodeURIComponent(id)}/accept`, { method: 'POST', skipCache: true });
+}
+
+export function denyTransferRequest(id) {
+  return apiFetch(`/api/transfers/requests/${encodeURIComponent(id)}/deny`, { method: 'POST', skipCache: true });
 }
 
 export function authPinSet(pin) {

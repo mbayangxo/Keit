@@ -7,7 +7,8 @@ import OnboardingScreen from '../screens/OnboardingScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import BusinessSignUpScreen from '../screens/BusinessSignUpScreen';
 import WelcomeCelebrationScreen from '../screens/WelcomeCelebrationScreen';
-import BusinessDashboardScreen from '../screens/BusinessDashboardScreen';
+import BusinessHubScreen from '../screens/BusinessHubScreen';
+import AccessibilityScreen from '../screens/AccessibilityScreen';
 import MainTabs from './MainTabs';
 import SendMoneyScreen from '../screens/SendMoneyScreen';
 import PayMerchantScreen from '../screens/PayMerchantScreen';
@@ -18,8 +19,9 @@ import ReceiveScreen from '../screens/ReceiveScreen';
 import TontineScreen from '../screens/TontineScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ComingSoonScreen from '../screens/ComingSoonScreen';
-import AccessibilityScreen from '../screens/AccessibilityScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 import PinGateScreen from '../screens/PinGateScreen';
+import ForgotAccessScreen from '../screens/ForgotAccessScreen';
 import { useAppState } from '../state/AppState';
 import { useSession } from '../context/SessionContext';
 import { fetchSessionPayload } from '../lib/session';
@@ -56,7 +58,7 @@ export default function RootNavigator() {
         {({ navigation }) => (
           <SplashScreen
             onCreateAccount={() => navigation.navigate('Welcome')}
-            onHaveAccount={() => navigation.navigate('SignUp', { mode: 'login' })}
+            onHaveAccount={() => navigation.replace('SignUp', { mode: 'login' })}
           />
         )}
       </Stack.Screen>
@@ -80,8 +82,10 @@ export default function RootNavigator() {
       <Stack.Screen name="SignUp">
         {({ navigation, route }) => (
           <SignUpScreen
+            key={route.params?.mode ?? 'signup'}
             mode={route.params?.mode ?? 'signup'}
             onCancel={() => navigation.goBack()}
+            onForgot={() => navigation.navigate('ForgotAccess')}
             onLoginComplete={async () => {
               const payload = await fetchSessionPayload();
               hydrateFromApi(payload);
@@ -95,9 +99,23 @@ export default function RootNavigator() {
           />
         )}
       </Stack.Screen>
+      <Stack.Screen name="ForgotAccess">
+        {({ navigation }) => (
+          <ForgotAccessScreen
+            onCancel={() => navigation.goBack()}
+            onRecovered={async () => {
+              const payload = await fetchSessionPayload();
+              hydrateFromApi(payload);
+              markSignedIn();
+              navigation.replace('PinSetup');
+            }}
+          />
+        )}
+      </Stack.Screen>
       <Stack.Screen name="BusinessSignUp">
         {({ navigation }) => (
           <BusinessSignUpScreen
+            onCancel={() => navigation.goBack()}
             onComplete={(signupProfile) => {
               initBusinessAccount(signupProfile);
               markSignedIn();
@@ -128,7 +146,7 @@ export default function RootNavigator() {
         )}
       </Stack.Screen>
       <Stack.Screen name="Main" component={MainTabs} />
-      <Stack.Screen name="BusinessMain" component={BusinessDashboardScreen} />
+      <Stack.Screen name="BusinessMain" component={BusinessHubScreen} />
       <Stack.Screen name="SendMoney" component={SendMoneyScreen} />
       <Stack.Screen name="PayMerchant" component={PayMerchantScreen} />
       <Stack.Screen name="Cash" component={CashScreen} />
@@ -138,6 +156,7 @@ export default function RootNavigator() {
       <Stack.Screen name="Tontine" component={TontineScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Accessibility" component={AccessibilityScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="Info" component={ComingSoonScreen} />
     </Stack.Navigator>
   );

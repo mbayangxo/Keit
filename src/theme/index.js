@@ -80,6 +80,23 @@ export const colors = {
   redA06: 'rgba(232,25,44,0.06)',
   redA08: 'rgba(232,25,44,0.08)',
 
+  // ── Onboarding / auth flow — warm light orange shell; orange + ink + green only ──
+  onboarding: {
+    bg: '#FFF0E6',
+    bgDeep: '#FFE4D4',
+    surface: '#FFFFFF',
+    ink: '#050805',
+    green: '#1af060',
+    orange: '#ff6422',
+    muted: 'rgba(5,8,5,0.55)',
+    faint: 'rgba(5,8,5,0.35)',
+    border: 'rgba(5,8,5,0.12)',
+    greenSoft: 'rgba(26,240,96,0.14)',
+    orangeSoft: 'rgba(255,100,34,0.14)',
+    greenBorder: 'rgba(26,240,96,0.35)',
+    orangeBorder: 'rgba(255,100,34,0.35)',
+  },
+
   // ── Mboolo Bright palette — warm white world, ONLY inside Mboolo screens ──
   mboolo: {
     bg: '#fff9f4',        // --bg — warm white, paper in sunlight

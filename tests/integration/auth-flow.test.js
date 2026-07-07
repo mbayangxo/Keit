@@ -2,7 +2,7 @@ import '../helpers/setup.js';
 import { test, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { authPhone, authVerify, authCompleteProfile } from '../../lib/handlers.js';
+import { authPhone, authEmail, authVerify, authCompleteProfile } from '../../lib/handlers.js';
 import { mockReq, mockRes, prisma, resetReserveToWallets, uniquePhone } from '../helpers/db.js';
 
 beforeEach(async () => {
@@ -120,4 +120,33 @@ test('returning user verify sets isNewUser false', async () => {
     verify2,
   );
   assert.equal(verify2.body.isNewUser, false);
+});
+
+test('email login for user with email on file', async () => {
+  const phone = uniquePhone();
+  const email = `test${Date.now()}@k21.test`;
+
+  const sendRes = mockRes();
+  await authPhone(mockReq({ body: { phone } }), sendRes);
+  const verifyRes = mockRes();
+  await authVerify(
+    mockReq({ body: { phone, otp: sendRes.body.otp }, headers: { 'x-device-id': 'auth-email-setup' } }),
+    verifyRes,
+  );
+  const user = await prisma.user.findUnique({ where: { phone } });
+  await prisma.user.update({ where: { id: user.id }, data: { email, emailVerifiedAt: new Date() } });
+
+  const emailSend = mockRes();
+  await authEmail(mockReq({ body: { email } }), emailSend);
+  assert.equal(emailSend.statusCode, 200);
+  assert.ok(emailSend.body.otp);
+
+  const emailVerify = mockRes();
+  await authVerify(
+    mockReq({ body: { email, otp: emailSend.body.otp, intent: 'login' }, headers: { 'x-device-id': 'auth-email-login' } }),
+    emailVerify,
+  );
+  assert.equal(emailVerify.statusCode, 200);
+  assert.ok(emailVerify.body.accessToken);
+  assert.equal(emailVerify.body.isNewUser, false);
 });

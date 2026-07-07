@@ -1,11 +1,14 @@
+import { useCallback, useEffect, useState } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import WaxPattern from '../components/WaxPattern';
 import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
 import { useAppState } from '../state/AppState';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
+import { getEvents } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing, type, motion } from '../theme';
 import {
   useFloatLoop,
@@ -47,52 +50,47 @@ function ActionButton({ icon, label, gradient, glow, delay, onPress }) {
   );
 }
 
-function RectSoundCard() {
+function EventsTonightCard({ event, onPress }) {
   const glow = useGlowPulse(motion.pulseSlow, 0.35);
-  const spin = useSpinFlick();
   const dotBlink = useBlink();
-  const bar1 = useBarLoop(0);
-  const bar2 = useBarLoop(80);
-  const bar3 = useBarLoop(160);
-  const bar4 = useBarLoop(240);
+  const title = event?.title ?? 'Concerts & soirées';
+  const subtitle = event
+    ? `${event.venue ?? 'Dakar'}${event.ticketPrice === 0 ? ' · Gratuit K21' : ` · ${event.ticketPrice.toLocaleString('fr-FR')} F`}`
+    : 'Billets via K21 · Gratuit ou payant';
 
   return (
-    <Animated.View
-      style={[
-        styles.rectCard,
-        {
-          shadowColor: colors.green,
-          shadowOffset: { width: 0, height: 0 },
-          shadowRadius: 24,
-          shadowOpacity: glow,
-          elevation: 4,
-        },
-      ]}
-    >
+    <PressScale scaleTo={0.98} onPress={onPress}>
+      <Animated.View
+        style={[
+          styles.rectCard,
+          {
+            shadowColor: colors.green,
+            shadowOffset: { width: 0, height: 0 },
+            shadowRadius: 24,
+            shadowOpacity: glow,
+            elevation: 4,
+          },
+        ]}
+      >
       <View style={styles.rcTop}>
-        <Text style={styles.rcTag}>Rect Sound · 221 Bëgg</Text>
+        <Text style={styles.rcTag}>Événements · Dakar</Text>
         <View style={styles.rcLive}>
           <Animated.View style={[styles.rcDot, { opacity: dotBlink }]} />
-          <Text style={styles.rcLiveText}>LIVE</Text>
+          <Text style={styles.rcLiveText}>Découvrir</Text>
         </View>
       </View>
       <View style={styles.rcSong}>
-        <Animated.View style={[styles.rcCover, { transform: [{ rotate: spin }] }]}>
-          <Text style={{ fontSize: 19 }}>🎵</Text>
-        </Animated.View>
-        <View style={styles.rcInfo}>
-          <Text style={styles.rcTitle} numberOfLines={1}>"Yëkël" — Saliou K.</Text>
-          <Text style={styles.rcArtist}>Chart #1 · Médina</Text>
-          <Text style={styles.rcChart}>🔥 24 800 Dafa neex aujourd'hui</Text>
+        <View style={styles.rcCover}>
+          <Text style={{ fontSize: 19 }}>🎤</Text>
         </View>
-        <View style={styles.rcBars}>
-          <Animated.View style={[styles.rcBar, { height: 8, transform: [{ scaleY: bar1 }] }]} />
-          <Animated.View style={[styles.rcBar, { height: 16, transform: [{ scaleY: bar2 }] }]} />
-          <Animated.View style={[styles.rcBar, { height: 10, transform: [{ scaleY: bar3 }] }]} />
-          <Animated.View style={[styles.rcBar, { height: 18, transform: [{ scaleY: bar4 }] }]} />
+        <View style={styles.rcInfo}>
+          <Text style={styles.rcTitle} numberOfLines={1}>{title}</Text>
+          <Text style={styles.rcArtist}>{subtitle}</Text>
+          <Text style={styles.rcChart}>{event ? 'Voir les détails →' : 'Voir ce qui se passe ce soir →'}</Text>
         </View>
       </View>
-    </Animated.View>
+      </Animated.View>
+    </PressScale>
   );
 }
 
@@ -273,8 +271,32 @@ export default function HomeScreen({ navigation }) {
   useScreenshotBlock(true);
   const notifBlink = useBlink();
   const balanceEntrance = useEntrance(0, 1000, 12);
-  const { profile, balance, transactions } = useAppState();
+  const { profile, balance, transactions, refreshWallet } = useAppState();
   const firstName = profile.name.split(' ')[0];
+  const [tonightEvent, setTonightEvent] = useState(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshWallet().catch(() => {});
+    }, [refreshWallet]),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    getEvents()
+      .then((list) => {
+        if (cancelled || !Array.isArray(list) || !list.length) return;
+        const now = Date.now();
+        const upcoming = list
+          .filter((ev) => new Date(ev.startsAt).getTime() >= now - 6 * 3600 * 1000)
+          .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+        if (upcoming[0]) setTonightEvent(upcoming[0]);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <View style={styles.root}>
@@ -327,7 +349,10 @@ export default function HomeScreen({ navigation }) {
           </View>
 
           <View style={styles.homeCards}>
-            <RectSoundCard />
+            <EventsTonightCard
+              event={tonightEvent}
+              onPress={() => navigation.navigate('ExplorerTab', { initialTab: 'Events' })}
+            />
             <WakhnaMiniCard onPress={() => navigation.navigate('MoiTab')} />
             <MbooloPulseCard onPress={() => navigation.navigate('MbooloTab')} />
           </View>

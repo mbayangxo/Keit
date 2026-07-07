@@ -1,8 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
-import WaxPattern from '../components/WaxPattern';
-import { colors, fontFamily, radius, spacing } from '../theme';
+import OnboardingShell from '../components/OnboardingShell';
+import { fontFamily, radius, spacing } from '../theme';
+import { ob } from '../theme/onboarding';
 import { useEntrance } from '../hooks/animations';
 import { useLocale } from '../context/LocaleContext';
 import { t } from '../i18n/translations';
@@ -38,9 +38,9 @@ export default function AccountTypeScreen({ onSelect }) {
       title: t(langCode, 'accountPersonalTitle'),
       sub: t(langCode, 'accountPersonalSub'),
       idLabel: t(langCode, 'accountPersonalId'),
-      accent: colors.green,
-      accentBg: colors.greenA08,
-      accentBorder: colors.greenA20,
+      accent: ob.green,
+      accentBg: ob.greenSoft,
+      accentBorder: ob.greenBorder,
     },
     {
       key: 'business',
@@ -48,44 +48,40 @@ export default function AccountTypeScreen({ onSelect }) {
       title: t(langCode, 'accountBusinessTitle'),
       sub: t(langCode, 'accountBusinessSub'),
       idLabel: t(langCode, 'accountBusinessId'),
-      accent: colors.flagGold,
-      accentBg: colors.goldA08,
-      accentBorder: colors.goldA20,
+      accent: ob.orange,
+      accentBg: ob.orangeSoft,
+      accentBorder: ob.orangeBorder,
     },
   ];
 
   return (
-    <View style={styles.root}>
-      <WaxPattern color="rgba(255,255,255,0.03)" size={18} animated={false} />
-      <SafeAreaView style={{ flex: 1 }}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.eyebrow}>{t(langCode, 'accountEyebrow')}</Text>
-            <Text style={styles.title}>{t(langCode, 'accountTitle')}</Text>
-          </View>
-
-          <View style={{ gap: spacing.lg }}>
-            {options.map((opt, i) => (
-              <OptionCard key={opt.key} opt={opt} delay={150 + i * 120} onPress={() => onSelect(opt.key)} />
-            ))}
-          </View>
+    <OnboardingShell edges={[]}>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.eyebrow}>{t(langCode, 'accountEyebrow')}</Text>
+          <Text style={styles.title}>{t(langCode, 'accountTitle')}</Text>
         </View>
-      </SafeAreaView>
-    </View>
+
+        <View style={{ gap: spacing.lg }}>
+          {options.map((opt, i) => (
+            <OptionCard key={opt.key} opt={opt} delay={150 + i * 120} onPress={() => onSelect(opt.key)} />
+          ))}
+        </View>
+      </View>
+    </OnboardingShell>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
   content: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.giant },
   header: { marginBottom: spacing.giant + 6 },
-  eyebrow: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: colors.green, textTransform: 'uppercase', marginBottom: spacing.sm },
-  title: { fontFamily: fontFamily.displayBlack, fontSize: 24, letterSpacing: -0.8, lineHeight: 30, color: colors.white },
+  eyebrow: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: ob.green, textTransform: 'uppercase', marginBottom: spacing.sm },
+  title: { fontFamily: fontFamily.displayBlack, fontSize: 24, letterSpacing: -0.8, lineHeight: 30, color: ob.ink },
 
   card: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, borderWidth: 1.5, borderRadius: radius.xxl, padding: spacing.xl },
   iconWrap: { width: 52, height: 52, borderRadius: radius.xl, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.white, marginBottom: 3 },
-  cardSub: { fontSize: 11, color: colors.whiteA40, lineHeight: 16 },
+  cardTitle: { fontFamily: fontFamily.displayBold, fontSize: 14, color: ob.ink, marginBottom: 3 },
+  cardSub: { fontSize: 11, color: ob.muted, lineHeight: 16 },
   idPill: { alignSelf: 'flex-start', marginTop: spacing.sm, borderWidth: 1, borderRadius: radius.round, paddingHorizontal: spacing.md, paddingVertical: 3 },
   idPillText: { fontFamily: fontFamily.bodyBold, fontSize: 9 },
   arrow: { fontSize: 16 },

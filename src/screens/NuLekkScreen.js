@@ -132,7 +132,16 @@ export default function NuLekkScreen({ navigation }) {
           </View>
 
           <View style={styles.cta}>
-            <PressScale scaleTo={0.96} style={{ borderRadius: radius.xxl }}>
+            <PressScale
+              scaleTo={0.96}
+              onPress={() =>
+                navigation.navigate('SendMoney', {
+                  prefilledAmount: 2000,
+                  note: 'Ñu Lekk — cagnotte groupe',
+                })
+              }
+              style={{ borderRadius: radius.xxl }}
+            >
               <Animated.View style={{ transform: [{ translateY: buttonLift }] }}>
                 <LinearGradient colors={[colors.mboolo.terra, colors.mboolo.mangoDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ctaButton}>
                   <Text style={styles.ctaText}>Contribuer 2 000 F →</Text>

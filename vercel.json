@@ -4,18 +4,7 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "functions": {
-    "api/health.js": { "maxDuration": 30 },
-    "api/me.js": { "maxDuration": 30 },
-    "api/wallet.js": { "maxDuration": 30 },
-    "api/transactions.js": { "maxDuration": 30 },
-    "api/auth/phone.js": { "maxDuration": 30 },
-    "api/auth/verify.js": { "maxDuration": 30 },
-    "api/auth/complete-profile.js": { "maxDuration": 30 },
-    "api/auth/refresh.js": { "maxDuration": 30 },
-    "api/transfers/send.js": { "maxDuration": 30 },
-    "api/admin/auth/login.js": { "maxDuration": 30 },
-    "api/admin/dashboard.js": { "maxDuration": 30 },
-    "api/cron/daily.js": { "maxDuration": 30 }
+    "api/[...path].js": { "maxDuration": 30 }
   },
   "rewrites": [
     { "source": "/admin", "destination": "/admin/index.html" },

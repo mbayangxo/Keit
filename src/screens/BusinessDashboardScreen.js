@@ -59,7 +59,13 @@ function TransactionRow({ tx }) {
 
 export default function BusinessDashboardScreen({ navigation }) {
   const { profile, balance, transactions } = useAppState();
-  const business = profile.business ?? { name: 'Ton commerce', category: 'Commerce', keboId: '—' };
+  const business = profile.business ?? { name: 'Ton commerce', category: 'Commerce', kebuId: '—', type: 'merchant' };
+  const typeLabel = {
+    merchant: 'Marchand',
+    employer: 'Employeur',
+    school: 'École',
+    cooperative: 'Coopérative',
+  }[business.type] ?? 'Commerce';
   const liveDot = useBlink(1400, 0.3);
   const balanceEntrance = useEntrance(0, 700, 12);
 
@@ -76,7 +82,7 @@ export default function BusinessDashboardScreen({ navigation }) {
               <View style={{ flex: 1 }}>
                 <Text style={styles.bizName}>{business.name}</Text>
                 <Text style={styles.bizMeta}>
-                  {business.category} · {profile.arrondissement?.name ?? 'Dakar'}
+                  {typeLabel} · {business.category} · {profile.arrondissement?.name ?? 'Dakar'}
                 </Text>
               </View>
               <PressScale
@@ -90,7 +96,7 @@ export default function BusinessDashboardScreen({ navigation }) {
             </View>
 
             <View style={styles.keboPill}>
-              <Text style={styles.keboPillText}>✦ {business.keboId}</Text>
+              <Text style={styles.keboPillText}>✦ {business.kebuId ?? business.keboId ?? '—'}</Text>
             </View>
 
             <Animated.Text style={[styles.balanceAmount, balanceEntrance]}>

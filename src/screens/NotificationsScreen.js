@@ -1,79 +1,44 @@
-import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useEntrance, useScalePulse } from '../hooks/animations';
-
-// design/k21-complete-redesign.html, Notifications section — reproduced
-// closely. The "Défi Freestyle" notification is swapped for an Events one
-// (Défis is excluded from Phase 1).
-
-const NOTIFS = [
-  {
-    key: 'cauris',
-    celebrate: true,
-    icon: '🪸',
-    iconBg: 'rgba(250,216,54,0.1)',
-    text: '"Yëkël" vient d’obtenir la certification Cauris — tu y as contribué !',
-    time: 'Il y a 5 min 🎉',
-    action: 'Voir',
-    actionStyle: 'g',
-  },
-  {
-    key: 'money',
-    unread: true,
-    accent: 'g',
-    icon: '💸',
-    iconBg: colors.greenA10,
-    text: '+5 000 F reçu de Papa Diallo',
-    time: 'Il y a 12 min',
-    action: '✓',
-    actionStyle: 'g',
-  },
-  {
-    key: 'event',
-    unread: true,
-    accent: 'o',
-    icon: '🎉',
-    iconBg: colors.orangeA10,
-    text: 'Nouvel événement près de toi — Soirée Mbalax ce soir, Place de l’Obélisque',
-    time: 'Il y a 28 min',
-    action: 'Voir',
-    actionStyle: 'o',
-  },
-  {
-    key: 'mboolo',
-    unread: true,
-    accent: 'r',
-    icon: '💬',
-    iconBg: 'rgba(232,92,26,0.1)',
-    text: '4 messages dans Médina Squad — Ibou : Ñu lekk 18h bi 🍖',
-    time: 'Il y a 35 min',
-    action: 'Répondre',
-    actionStyle: 'o',
-  },
-  {
-    key: 'wakhna',
-    unread: true,
-    accent: 'g',
-    icon: '✦',
-    iconBg: colors.greenA08,
-    text: 'Ton Wakhna passe à 840 — tu es dans le top 12% de Médina 🏅',
-    time: 'Il y a 1h',
-  },
-  {
-    key: 'tontine',
-    accent: 'y',
-    icon: '🏦',
-    iconBg: colors.goldA08,
-    text: 'Tontine Médina Squad — collecte de mars confirmée. Ton tour en Avril !',
-    time: 'Hier',
-  },
-];
+import { getNotifications, markNotificationRead } from '../lib/api-client';
 
 const ACCENT_COLORS = { g: colors.green, o: colors.orange, r: colors.flagRed, y: colors.flagGold };
 
-function NotifItem({ item, delay }) {
+function inferKind(notification) {
+  const t = `${notification.title} ${notification.body}`.toLowerCase();
+  if (t.includes('demande')) return 'money';
+  if (t.includes('mboolo') || t.includes('message')) return 'mboolo';
+  if (t.includes('événement') || t.includes('event') || t.includes('concert')) return 'event';
+  if (t.includes('tontine')) return 'tontine';
+  if (t.includes('wakhna')) return 'wakhna';
+  return 'generic';
+}
+
+function mapNotification(n) {
+  const kind = inferKind(n);
+  const icons = { money: '💸', mboolo: '💬', event: '🎉', tontine: '🏦', wakhna: '✦', generic: '🔔' };
+  const accents = { money: 'g', mboolo: 'r', event: 'o', tontine: 'y', wakhna: 'g', generic: 'g' };
+  const time = new Date(n.createdAt).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return {
+    id: n.id,
+    key: n.id,
+    kind,
+    unread: !n.read,
+    accent: accents[kind],
+    icon: icons[kind],
+    iconBg: colors.greenA10,
+    text: n.body || n.title,
+    time,
+    action: kind === 'money' ? '✓' : kind === 'mboolo' ? 'Répondre' : kind === 'event' ? 'Voir' : null,
+    actionStyle: kind === 'money' ? 'g' : 'o',
+  };
+}
+
+function NotifItem({ item, delay, onAction }) {
   const entrance = useEntrance(delay, 300, 8);
   const glow = useScalePulse(item.celebrate ? 2000 : 100000, item.celebrate ? 1.01 : 1);
 
@@ -88,7 +53,11 @@ function NotifItem({ item, delay }) {
         <Text style={styles.time}>{item.time}</Text>
       </View>
       {item.action && (
-        <PressScale scaleTo={0.9} style={[styles.actionBtn, item.actionStyle === 'g' ? styles.actionBtnG : styles.actionBtnO]}>
+        <PressScale
+          scaleTo={0.9}
+          onPress={() => onAction(item)}
+          style={[styles.actionBtn, item.actionStyle === 'g' ? styles.actionBtnG : styles.actionBtnO]}
+        >
           <Text style={[styles.actionText, item.actionStyle === 'g' && { color: colors.ink }]}>{item.action}</Text>
         </PressScale>
       )}
@@ -97,6 +66,54 @@ function NotifItem({ item, delay }) {
 }
 
 export default function NotificationsScreen({ navigation }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      const list = await getNotifications();
+      setItems((Array.isArray(list) ? list : []).map(mapNotification));
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleAction = async (item) => {
+    try {
+      if (!item.read) await markNotificationRead(item.id);
+      setItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n)));
+    } catch {
+      /* ignore mark read errors */
+    }
+
+    switch (item.kind) {
+      case 'mboolo':
+        navigation.navigate('Main', { screen: 'MbooloTab' });
+        break;
+      case 'event':
+        navigation.navigate('Main', { screen: 'ExplorerTab', params: { initialTab: 'Events' } });
+        break;
+      case 'money':
+        navigation.navigate('Receive');
+        break;
+      case 'tontine':
+        navigation.navigate('Tontine');
+        break;
+      case 'wakhna':
+        navigation.navigate('Main', { screen: 'MoiTab' });
+        break;
+      default:
+        navigation.navigate('Main', { screen: 'HomeTab' });
+        break;
+    }
+  };
+
   return (
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -106,13 +123,23 @@ export default function NotificationsScreen({ navigation }) {
           </PressScale>
           <Text style={styles.title}>Notifications</Text>
           <View style={styles.countBadge}>
-            <Text style={styles.countText}>{NOTIFS.length}</Text>
+            <Text style={styles.countText}>{items.filter((n) => n.unread).length || items.length}</Text>
           </View>
         </View>
 
+        {loading && (
+          <View style={{ padding: spacing.giant, alignItems: 'center' }}>
+            <ActivityIndicator color={colors.green} />
+          </View>
+        )}
+
+        {!loading && items.length === 0 && (
+          <Text style={styles.empty}>Aucune notification pour l'instant.</Text>
+        )}
+
         <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-          {NOTIFS.map((n, i) => (
-            <NotifItem key={n.key} item={n} delay={i * 40} />
+          {items.map((n, i) => (
+            <NotifItem key={n.key} item={n} delay={i * 40} onAction={handleAction} />
           ))}
         </ScrollView>
       </SafeAreaView>
@@ -127,9 +154,9 @@ const styles = StyleSheet.create({
   title: { fontFamily: fontFamily.displayBlack, fontSize: 16, color: colors.white, flex: 1 },
   countBadge: { backgroundColor: colors.flagRed, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3 },
   countText: { fontSize: 10, fontWeight: '700', color: colors.white },
-
+  empty: { textAlign: 'center', color: colors.whiteA40, fontSize: 12, padding: spacing.giant },
   list: { padding: spacing.xxl, gap: spacing.sm },
-  item: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, borderRadius: radius.xl, padding: spacing.xl, position: 'relative', overflow: 'hidden' },
+  item: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, borderRadius: radius.xl, padding: spacing.xl, position: 'relative', overflow: 'hidden', backgroundColor: colors.whiteA04 },
   itemCelebrate: { backgroundColor: 'rgba(250,216,54,0.08)', borderWidth: 1.5, borderColor: 'rgba(250,216,54,0.2)' },
   accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
   iconWrap: { width: 38, height: 38, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },

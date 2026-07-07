@@ -11,7 +11,13 @@ export async function fetchSessionPayload() {
     profile: {
       name: profile.name,
       handle: profile.handle,
+      phone: profile.phone ?? '',
+      email: profile.email ?? '',
       arrondissement: profile.arrondissement ?? { key: '', icon: '📍', name: '' },
+      accountType: profile.accountType ?? (profile.business ? 'business' : 'personal'),
+      afriId: profile.afriId ?? '',
+      business: profile.business ?? null,
+      businesses: profile.businesses ?? [],
     },
     balance: wallet.nationalBalance ?? wallet.balance ?? 0,
     transactions,

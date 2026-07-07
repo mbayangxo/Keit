@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
@@ -10,71 +11,15 @@ import ScreenHeader from '../components/ScreenHeader';
 import AmountChips from '../components/AmountChips';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
+import { createTontineGroup, getTontineGroups } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useEntrance, useFillIn } from '../hooks/animations';
 
 // design/k21-four-flows.html, FLOW 1 — TONTINE DIGITALE (Screens T1-T3):
 // My Tontines list -> Create Group -> Pot Release.
 
-const GROUPS = [
-  {
-    key: 'medina',
-    icon: '🏆',
-    iconBg: 'rgba(232,25,44,0.12)',
-    name: 'Médina Squad',
-    members: 8,
-    perMonth: 25000,
-    total: 200000,
-    totalLabel: 'F ce mois',
-    totalColor: colors.flagRed,
-    progress: 100,
-    progressColor: colors.flagRed,
-    releasing: true,
-  },
-  {
-    key: 'ucad',
-    icon: '🎓',
-    iconBg: 'rgba(26,240,96,0.08)',
-    name: 'UCAD Promo 2025',
-    members: 10,
-    perMonth: 15000,
-    total: 150000,
-    totalLabel: 'F total',
-    totalColor: colors.green,
-    progress: 60,
-    progressColor: colors.green,
-    releasing: false,
-  },
-  {
-    key: 'diallo',
-    icon: '👨‍👩‍👧‍👦',
-    iconBg: 'rgba(250,216,54,0.08)',
-    name: 'Famille Diallo',
-    members: 6,
-    perMonth: 50000,
-    total: 300000,
-    totalLabel: 'F total',
-    totalColor: colors.flagGold,
-    progress: 33,
-    progressColor: colors.flagGold,
-    releasing: false,
-  },
-];
-
 const AMOUNT_CHIPS = ['10k F', '25k F', '50k F', '100k F'];
 const FREQ_OPTIONS = ['Hebdo', 'Mensuel', 'Bi-mensuel'];
-const NEW_MEMBERS = [
-  { key: 'fatou', emoji: '👩🏾', bg: 'rgba(26,240,96,0.1)', name: 'Fatou', order: '1er' },
-  { key: 'ibou', emoji: '👦🏿', bg: 'rgba(232,25,44,0.1)', name: 'Ibou', order: '2e' },
-  { key: 'aminata', emoji: '👩🏿', bg: 'rgba(250,216,54,0.1)', name: 'Aminata', order: '3e' },
-];
-
-const POT_MEMBERS = [
-  { key: 'saliou', order: '1', ava: '👨🏿', name: 'Saliou (toi)', status: 'now', label: 'Ce mois' },
-  { key: 'fatou', order: '2', ava: '👩🏾', name: 'Fatou', status: 'wait', label: 'Avril' },
-  { key: 'ibou', order: '3', ava: '👦🏿', name: 'Ibou', status: 'wait', label: 'Mai' },
-  { key: 'aminata', order: '✓', ava: '👩🏿', name: 'Aminata', status: 'done', label: 'Reçu' },
-];
 
 function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ /g, ' ');
@@ -117,9 +62,10 @@ function GroupItem({ item, delay, onPress }) {
   );
 }
 
-function HomeStep({ onOpenGroup, onCreate, onBack }) {
+function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
   const heroEntrance = useEntrance(0, 400, 10);
-  const receivedThisMonth = GROUPS.filter((g) => g.releasing).reduce((s) => s + 75000, 0);
+  const receivedThisMonth = groups.filter((g) => g.isMyTurn).reduce((s, g) => s + (g.expectedPot ?? 0), 0);
+  const totalMembers = groups.reduce((s, g) => s + (g.memberCount ?? 0), 0);
 
   return (
     <View style={{ flex: 1 }}>
@@ -144,7 +90,7 @@ function HomeStep({ onOpenGroup, onCreate, onBack }) {
 
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
-                <Text style={styles.statNum}>{GROUPS.length}</Text>
+                <Text style={styles.statNum}>{groups.length}</Text>
                 <Text style={styles.statLabel}>Tontines actives</Text>
               </View>
               <View style={styles.statBox}>
@@ -152,16 +98,46 @@ function HomeStep({ onOpenGroup, onCreate, onBack }) {
                 <Text style={styles.statLabel}>{formatAmount(receivedThisMonth)} F reçu</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={styles.statNum}>24</Text>
+                <Text style={styles.statNum}>{totalMembers}</Text>
                 <Text style={styles.statLabel}>Membres total</Text>
               </View>
             </View>
           </Animated.View>
         </LinearGradient>
 
+        {loading && (
+          <View style={{ padding: spacing.giant, alignItems: 'center' }}>
+            <ActivityIndicator color={colors.green} />
+          </View>
+        )}
+
         <View style={styles.groupsList}>
-          {GROUPS.map((g, i) => (
-            <GroupItem key={g.key} item={g} delay={200 + i * 80} onPress={() => onOpenGroup(g)} />
+          {!loading && groups.length === 0 && (
+            <Text style={{ textAlign: 'center', color: colors.whiteA40, fontSize: 12, padding: spacing.xxl }}>
+              Aucune tontine — crée ton premier groupe ci-dessous.
+            </Text>
+          )}
+          {groups.map((g, i) => (
+            <GroupItem
+              key={g.id}
+              item={{
+                key: g.id,
+                icon: '🏆',
+                iconBg: g.isMyTurn ? 'rgba(232,25,44,0.12)' : 'rgba(26,240,96,0.08)',
+                name: g.name,
+                members: g.memberCount,
+                perMonth: g.amountPerMember,
+                total: g.potBalance || g.expectedPot,
+                totalLabel: g.potBalance > 0 ? 'F dans le pot' : 'F attendus',
+                totalColor: g.isMyTurn ? colors.flagRed : colors.green,
+                progress: g.expectedPot ? Math.round((g.potBalance / g.expectedPot) * 100) : 0,
+                progressColor: g.isMyTurn ? colors.flagRed : colors.green,
+                releasing: g.isMyTurn,
+                raw: g,
+              }}
+              delay={200 + i * 80}
+              onPress={() => onOpenGroup(g)}
+            />
           ))}
         </View>
 
@@ -199,11 +175,26 @@ function HomeStep({ onOpenGroup, onCreate, onBack }) {
   );
 }
 
-function CreateStep({ onBack, onCreate }) {
-  const [name, setName] = useState('Médina Squad 2');
+function CreateStep({ onBack, onCreate, creating }) {
+  const [name, setName] = useState('');
   const [amountChip, setAmountChip] = useState('25k F');
   const [freq, setFreq] = useState('Mensuel');
-  const showToast = useToast();
+  const [memberHandles, setMemberHandles] = useState('');
+
+  const amountMap = { '10k F': 10000, '25k F': 25000, '50k F': 50000, '100k F': 100000 };
+
+  const submit = () => {
+    const handles = memberHandles
+      .split(/[,;\s]+/)
+      .map((h) => h.replace(/^@/, '').trim())
+      .filter(Boolean);
+    onCreate({
+      name: name.trim(),
+      amountPerMember: amountMap[amountChip] ?? 25000,
+      frequency: freq,
+      memberHandles: handles,
+    });
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -242,36 +233,27 @@ function CreateStep({ onBack, onCreate }) {
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>Membres (6)</Text>
-          <View style={styles.memberList}>
-            {NEW_MEMBERS.map((m) => (
-              <View key={m.key} style={styles.memberItem}>
-                <View style={[styles.memberAva, { backgroundColor: m.bg }]}>
-                  <Text style={{ fontSize: 14 }}>{m.emoji}</Text>
-                </View>
-                <Text style={styles.memberName}>{m.name}</Text>
-                <View style={styles.memberOrder}>
-                  <Text style={styles.memberOrderText}>{m.order}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-          <PressScale scaleTo={0.97} onPress={() => showToast('Invitation envoyée ✓')} style={styles.addMember}>
-            <View style={styles.addMemberIcon}>
-              <Text style={{ fontSize: 16, color: colors.whiteA55 }}>+</Text>
-            </View>
-            <Text style={styles.addMemberText}>Inviter un membre</Text>
-          </PressScale>
+          <Text style={styles.fieldLabel}>Membres (@handles, séparés par des espaces)</Text>
+          <TextInput
+            value={memberHandles}
+            onChangeText={setMemberHandles}
+            placeholder="@fatou @ibou"
+            placeholderTextColor={colors.whiteA30}
+            autoCapitalize="none"
+            style={[styles.fieldInput, memberHandles.length > 0 && styles.fieldInputFilled]}
+          />
         </View>
 
         <View style={styles.previewCard}>
           <View style={styles.previewRow}>
-            <Text style={styles.previewLabel}>Pot mensuel</Text>
-            <Text style={[styles.previewValue, { color: colors.green }]}>150 000 F</Text>
+            <Text style={styles.previewLabel}>Pot par cycle</Text>
+            <Text style={[styles.previewValue, { color: colors.green }]}>
+              {formatAmount((amountMap[amountChip] ?? 25000) * Math.max(1, memberHandles.split(/\s+/).filter(Boolean).length + 1))} F
+            </Text>
           </View>
           <View style={styles.previewRow}>
-            <Text style={styles.previewLabel}>Ton tour</Text>
-            <Text style={styles.previewValue}>Mois 1 (Janv.)</Text>
+            <Text style={styles.previewLabel}>Fréquence</Text>
+            <Text style={styles.previewValue}>{freq}</Text>
           </View>
           <View style={styles.previewDivider} />
           <View style={styles.previewRow}>
@@ -280,15 +262,16 @@ function CreateStep({ onBack, onCreate }) {
           </View>
         </View>
 
-        <GlowButton label="Créer et inviter les membres →" onPress={onCreate} />
+        <GlowButton label={creating ? 'Création…' : 'Créer le groupe →'} onPress={submit} disabled={creating || name.trim().length < 2} />
       </ScrollView>
     </View>
   );
 }
 
-function ReleaseStep({ onBack, onReceive }) {
+function ReleaseStep({ group, onBack, onReceive, receiving }) {
   const blink = useBlink(800);
   const heroEntrance = useEntrance(0, 400, 10);
+  const potAmount = group?.potBalance || group?.expectedPot || 0;
 
   return (
     <View style={{ flex: 1 }}>
@@ -301,74 +284,114 @@ function ReleaseStep({ onBack, onReceive }) {
               <Animated.View style={[styles.releaseDot, { opacity: blink }]} />
               <Text style={styles.releaseBadgeBigText}>C'est ton tour !</Text>
             </View>
-            <Text style={styles.releaseName}>Médina Squad · Mars 2026</Text>
+            <Text style={styles.releaseName}>{group?.name}</Text>
             <Text style={styles.releaseAmount}>
-              200 000 <Text style={styles.releaseCurr}>F</Text>
+              {formatAmount(potAmount)} <Text style={styles.releaseCurr}>F</Text>
             </Text>
-            <Text style={styles.releaseRecipient}>
-              Envoyé à <Text style={styles.releaseRecipientBold}>Saliou @saliou_medina</Text>
-            </Text>
+            <Text style={styles.releaseRecipient}>Pot collecté · Versement automatique</Text>
           </Animated.View>
         </View>
 
         <View style={styles.potMembers}>
           <Text style={styles.potMembersLabel}>Ordre de rotation</Text>
-          {POT_MEMBERS.map((m) => (
-            <View key={m.key} style={[styles.potMemberItem, m.status === 'now' && styles.potMemberCurrent]}>
-              <View style={[styles.potOrder, m.status === 'now' && styles.potOrderNow, m.status === 'done' && styles.potOrderDone]}>
-                <Text style={[styles.potOrderText, m.status === 'now' && { color: colors.ink }, m.status === 'done' && { color: colors.green }]}>
-                  {m.order}
-                </Text>
-              </View>
-              <Text style={{ fontSize: 18 }}>{m.ava}</Text>
-              <Text style={styles.potMemberName}>{m.name}</Text>
+          {(group?.members ?? []).map((m) => (
+            <View
+              key={m.userId}
+              style={[styles.potMemberItem, m.rotationOrder === group.rotationIndex && styles.potMemberCurrent]}
+            >
               <View
                 style={[
-                  styles.potStatus,
-                  m.status === 'now' && styles.potStatusNow,
-                  m.status === 'done' && styles.potStatusDone,
-                  m.status === 'wait' && styles.potStatusWait,
+                  styles.potOrder,
+                  m.rotationOrder === group.rotationIndex && styles.potOrderNow,
+                  m.hasReceivedPayout && styles.potOrderDone,
                 ]}
               >
                 <Text
                   style={[
-                    styles.potStatusText,
-                    m.status === 'now' && { color: colors.ink },
-                    m.status === 'done' && { color: colors.green },
-                    m.status === 'wait' && { color: colors.whiteA30 },
+                    styles.potOrderText,
+                    m.rotationOrder === group.rotationIndex && { color: colors.ink },
+                    m.hasReceivedPayout && { color: colors.green },
                   ]}
                 >
-                  {m.label}
+                  {m.hasReceivedPayout ? '✓' : m.rotationOrder + 1}
                 </Text>
               </View>
+              <Text style={{ fontSize: 18 }}>{m.avatarEmoji ?? '👤'}</Text>
+              <Text style={styles.potMemberName}>{m.name}</Text>
             </View>
           ))}
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
-        <PressScale scaleTo={0.97} onPress={onReceive} style={styles.receiveBtn}>
-          <Text style={styles.receiveBtnText}>Recevoir 200 000 F →</Text>
+        <PressScale scaleTo={0.97} onPress={onReceive} style={styles.receiveBtn} disabled={receiving}>
+          <Text style={styles.receiveBtnText}>{receiving ? 'Mise à jour…' : 'Actualiser mon solde →'}</Text>
         </PressScale>
-        <Text style={styles.releaseFootnote}>Tous les membres ont contribué · Automatique</Text>
+        <Text style={styles.releaseFootnote}>K21 verse le pot automatiquement quand tous ont cotisé</Text>
       </View>
     </View>
   );
 }
 
 export default function TontineScreen({ navigation }) {
+  const showToast = useToast();
   const [step, setStep] = useState('home');
-  const { addTransaction } = useAppState();
+  const [groups, setGroups] = useState([]);
+  const [activeGroup, setActiveGroup] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [receiving, setReceiving] = useState(false);
+  const { refreshWallet } = useAppState();
 
-  const receivePot = () => {
-    addTransaction({
-      icon: '🏆',
-      iconBg: 'rgba(232,25,44,0.12)',
-      title: 'Médina Squad · Tontine',
-      subtitle: "À l'instant",
-      amount: 200000,
-    });
-    setStep('home');
+  const loadGroups = useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = await getTontineGroups();
+      setGroups(Array.isArray(list) ? list : []);
+    } catch (err) {
+      showToast(err.message ?? 'Impossible de charger les tontines');
+      setGroups([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadGroups();
+    }, [loadGroups]),
+  );
+
+  useEffect(() => {
+    loadGroups();
+  }, [loadGroups]);
+
+  const receivePot = async () => {
+    setReceiving(true);
+    try {
+      await refreshWallet();
+      showToast('Solde mis à jour ✓');
+      setStep('home');
+      await loadGroups();
+    } catch (err) {
+      showToast(err.message ?? 'Erreur');
+    } finally {
+      setReceiving(false);
+    }
+  };
+
+  const createGroup = async (payload) => {
+    setCreating(true);
+    try {
+      await createTontineGroup(payload);
+      showToast('Tontine créée ✓');
+      setStep('home');
+      await loadGroups();
+    } catch (err) {
+      showToast(err.message ?? 'Création impossible');
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -377,11 +400,18 @@ export default function TontineScreen({ navigation }) {
         {step === 'home' && (
           <StepTransition>
             <HomeStep
-              onOpenGroup={(g) =>
-                g.releasing
-                  ? setStep('release')
-                  : navigation.navigate('Info', { title: g.name, subtitle: `${g.members} membres · Ce n'est pas encore ton tour.`, icon: g.icon })
-              }
+              groups={groups}
+              loading={loading}
+              onOpenGroup={(g) => {
+                setActiveGroup(g);
+                if (g.isMyTurn) setStep('release');
+                else
+                  navigation.navigate('Info', {
+                    title: g.name,
+                    subtitle: `${g.memberCount} membres · Ce n'est pas encore ton tour.`,
+                    icon: '🏆',
+                  });
+              }}
               onCreate={() => setStep('create')}
               onBack={() => navigation.goBack()}
             />
@@ -389,12 +419,12 @@ export default function TontineScreen({ navigation }) {
         )}
         {step === 'create' && (
           <StepTransition>
-            <CreateStep onBack={() => setStep('home')} onCreate={() => setStep('home')} />
+            <CreateStep onBack={() => setStep('home')} onCreate={createGroup} creating={creating} />
           </StepTransition>
         )}
-        {step === 'release' && (
+        {step === 'release' && activeGroup && (
           <StepTransition>
-            <ReleaseStep onBack={() => setStep('home')} onReceive={receivePot} />
+            <ReleaseStep group={activeGroup} onBack={() => setStep('home')} onReceive={receivePot} receiving={receiving} />
           </StepTransition>
         )}
       </SafeAreaView>

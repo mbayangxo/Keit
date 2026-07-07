@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { ActivityIndicator, Animated, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import OnboardingShell from '../components/OnboardingShell';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import { useToast } from '../components/Toast';
 import { colors, fontFamily, radius, spacing } from '../theme';
+import { ob } from '../theme/onboarding';
 import { useEntrance } from '../hooks/animations';
 import { useLocale } from '../context/LocaleContext';
-import { authPhone, authVerify, authCompleteProfile, getMe } from '../lib/api-client';
+import { authPhone, authEmail, authVerify, authCompleteProfile, getMe, getWallet, depositNational } from '../lib/api-client';
 import { saveSessionTokens } from '../lib/secure-storage';
 import { toE164, isValidLocalPhone } from '../lib/phone';
 import { t } from '../i18n/translations';
@@ -22,7 +23,18 @@ const ARRONDISSEMENTS = [
   { key: 'hlm', icon: '🌇', name: 'HLM', count: '2 987 K21' },
   { key: 'ouakam', icon: '🌃', name: 'Ouakam', count: '2 341 K21' },
 ];
-const FUND_METHOD = { key: 'mobile_money', icon: '💳', bg: colors.greenA08, name: 'Mobile Money', sub: 'Transfert depuis ton opérateur mobile', badge: 'SÉCURISÉ', badgeStyle: 'free' };
+const FUND_METHOD = {
+  key: 'mobile_money',
+  icon: '💳',
+  bg: colors.greenA08,
+  name: process.env.EXPO_PUBLIC_ALLOW_BETA_DEPOSITS === 'true' ? 'Crédit test beta' : 'Mobile Money',
+  sub:
+    process.env.EXPO_PUBLIC_ALLOW_BETA_DEPOSITS === 'true'
+      ? 'Ajoute un solde test pour envoyer de l’argent (US / diaspora — pas une vraie carte)'
+      : 'Transfert depuis ton opérateur mobile',
+  badge: 'SÉCURISÉ',
+  badgeStyle: 'free',
+};
 const FUND_AMOUNTS = [5000, 10000, 25000, 50000];
 const INTENTS = [
   { key: 'send_money', icon: '💸', title: 'Envoyer de l\'argent', sub: 'Transfers et paiements' },
@@ -44,74 +56,188 @@ function phonePlaceholder(country) {
   return '000 000 000';
 }
 
-function StepHeader({ lang, title, step, onBack }) {
+function StepHeader({ lang, title, step, total = 4, onBack }) {
   return (
     <>
       <View style={styles.headRow}>
         <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-          <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
+          <Text style={{ fontSize: 14, color: ob.ink }}>←</Text>
         </PressScale>
         <Text style={styles.headTitle}>{title}</Text>
       </View>
       <View style={styles.stepRow}>
-        {[1, 2, 3, 4].map((s) => (
+        {Array.from({ length: total }, (_, i) => i + 1).map((s) => (
           <View key={s} style={styles.stepTrack}>
-            <View style={[styles.stepFill, s <= step && { width: '100%' }, s === step && step === 4 && { backgroundColor: colors.flagGold }]} />
+            <View style={[styles.stepFill, s <= step && { width: '100%' }, s === step && step === total && { backgroundColor: ob.orange }]} />
           </View>
         ))}
       </View>
-      <Text style={styles.stepLabel}>{t(lang, 'signupStepLabel', { n: step, total: 4 })}</Text>
+      <Text style={styles.stepLabel}>{t(lang, 'signupStepLabel', { n: step, total })}</Text>
     </>
   );
 }
 
-function PhoneStep({ lang, country, phone, setPhone, loading, onNext, onBack, onCountryChange }) {
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value ?? '').trim());
+}
+
+function PhoneStep({
+  lang,
+  mode,
+  country,
+  phone,
+  setPhone,
+  loginChannel,
+  setLoginChannel,
+  loginEmail,
+  setLoginEmail,
+  loading,
+  onNext,
+  onBack,
+  onCountryChange,
+  onForgot,
+}) {
   const entrance = useEntrance(0, 350, 8);
   const [showCountries, setShowCountries] = useState(false);
-  const valid = isValidLocalPhone(country, phone);
+  const [countryQuery, setCountryQuery] = useState('');
+  const validPhone = isValidLocalPhone(country, phone);
+  const validEmail = isValidEmail(loginEmail);
+  const isLogin = mode === 'login';
+  const useEmail = isLogin && loginChannel === 'email';
+  const valid = useEmail ? validEmail : validPhone;
+  const filteredCountries = COUNTRIES.filter((c) => {
+    const q = countryQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      getCountryDisplayName(c, lang).toLowerCase().includes(q) ||
+      c.name.toLowerCase().includes(q) ||
+      (c.nameEn ?? '').toLowerCase().includes(q) ||
+      c.dial.includes(q) ||
+      c.code.toLowerCase().includes(q)
+    );
+  });
 
   const pickCountry = (c) => {
     onCountryChange?.(c);
     setShowCountries(false);
+    setCountryQuery('');
   };
 
   return (
     <Animated.View style={[styles.body, entrance]}>
-      <StepHeader lang={lang} title={t(lang, 'signupCreateAccount')} step={STEP_NUM.phone} onBack={onBack} />
+      {isLogin ? (
+        <View style={styles.loginBanner}>
+          <Text style={styles.loginBannerText}>{t(lang, 'signupSignIn').toUpperCase()}</Text>
+          <Text style={styles.loginBannerSub}>{t(lang, 'signupSignInOnlySub')}</Text>
+        </View>
+      ) : null}
+      <StepHeader
+        lang={lang}
+        title={isLogin ? t(lang, 'signupSignIn') : t(lang, 'signupCreateAccount')}
+        step={STEP_NUM.phone}
+        total={isLogin ? 2 : 4}
+        onBack={onBack}
+      />
       <Text style={styles.headline}>
-        {t(lang, 'signupPhoneHead')}{'\n'}
-        <Text style={styles.g}>{t(lang, 'signupPhoneTitle')}</Text>
+        {isLogin ? t(lang, 'signupSignInHead') : t(lang, 'signupPhoneHead')}{'\n'}
+        <Text style={styles.g}>
+          {isLogin
+            ? useEmail
+              ? t(lang, 'signupSignInEmailTitle')
+              : t(lang, 'signupSignInPhoneTitle')
+            : t(lang, 'signupPhoneTitle')}
+        </Text>
       </Text>
-      <Text style={styles.sub}>{t(lang, 'signupPhoneSub')}</Text>
+      <Text style={styles.sub}>
+        {isLogin
+          ? useEmail
+            ? t(lang, 'signupSignInEmailSub')
+            : t(lang, 'signupSignInPhoneSub')
+          : t(lang, 'signupPhoneSub')}
+      </Text>
 
-      <View style={styles.phoneRow}>
-        <PressScale scaleTo={0.96} onPress={() => setShowCountries(true)} style={styles.countrySel} accessibilityLabel={t(lang, 'signupChangeCountry')}>
-          <Text style={{ fontSize: 18 }}>{country?.flag ?? '🇸🇳'}</Text>
-          <Text style={styles.countryCode}>{country?.dial ?? '+221'}</Text>
-          <Text style={styles.countryChevron}>▾</Text>
-        </PressScale>
+      {isLogin ? (
+        <View style={styles.channelRow}>
+          <PressScale
+            scaleTo={0.96}
+            onPress={() => setLoginChannel('phone')}
+            style={[styles.channelPill, loginChannel === 'phone' && styles.channelPillOn]}
+          >
+            <Text style={[styles.channelPillText, loginChannel === 'phone' && styles.channelPillTextOn]}>
+              {t(lang, 'signupLoginChannelPhone')}
+            </Text>
+          </PressScale>
+          <PressScale
+            scaleTo={0.96}
+            onPress={() => setLoginChannel('email')}
+            style={[styles.channelPill, loginChannel === 'email' && styles.channelPillOn]}
+          >
+            <Text style={[styles.channelPillText, loginChannel === 'email' && styles.channelPillTextOn]}>
+              {t(lang, 'signupLoginChannelEmail')}
+            </Text>
+          </PressScale>
+        </View>
+      ) : null}
+
+      {useEmail ? (
         <TextInput
-          style={[styles.phoneField, valid && styles.phoneFieldFilled]}
-          placeholder={phonePlaceholder(country)}
-          placeholderTextColor={colors.whiteA20}
-          keyboardType="number-pad"
-          value={phone}
-          onChangeText={(v) => setPhone(v.replace(/[^0-9]/g, ''))}
-          maxLength={country?.phoneMax ?? 12}
+          style={[styles.emailField, validEmail && styles.phoneFieldFilled]}
+          placeholder={t(lang, 'signupEmailPlaceholder')}
+          placeholderTextColor={ob.faint}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          value={loginEmail}
+          onChangeText={setLoginEmail}
         />
-      </View>
-      <Text style={styles.fieldNote}>{t(lang, 'signupPhoneNote')}</Text>
+      ) : (
+        <>
+          <View style={styles.phoneRow}>
+            <PressScale scaleTo={0.96} onPress={() => setShowCountries(true)} style={styles.countrySel} accessibilityLabel={t(lang, 'signupChangeCountry')}>
+              <Text style={{ fontSize: 18 }}>{country?.flag ?? '🇸🇳'}</Text>
+              <Text style={styles.countryCode}>{country?.dial ?? '+221'}</Text>
+              <Text style={styles.countryChevron}>▾</Text>
+            </PressScale>
+            <TextInput
+              style={[styles.phoneField, validPhone && styles.phoneFieldFilled]}
+              placeholder={phonePlaceholder(country)}
+              placeholderTextColor={ob.faint}
+              keyboardType="number-pad"
+              value={phone}
+              onChangeText={(v) => setPhone(v.replace(/[^0-9]/g, ''))}
+              maxLength={country?.code === 'US' ? 11 : country?.phoneMax ?? 12}
+            />
+          </View>
+          <Text style={styles.fieldNote}>{t(lang, 'signupPhoneNote')}</Text>
+        </>
+      )}
 
       <View style={{ flex: 1 }} />
       <GlowButton label={loading ? t(lang, 'signupSending') : t(lang, 'signupSendCode')} onPress={onNext} disabled={!valid || loading} />
+      {isLogin && onForgot ? (
+        <PressScale scaleTo={0.95} onPress={onForgot} style={{ alignSelf: 'center', marginTop: spacing.lg }}>
+          <Text style={{ fontSize: 12, color: ob.orange, fontFamily: fontFamily.bodyBold }}>{t(lang, 'signupForgotAccess')}</Text>
+        </PressScale>
+      ) : null}
       {loading && <ActivityIndicator color={colors.green} style={{ marginTop: spacing.md }} />}
 
       <Modal visible={showCountries} animationType="slide" transparent onRequestClose={() => setShowCountries(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
             <Text style={styles.modalTitle}>{t(lang, 'signupSelectCountry')}</Text>
-            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
-              {COUNTRIES.map((c) => (
+            <View style={styles.modalSearch}>
+              <Text style={{ fontSize: 14, opacity: 0.4 }}>🔍</Text>
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder={t(lang, 'countrySearchPlaceholder')}
+                placeholderTextColor={ob.faint}
+                value={countryQuery}
+                onChangeText={setCountryQuery}
+                autoFocus
+              />
+            </View>
+            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {filteredCountries.map((c) => (
                 <PressScale key={c.code} scaleTo={0.98} onPress={() => pickCountry(c)} style={[styles.modalRow, country?.code === c.code && styles.modalRowOn]}>
                   <Text style={{ fontSize: 20 }}>{c.flag}</Text>
                   <View style={{ flex: 1 }}>
@@ -132,22 +258,35 @@ function PhoneStep({ lang, country, phone, setPhone, loading, onNext, onBack, on
   );
 }
 
-function OtpStep({ lang, displayPhone, otp, setOtp, loading, devHint, onResend, onNext, onBack }) {
+function OtpStep({ lang, mode, displayPhone, otp, setOtp, loading, devHint, onResend, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
   const boxes = [0, 1, 2, 3, 4, 5];
+  const isLogin = mode === 'login';
   return (
     <Animated.View style={[styles.body, entrance]}>
-      <StepHeader lang={lang} title={t(lang, 'signupVerification')} step={STEP_NUM.otp} onBack={onBack} />
+      <StepHeader
+        lang={lang}
+        title={t(lang, 'signupVerification')}
+        step={STEP_NUM.otp}
+        total={isLogin ? 2 : 4}
+        onBack={onBack}
+      />
       <Text style={styles.headline}>
         {t(lang, 'signupOtpHeadPrefix')}{'\n'}
         <Text style={styles.g}>{t(lang, 'signupOtpHead')}</Text>
       </Text>
       <Text style={styles.otpSentTo}>
         {t(lang, 'signupOtpSent')}{' '}
-        <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.whiteA70 }}>{displayPhone}</Text>
+        <Text style={{ fontFamily: fontFamily.bodyBold, color: ob.ink }}>{displayPhone}</Text>
         {'\n'}{t(lang, 'signupOtpValid')}
       </Text>
-      {devHint ? <Text style={styles.devOtpHint}>Code: {devHint}</Text> : null}
+      {devHint ? (
+        <View style={styles.devOtpBox}>
+          <Text style={styles.devOtpLabel}>{t(lang, 'forgotBetaCode')}</Text>
+          <Text style={styles.devOtpHint}>{devHint}</Text>
+          <Text style={styles.devOtpNote}>{t(lang, 'signupOtpUseLatest')}</Text>
+        </View>
+      ) : null}
 
       {/* The real input is stretched invisibly over the boxes: tapping a box
           taps the input, so the keyboard opens from a genuine user gesture —
@@ -182,7 +321,7 @@ function OtpStep({ lang, displayPhone, otp, setOtp, loading, devHint, onResend, 
       <View style={styles.secNote}>
         <Text style={{ fontSize: 14 }}>🛡️</Text>
         <Text style={styles.secText}>
-          <Text style={{ color: colors.whiteA70, fontFamily: fontFamily.bodyBold }}>Ne partage jamais ce code</Text> — même si quelqu'un dit travailler pour K21. On ne te demandera jamais ton code.
+          <Text style={{ color: ob.ink, fontFamily: fontFamily.bodyBold }}>Ne partage jamais ce code</Text> — même si quelqu'un dit travailler pour K21. On ne te demandera jamais ton code.
         </Text>
       </View>
 
@@ -193,7 +332,7 @@ function OtpStep({ lang, displayPhone, otp, setOtp, loading, devHint, onResend, 
   );
 }
 
-function ProfileStep({ name, setName, handle, setHandle, onNext, onBack }) {
+function ProfileStep({ name, setName, handle, setHandle, email, setEmail, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
   return (
     <Animated.View style={[styles.body, entrance]}>
@@ -207,7 +346,7 @@ function ProfileStep({ name, setName, handle, setHandle, onNext, onBack }) {
         <View style={styles.avatarCircle}>
           <Text style={{ fontSize: 32 }}>👤</Text>
           <View style={styles.avatarAdd}>
-            <Text style={{ fontSize: 12, fontWeight: '900', color: colors.ink }}>+</Text>
+            <Text style={{ fontSize: 12, fontWeight: '900', color: ob.ink }}>+</Text>
           </View>
         </View>
         <Text style={styles.avatarHint}>Ajouter une photo</Text>
@@ -215,7 +354,7 @@ function ProfileStep({ name, setName, handle, setHandle, onNext, onBack }) {
 
       <View style={styles.inputGroup}>
         <Text style={styles.igLabel}>Prénom et nom</Text>
-        <TextInput style={styles.igField} placeholder="Saliou Diallo" placeholderTextColor={colors.whiteA20} value={name} onChangeText={setName} />
+        <TextInput style={styles.igField} placeholder="Saliou Diallo" placeholderTextColor={ob.faint} value={name} onChangeText={setName} />
       </View>
       <View style={styles.inputGroup}>
         <Text style={styles.igLabel}>Ton handle</Text>
@@ -232,6 +371,19 @@ function ProfileStep({ name, setName, handle, setHandle, onNext, onBack }) {
             </View>
           )}
         </View>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.igLabel}>Email (récupération)</Text>
+        <TextInput
+          style={styles.igField}
+          placeholder="saliou@email.com"
+          placeholderTextColor={ob.faint}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+        />
       </View>
 
       <View style={{ flex: 1 }} />
@@ -262,7 +414,7 @@ function IntentStep({ lang, intent, setIntent, onNext, onBack }) {
               </View>
               {intent === opt.key && (
                 <View style={styles.aiCheck}>
-                  <Text style={{ fontSize: 9, fontWeight: '900', color: colors.ink }}>✓</Text>
+                  <Text style={{ fontSize: 9, fontWeight: '900', color: ob.ink }}>✓</Text>
                 </View>
               )}
             </PressScale>
@@ -284,7 +436,7 @@ function ArrondissementStep({ arrondissement, setArrondissement, onNext, onBack 
     <Animated.View style={[styles.body, entrance]}>
       <View style={styles.headRow}>
         <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-          <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
+          <Text style={{ fontSize: 14, color: ob.ink }}>←</Text>
         </PressScale>
         <Text style={styles.headTitle}>Mon quartier</Text>
       </View>
@@ -296,16 +448,15 @@ function ArrondissementStep({ arrondissement, setArrondissement, onNext, onBack 
       <View style={styles.arrSearch}>
         <Text style={{ fontSize: 14, opacity: 0.4 }}>🔍</Text>
         <TextInput
-          style={{ flex: 1, fontSize: 13, color: colors.white }}
+          style={{ flex: 1, fontSize: 13, color: ob.ink }}
           placeholder="Chercher mon arrondissement..."
-          placeholderTextColor={colors.whiteA25}
+          placeholderTextColor={ob.faint}
           value={query}
           onChangeText={setQuery}
         />
       </View>
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <Text style={styles.arrSectionLabel}>Populaires</Text>
         <View style={{ gap: spacing.sm }}>
           {filtered.map((a) => (
             <PressScale key={a.key} scaleTo={0.98} onPress={() => setArrondissement(a)} style={[styles.arrItem, arrondissement?.key === a.key && styles.arrItemOn]}>
@@ -314,7 +465,7 @@ function ArrondissementStep({ arrondissement, setArrondissement, onNext, onBack 
               <Text style={styles.aiCount}>{a.count}</Text>
               {arrondissement?.key === a.key && (
                 <View style={styles.aiCheck}>
-                  <Text style={{ fontSize: 9, fontWeight: '900', color: colors.ink }}>✓</Text>
+                  <Text style={{ fontSize: 9, fontWeight: '900', color: ob.ink }}>✓</Text>
                 </View>
               )}
             </PressScale>
@@ -334,7 +485,7 @@ function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext,
     <Animated.View style={[styles.body, entrance]}>
       <View style={styles.headRow}>
         <View style={[styles.backBtn, { opacity: 0.3 }]}>
-          <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
+          <Text style={{ fontSize: 14, color: ob.ink }}>←</Text>
         </View>
         <Text style={styles.headTitle}>Alimenter mon compte</Text>
       </View>
@@ -370,23 +521,26 @@ function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext,
       </ScrollView>
 
       <PressScale scaleTo={0.96} onPress={onSkip} disabled={loading} style={{ alignSelf: 'center', marginBottom: spacing.md }}>
-        <Text style={styles.skipFund}>ou <Text style={{ color: colors.whiteA55 }}>Commencer sans argent pour l'instant</Text></Text>
+        <Text style={styles.skipFund}>ou <Text style={{ color: ob.muted }}>Commencer sans argent pour l'instant</Text></Text>
       </PressScale>
       <GlowButton label={loading ? t(lang, 'signupCreating') : `Ajouter ${formatAmount(amount)} F →`} onPress={onNext} disabled={loading} />
     </Animated.View>
   );
 }
 
-export default function SignUpScreen({ mode = 'signup', onComplete, onLoginComplete, onCancel }) {
+export default function SignUpScreen({ mode = 'signup', onComplete, onLoginComplete, onCancel, onForgot }) {
   const { country, langCode, setOnboardingIntent, setCountry } = useLocale();
   const showToast = useToast();
   const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
+  const [loginChannel, setLoginChannel] = useState('phone');
+  const [loginEmail, setLoginEmail] = useState('');
   const [e164Phone, setE164Phone] = useState('');
   const [otp, setOtp] = useState('');
   const [devOtpHint, setDevOtpHint] = useState(null);
   const [name, setName] = useState('');
   const [handle, setHandle] = useState('');
+  const [email, setEmail] = useState('');
   const [intent, setIntent] = useState(null);
   const [arrondissement, setArrondissement] = useState(ARRONDISSEMENTS[0]);
   const [fundMethod, setFundMethod] = useState('mobile_money');
@@ -400,31 +554,56 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
   };
 
   const displayPhone = e164Phone || (country ? `${country.dial} ${phone}` : phone);
+  const otpDestination = mode === 'login' && loginChannel === 'email' ? loginEmail.trim().toLowerCase() : displayPhone;
+
+  const authIntent = mode === 'login' ? 'login' : 'signup';
 
   const requestOtp = async () => {
-    const normalized = toE164(country, phone);
     setLoading(true);
     try {
-      const res = await authPhone(normalized);
-      setE164Phone(normalized);
-      if (res.otp && (process.env.EXPO_PUBLIC_ALLOW_BETA_OTP === 'true' || __DEV__)) {
-        setDevOtpHint(res.otp);
+      if (mode === 'login' && loginChannel === 'email') {
+        const res = await authEmail(loginEmail.trim().toLowerCase(), authIntent);
+        if (res.otp) {
+          setDevOtpHint(String(res.otp));
+        }
+        goTo('otp');
+        return;
+      }
+      const normalized = toE164(country, phone);
+      const res = await authPhone(normalized, authIntent);
+      setE164Phone(res.phoneNormalized ?? normalized);
+      if (res.otp) {
+        setDevOtpHint(String(res.otp));
       }
       goTo('otp');
     } catch (err) {
-      showToast(err.code === 'db_unavailable' ? t(langCode, 'signupDbUnavailable') : (err.message ?? t(langCode, 'signupSendFailed')));
+      const msg =
+        err.status === 404
+          ? t(langCode, loginChannel === 'email' ? 'signupNoAccountEmail' : 'signupNoAccount')
+          : err.code === 'db_unavailable'
+            ? t(langCode, 'signupDbUnavailable')
+            : (err.message ?? t(langCode, 'signupSendFailed'));
+      showToast(msg);
     } finally {
       setLoading(false);
     }
   };
 
   const resendOtp = async () => {
-    if (!e164Phone) return;
     setLoading(true);
     try {
-      const res = await authPhone(e164Phone);
-      if (res.otp && (process.env.EXPO_PUBLIC_ALLOW_BETA_OTP === 'true' || __DEV__)) {
-        setDevOtpHint(res.otp);
+      if (mode === 'login' && loginChannel === 'email') {
+        const res = await authEmail(loginEmail.trim().toLowerCase(), authIntent);
+        if (res.otp) {
+          setDevOtpHint(String(res.otp));
+        }
+        showToast('Code renvoyé ✓');
+        return;
+      }
+      if (!e164Phone) return;
+      const res = await authPhone(e164Phone, authIntent);
+      if (res.otp) {
+        setDevOtpHint(String(res.otp));
       }
       showToast('Code renvoyé ✓');
     } catch (err) {
@@ -437,12 +616,30 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
   const verifyOtp = async () => {
     setLoading(true);
     try {
-      const res = await authVerify(e164Phone, otp);
+      let res;
+      if (mode === 'login' && loginChannel === 'email') {
+        res = await authVerify({
+          email: loginEmail.trim().toLowerCase(),
+          otp: otp.replace(/\D/g, ''),
+          intent: authIntent,
+        });
+      } else {
+        const phoneForVerify = e164Phone || toE164(country, phone);
+        if (!phoneForVerify) {
+          showToast(t(langCode, 'signupSendFailed'));
+          return;
+        }
+        res = await authVerify(phoneForVerify, otp.replace(/\D/g, ''), authIntent);
+      }
       await saveSessionTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+      if (mode === 'login') {
+        await onLoginComplete?.();
+        return;
+      }
       if (!res.isNewUser) {
         const me = await getMe();
-        if (me.name?.length >= 2 && me.handle?.length >= 3 && mode === 'login') {
-          onLoginComplete?.();
+        if (me.name?.length >= 2 && me.handle?.length >= 3) {
+          await onLoginComplete?.();
           return;
         }
       }
@@ -462,12 +659,28 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
         name: name.trim(),
         handle,
         arrondissement: { key: arrondissement.key, icon: arrondissement.icon, name: arrondissement.name },
-        fundAmount: 0, // Beta: real top-up via /api/cash/in when Julaya is live
+        fundAmount: 0,
         identityChoice: intent,
         isDiaspora: country?.code !== 'SN',
         countryCode: country?.code,
+        ...(email.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? { email: email.trim() } : {}),
       });
-      const balance = res.nationalBalance ?? res.balance ?? 0;
+
+      let wallet = res;
+      let txs = res.transactions ?? [];
+
+      if (amount > 0) {
+        try {
+          const deposited = await depositNational({ amount, source: 'signup' });
+          wallet = deposited;
+          if (deposited.transaction) txs = [deposited.transaction, ...txs];
+        } catch (depositErr) {
+          showToast(depositErr.message ?? 'Dépôt test indisponible — tu peux ajouter de l’argent plus tard');
+          wallet = await getWallet();
+        }
+      }
+
+      const balance = wallet.nationalBalance ?? wallet.balance ?? 0;
       onComplete?.({
         phone: e164Phone,
         name,
@@ -476,7 +689,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
         fundAmount: balance,
         intent,
         profile: res.profile,
-        transactions: res.transactions,
+        transactions: txs.length ? txs : undefined,
       });
     } catch (err) {
       showToast(err.message ?? t(langCode, 'signupProfileFailed'));
@@ -485,18 +698,32 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
     }
   };
 
-  const phoneBack = mode === 'login' ? onCancel : onCancel;
 
   return (
-    <View style={styles.root}>
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+    <OnboardingShell>
         {step === 'phone' && (
-          <PhoneStep lang={langCode} country={country} phone={phone} setPhone={setPhone} loading={loading} onNext={requestOtp} onBack={phoneBack} onCountryChange={setCountry} />
+          <PhoneStep
+            lang={langCode}
+            mode={mode}
+            country={country}
+            phone={phone}
+            setPhone={setPhone}
+            loginChannel={loginChannel}
+            setLoginChannel={setLoginChannel}
+            loginEmail={loginEmail}
+            setLoginEmail={setLoginEmail}
+            loading={loading}
+            onNext={requestOtp}
+            onBack={onCancel}
+            onCountryChange={setCountry}
+            onForgot={onForgot}
+          />
         )}
         {step === 'otp' && (
           <OtpStep
             lang={langCode}
-            displayPhone={displayPhone}
+            mode={mode}
+            displayPhone={otpDestination}
             otp={otp}
             setOtp={setOtp}
             loading={loading}
@@ -506,16 +733,16 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
             onBack={back}
           />
         )}
-        {step === 'profile' && (
-          <ProfileStep name={name} setName={setName} handle={handle} setHandle={setHandle} onNext={() => goTo('intent')} onBack={back} />
+        {mode === 'signup' && step === 'profile' && (
+          <ProfileStep name={name} setName={setName} handle={handle} setHandle={setHandle} email={email} setEmail={setEmail} onNext={() => goTo('intent')} onBack={back} />
         )}
-        {step === 'intent' && (
+        {mode === 'signup' && step === 'intent' && (
           <IntentStep lang={langCode} intent={intent} setIntent={setIntent} onNext={() => goTo('arrondissement')} onBack={back} />
         )}
-        {step === 'arrondissement' && (
+        {mode === 'signup' && step === 'arrondissement' && (
           <ArrondissementStep arrondissement={arrondissement} setArrondissement={setArrondissement} onNext={() => goTo('fund')} onBack={back} />
         )}
-        {step === 'fund' && (
+        {mode === 'signup' && step === 'fund' && (
           <FundStep
             lang={langCode}
             amount={fundAmount}
@@ -527,113 +754,136 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
             onSkip={() => finishSignup(0)}
           />
         )}
-      </SafeAreaView>
-    </View>
+    </OnboardingShell>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
   body: { flex: 1, paddingHorizontal: spacing.xxl, paddingBottom: spacing.xl },
 
   headRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, paddingTop: spacing.md, marginBottom: spacing.xxl },
-  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
-  headTitle: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.white },
+  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: ob.orangeSoft, borderWidth: 1, borderColor: ob.orangeBorder, alignItems: 'center', justifyContent: 'center' },
+  headTitle: { fontFamily: fontFamily.displayBold, fontSize: 14, color: ob.ink },
 
   stepRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
-  stepTrack: { height: 3, flex: 1, borderRadius: 2, backgroundColor: colors.whiteA08, overflow: 'hidden' },
-  stepFill: { height: '100%', width: 0, borderRadius: 2, backgroundColor: colors.green },
-  stepLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.xl },
+  stepTrack: { height: 3, flex: 1, borderRadius: 2, backgroundColor: ob.orangeSoft, overflow: 'hidden' },
+  stepFill: { height: '100%', width: 0, borderRadius: 2, backgroundColor: ob.green },
+  stepLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: ob.faint, textTransform: 'uppercase', marginBottom: spacing.xl },
 
-  headline: { fontFamily: fontFamily.displayBlack, fontSize: 22, letterSpacing: -0.6, lineHeight: 27, color: colors.white, marginBottom: spacing.sm },
-  g: { color: colors.green },
-  sub: { fontSize: 12, color: colors.whiteA35, marginBottom: spacing.giant, lineHeight: 18 },
+  headline: { fontFamily: fontFamily.displayBlack, fontSize: 22, letterSpacing: -0.6, lineHeight: 27, color: ob.ink, marginBottom: spacing.sm },
+  g: { color: ob.green },
+  sub: { fontSize: 12, color: ob.muted, marginBottom: spacing.giant, lineHeight: 18 },
 
   phoneRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
-  countrySel: { height: 52, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
-  countryCode: { fontSize: 13, fontWeight: '700', color: colors.white },
-  countryChevron: { fontSize: 10, color: colors.whiteA40, marginLeft: 2 },
+  countrySel: { height: 52, borderRadius: radius.lg, backgroundColor: ob.surface, borderWidth: 1, borderColor: ob.border, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
+  countryCode: { fontSize: 13, fontWeight: '700', color: ob.ink },
+  countryChevron: { fontSize: 10, color: ob.muted, marginLeft: 2 },
 
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: colors.ink, borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, padding: spacing.xxl, borderWidth: 1, borderColor: colors.whiteA08 },
-  modalTitle: { fontFamily: fontFamily.displayBold, fontSize: 16, color: colors.white, marginBottom: spacing.lg },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(5,8,5,0.35)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: ob.bg, borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, padding: spacing.xxl, borderWidth: 1, borderColor: ob.border },
+  modalTitle: { fontFamily: fontFamily.displayBold, fontSize: 16, color: ob.ink, marginBottom: spacing.lg },
+  modalSearch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    height: 44,
+    borderRadius: radius.lg,
+    backgroundColor: ob.surface,
+    borderWidth: 1.5,
+    borderColor: ob.border,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  modalSearchInput: { flex: 1, fontSize: 13, color: ob.ink },
   modalRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.lg, paddingHorizontal: spacing.md, borderRadius: radius.lg, marginBottom: spacing.xs },
-  modalRowOn: { backgroundColor: colors.greenA10 },
-  modalRowTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white },
-  modalRowSub: { fontSize: 11, color: colors.whiteA35, marginTop: 2 },
+  modalRowOn: { backgroundColor: ob.greenSoft },
+  modalRowTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: ob.ink },
+  modalRowSub: { fontSize: 11, color: ob.muted, marginTop: 2 },
   modalClose: { marginTop: spacing.lg, alignItems: 'center', paddingVertical: spacing.lg },
-  modalCloseText: { fontSize: 13, fontWeight: '700', color: colors.whiteA50 },
-  phoneField: { flex: 1, height: 52, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, paddingHorizontal: spacing.xxxl, fontSize: 16, fontWeight: '600', letterSpacing: 0.5, color: colors.white },
-  phoneFieldFilled: { borderColor: colors.greenA30 },
-  fieldNote: { fontSize: 10, color: colors.whiteA25, marginBottom: spacing.giant, lineHeight: 15.5 },
+  modalCloseText: { fontSize: 13, fontWeight: '700', color: ob.muted },
+  phoneField: { flex: 1, height: 52, borderRadius: radius.lg, backgroundColor: ob.surface, borderWidth: 1, borderColor: ob.border, paddingHorizontal: spacing.xxxl, fontSize: 16, fontWeight: '600', letterSpacing: 0.5, color: ob.ink },
+  emailField: { height: 52, borderRadius: radius.lg, backgroundColor: ob.surface, borderWidth: 1, borderColor: ob.border, paddingHorizontal: spacing.xxxl, fontSize: 16, fontWeight: '600', color: ob.ink, marginBottom: spacing.giant },
+  channelRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xxl },
+  channelPill: { flex: 1, height: 40, borderRadius: radius.lg, backgroundColor: ob.surface, borderWidth: 1, borderColor: ob.border, alignItems: 'center', justifyContent: 'center' },
+  channelPillOn: { backgroundColor: ob.orangeSoft, borderColor: ob.orangeBorder },
+  channelPillText: { fontSize: 12, fontWeight: '700', color: ob.muted },
+  channelPillTextOn: { color: ob.orange },
+  phoneFieldFilled: { borderColor: ob.greenBorder },
+  fieldNote: { fontSize: 10, color: ob.faint, marginBottom: spacing.giant, lineHeight: 15.5 },
 
   quickNumsRow: { gap: spacing.md, marginBottom: spacing.xxl },
-  qn: { height: 34, paddingHorizontal: spacing.lg, borderRadius: radius.md, backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
-  qnText: { fontSize: 12, fontWeight: '600', color: colors.whiteA40 },
+  qn: { height: 34, paddingHorizontal: spacing.lg, borderRadius: radius.md, backgroundColor: ob.surface, borderWidth: 1, borderColor: ob.border, alignItems: 'center', justifyContent: 'center' },
+  qnText: { fontSize: 12, fontWeight: '600', color: ob.muted },
 
-  secNote: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA08, borderRadius: radius.md, padding: spacing.lg, marginBottom: spacing.xl },
-  secText: { flex: 1, fontSize: 10, color: colors.whiteA30, lineHeight: 15 },
+  secNote: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: ob.orangeSoft, borderWidth: 1, borderColor: ob.orangeBorder, borderRadius: radius.md, padding: spacing.lg, marginBottom: spacing.xl },
+  secText: { flex: 1, fontSize: 10, color: ob.muted, lineHeight: 15 },
 
-  otpSentTo: { fontSize: 12, color: colors.whiteA35, textAlign: 'center', marginBottom: spacing.xl, lineHeight: 18 },
+  otpSentTo: { fontSize: 12, color: ob.muted, textAlign: 'center', marginBottom: spacing.xl, lineHeight: 18 },
   otpRow: { flexDirection: 'row', gap: spacing.md, justifyContent: 'center', marginBottom: spacing.xl },
-  otpBox: { width: 42, height: 54, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1.5, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
-  otpBoxFilled: { backgroundColor: colors.greenA06, borderColor: colors.greenA30 },
-  otpBoxActive: { borderColor: colors.green },
-  otpDigit: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: colors.green },
+  otpBox: { width: 42, height: 54, borderRadius: radius.lg, backgroundColor: ob.surface, borderWidth: 1.5, borderColor: ob.border, alignItems: 'center', justifyContent: 'center' },
+  otpBoxFilled: { backgroundColor: ob.greenSoft, borderColor: ob.greenBorder },
+  otpBoxActive: { borderColor: ob.green },
+  otpDigit: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: ob.green },
   hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
   otpTouchInput: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     opacity: 0.02, color: 'transparent', fontSize: 1, textAlign: 'center',
   },
-  resendText: { fontSize: 11, color: colors.whiteA30, marginBottom: spacing.xxl },
-  devOtpHint: { fontSize: 10, color: colors.flagGold, textAlign: 'center', marginBottom: spacing.md },
+  resendText: { fontSize: 11, color: ob.faint, marginBottom: spacing.xxl },
+  devOtpBox: { backgroundColor: ob.orangeSoft, borderWidth: 1.5, borderColor: ob.orangeBorder, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.lg, alignItems: 'center' },
+  devOtpLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: ob.muted, textTransform: 'uppercase', marginBottom: spacing.xs },
+  devOtpHint: { fontFamily: fontFamily.displayBlack, fontSize: 28, letterSpacing: 8, color: ob.orange, textAlign: 'center' },
+  devOtpNote: { fontSize: 9, color: ob.muted, marginTop: spacing.sm, textAlign: 'center' },
+  loginBanner: { backgroundColor: ob.orangeSoft, borderWidth: 1, borderColor: ob.orangeBorder, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.lg },
+  loginBannerText: { fontFamily: fontFamily.displayBlack, fontSize: 10, letterSpacing: 2, color: ob.orange, marginBottom: 4 },
+  loginBannerSub: { fontSize: 11, color: ob.muted, lineHeight: 16 },
 
   avatarPick: { alignItems: 'center', marginBottom: spacing.xl },
-  avatarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.greenA10, borderWidth: 2, borderColor: colors.greenA25, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
-  avatarAdd: { position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.green, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  avatarHint: { fontSize: 10, color: colors.green },
+  avatarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: ob.greenSoft, borderWidth: 2, borderColor: ob.greenBorder, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+  avatarAdd: { position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderRadius: 11, backgroundColor: ob.green, borderWidth: 2, borderColor: ob.surface, alignItems: 'center', justifyContent: 'center' },
+  avatarHint: { fontSize: 10, color: ob.green },
 
   inputGroup: { marginBottom: spacing.xl },
-  igLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.sm },
-  igField: { width: '100%', height: 50, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1.5, borderColor: colors.whiteA12, paddingHorizontal: spacing.xxxl, fontSize: 14, color: colors.white },
-  handleAt: { position: 'absolute', left: spacing.xxxl, top: 0, bottom: 0, textAlignVertical: 'center', fontSize: 14, fontWeight: '700', color: colors.green, zIndex: 1 },
+  igLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: ob.faint, textTransform: 'uppercase', marginBottom: spacing.sm },
+  igField: { width: '100%', height: 50, borderRadius: radius.lg, backgroundColor: ob.surface, borderWidth: 1.5, borderColor: ob.border, paddingHorizontal: spacing.xxxl, fontSize: 14, color: ob.ink },
+  handleAt: { position: 'absolute', left: spacing.xxxl, top: 0, bottom: 0, textAlignVertical: 'center', fontSize: 14, fontWeight: '700', color: ob.green, zIndex: 1 },
   handleField: { paddingLeft: spacing.giant + 8 },
   handleAvail: { position: 'absolute', right: spacing.lg, top: 0, bottom: 0, justifyContent: 'center' },
-  handleAvailText: { fontSize: 9, fontWeight: '700', backgroundColor: colors.greenA10, borderWidth: 1, borderColor: colors.greenA20, color: colors.green, borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 2, overflow: 'hidden' },
+  handleAvailText: { fontSize: 9, fontWeight: '700', backgroundColor: ob.greenSoft, borderWidth: 1, borderColor: ob.greenBorder, color: ob.green, borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 2, overflow: 'hidden' },
 
-  cniHero: { backgroundColor: 'rgba(247,183,49,0.06)', borderWidth: 1, borderColor: 'rgba(247,183,49,0.14)', borderRadius: radius.xxl, padding: spacing.xxl, alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xl },
-  cniTitle: { fontFamily: fontFamily.displayBlack, fontSize: 14, color: colors.white },
-  cniBody: { fontSize: 11, color: colors.whiteA35, lineHeight: 18, textAlign: 'center' },
-  cniReason: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.md, padding: spacing.lg },
-  crText: { flex: 1, fontSize: 11, color: colors.whiteA55, lineHeight: 16.5 },
-  cniOpt: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, borderRadius: radius.xl, padding: spacing.xl },
-  cniOptOn: { backgroundColor: colors.greenA06, borderColor: colors.greenA30 },
-  coTitle: { fontSize: 13, fontWeight: '700', color: colors.white, marginBottom: 2 },
-  coSub: { fontSize: 10, color: colors.whiteA35 },
-  skipCni: { fontSize: 11, color: colors.whiteA25 },
+  cniHero: { backgroundColor: ob.orangeSoft, borderWidth: 1, borderColor: ob.orangeBorder, borderRadius: radius.xxl, padding: spacing.xxl, alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xl },
+  cniTitle: { fontFamily: fontFamily.displayBlack, fontSize: 14, color: ob.ink },
+  cniBody: { fontSize: 11, color: ob.muted, lineHeight: 18, textAlign: 'center' },
+  cniReason: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, backgroundColor: ob.surface, borderWidth: 1, borderColor: ob.border, borderRadius: radius.md, padding: spacing.lg },
+  crText: { flex: 1, fontSize: 11, color: ob.muted, lineHeight: 16.5 },
+  cniOpt: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, backgroundColor: ob.surface, borderWidth: 1.5, borderColor: ob.border, borderRadius: radius.xl, padding: spacing.xl },
+  cniOptOn: { backgroundColor: ob.greenSoft, borderColor: ob.greenBorder },
+  coTitle: { fontSize: 13, fontWeight: '700', color: ob.ink, marginBottom: 2 },
+  coSub: { fontSize: 10, color: ob.muted },
+  skipCni: { fontSize: 11, color: ob.faint },
 
-  arrSearch: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.whiteA08, borderWidth: 1.5, borderColor: colors.whiteA12, borderRadius: radius.lg, height: 48, paddingHorizontal: spacing.xl, marginBottom: spacing.xl },
-  arrSectionLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: colors.whiteA25, textTransform: 'uppercase', marginBottom: spacing.md },
-  arrItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: 'transparent', borderRadius: radius.lg, padding: spacing.xl },
-  arrItemOn: { backgroundColor: colors.greenA06, borderColor: colors.greenA25 },
-  aiName: { flex: 1, fontSize: 13, fontWeight: '600', color: colors.white },
-  aiCount: { fontSize: 10, color: colors.whiteA30 },
-  aiCheck: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
+  arrSearch: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: ob.surface, borderWidth: 1.5, borderColor: ob.border, borderRadius: radius.lg, height: 48, paddingHorizontal: spacing.xl, marginBottom: spacing.xl },
+  arrSectionLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: ob.faint, textTransform: 'uppercase', marginBottom: spacing.md },
+  arrItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, backgroundColor: ob.surface, borderWidth: 1.5, borderColor: 'transparent', borderRadius: radius.lg, padding: spacing.xl },
+  arrItemOn: { backgroundColor: ob.greenSoft, borderColor: ob.greenBorder },
+  aiName: { flex: 1, fontSize: 13, fontWeight: '600', color: ob.ink },
+  aiCount: { fontSize: 10, color: ob.faint },
+  aiCheck: { width: 18, height: 18, borderRadius: 9, backgroundColor: ob.green, alignItems: 'center', justifyContent: 'center' },
 
-  fmItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, borderRadius: radius.xl, padding: spacing.xl },
-  fmItemOn: { backgroundColor: colors.greenA06, borderColor: colors.greenA25 },
+  fmItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, backgroundColor: ob.surface, borderWidth: 1.5, borderColor: ob.border, borderRadius: radius.xl, padding: spacing.xl },
+  fmItemOn: { backgroundColor: ob.greenSoft, borderColor: ob.greenBorder },
   fmIco: { width: 42, height: 42, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
-  fmName: { fontSize: 13, fontWeight: '700', color: colors.white, marginBottom: 2 },
-  fmSub: { fontSize: 10, color: colors.whiteA35 },
+  fmName: { fontSize: 13, fontWeight: '700', color: ob.ink, marginBottom: 2 },
+  fmSub: { fontSize: 10, color: ob.muted },
   fmBadge: { borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 3 },
   fmBadgeText: { fontSize: 8, fontWeight: '700', letterSpacing: 0.5 },
-  badgeFree: { backgroundColor: colors.greenA12, borderWidth: 1, borderColor: colors.greenA20 },
-  badgeFast: { backgroundColor: 'rgba(247,183,49,0.1)', borderWidth: 1, borderColor: 'rgba(247,183,49,0.2)' },
+  badgeFree: { backgroundColor: ob.greenSoft, borderWidth: 1, borderColor: ob.greenBorder },
+  badgeFast: { backgroundColor: ob.orangeSoft, borderWidth: 1, borderColor: ob.orangeBorder },
 
-  fasLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.md },
+  fasLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: ob.faint, textTransform: 'uppercase', marginBottom: spacing.md },
   fasAmounts: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  faChip: { height: 36, paddingHorizontal: spacing.xl, borderRadius: radius.round, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, alignItems: 'center', justifyContent: 'center' },
-  faChipOn: { backgroundColor: colors.greenA10, borderColor: colors.greenA30 },
-  faChipText: { fontSize: 12, fontWeight: '700', color: colors.white },
-  skipFund: { fontSize: 11, color: colors.whiteA30 },
+  faChip: { height: 36, paddingHorizontal: spacing.xl, borderRadius: radius.round, backgroundColor: ob.surface, borderWidth: 1.5, borderColor: ob.border, alignItems: 'center', justifyContent: 'center' },
+  faChipOn: { backgroundColor: ob.greenSoft, borderColor: ob.greenBorder },
+  faChipText: { fontSize: 12, fontWeight: '700', color: ob.ink },
+  skipFund: { fontSize: 11, color: ob.faint },
 });

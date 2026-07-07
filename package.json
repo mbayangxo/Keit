@@ -48,6 +48,7 @@
     "postinstall": "node scripts/prisma-generate.mjs",
     "db:setup": "node scripts/db-setup.mjs",
     "db:push": "node scripts/db-setup.mjs",
+    "db:seed-beta": "node scripts/db-seed-beta.mjs",
     "dev:api": "vercel dev",
     "db:generate": "node scripts/prisma-generate.mjs",
     "db:migrate": "prisma migrate dev",

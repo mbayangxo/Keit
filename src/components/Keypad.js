@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import PressScale from './PressScale';
 import { colors, fontFamily, radius, spacing } from '../theme';
+import { ob } from '../theme/onboarding';
 
 const ROWS = [
   ['1', '2', '3'],
@@ -9,11 +10,8 @@ const ROWS = [
   ['', '0', '⌫'],
 ];
 
-// On-screen numeric keypad for amount entry — every real fintech app has
-// one instead of relying on the OS keyboard, and it means the amount
-// digits are reachable with the same PressScale press-feedback + haptic
-// language as the rest of the app.
-export default function Keypad({ onDigit, onBackspace }) {
+export default function Keypad({ onDigit, onBackspace, variant = 'dark' }) {
+  const light = variant === 'onboarding';
   return (
     <View style={styles.grid}>
       {ROWS.map((row, i) => (
@@ -27,9 +25,9 @@ export default function Keypad({ onDigit, onBackspace }) {
                 scaleTo={0.92}
                 haptic={isBackspace ? 'medium' : 'light'}
                 onPress={() => (isBackspace ? onBackspace() : onDigit(key))}
-                style={styles.key}
+                style={[styles.key, light && styles.keyLight]}
               >
-                <Text style={[styles.keyText, isBackspace && styles.backspaceText]}>{key}</Text>
+                <Text style={[styles.keyText, light && styles.keyTextLight, isBackspace && (light ? styles.backspaceLight : styles.backspaceText)]}>{key}</Text>
               </PressScale>
             );
           })}
@@ -52,6 +50,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  keyLight: { backgroundColor: ob.surface, borderColor: ob.border },
   keyText: { fontFamily: fontFamily.displayBold, fontSize: 18, color: colors.white },
+  keyTextLight: { color: ob.ink },
   backspaceText: { fontSize: 16, color: colors.whiteA55 },
+  backspaceLight: { fontSize: 16, color: ob.muted },
 });

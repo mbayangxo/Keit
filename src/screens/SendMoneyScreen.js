@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WaxPattern from '../components/WaxPattern';
@@ -17,7 +17,7 @@ import UndoTransferBar from '../components/UndoTransferBar';
 import { usePreferences } from '../context/PreferencesContext';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { useToast } from '../components/Toast';
-import { transferSend } from '../lib/api-client';
+import { transferSend, lookupUser } from '../lib/api-client';
 
 // design/k21-remaining-flows.html, Flow 02 (Send Money) — three steps in one
 // screen: amount entry -> confirm/safety -> success. The safety screen is
@@ -26,11 +26,14 @@ import { transferSend } from '../lib/api-client';
 
 const QUICK_AMOUNTS = [1000, 5000, 10000, 25000];
 
-const RECENT_HANDLES = [
-  { name: 'Fatou', handle: 'fatou_medina', emoji: '👩🏾', bg: colors.greenA08, border: colors.greenA20 },
-  { name: 'Ibou', handle: 'ibou_dakar', emoji: '👦🏿', bg: colors.goldA08, border: 'rgba(250,216,54,0.15)' },
-  { name: 'Aminata', handle: 'aminata_hlm', emoji: '👩🏿', bg: colors.redA08, border: 'rgba(232,25,44,0.15)' },
-];
+function formatPhoneDisplay(phone) {
+  if (!phone) return '';
+  const d = String(phone).replace(/\D/g, '');
+  if (d.length >= 12 && d.startsWith('221')) {
+    return `+221 ${d.slice(3, 5)} ${d.slice(5, 8)} ${d.slice(8)}`.trim();
+  }
+  return phone;
+}
 
 function displayHandle(handle) {
   const h = String(handle).replace(/^@/, '');
@@ -41,7 +44,20 @@ function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ | /g, ' ');
 }
 
-function AmountStep({ amount, setAmount, reason, setReason, recipientHandle, setRecipientHandle, onContinue, onBack, reduceMotion }) {
+function AmountStep({
+  amount,
+  setAmount,
+  reason,
+  setReason,
+  recipientQuery,
+  setRecipientQuery,
+  recipientProfile,
+  lookupLoading,
+  lookupError,
+  onContinue,
+  onBack,
+  reduceMotion,
+}) {
   const popIn = usePopIn(0, 400, 0.8);
   const pressDigit = (d) => setAmount((prev) => Math.min(999999, Number(`${prev === 0 ? '' : prev}${d}`)));
   const pressBackspace = () => setAmount((prev) => Math.floor(prev / 10));
@@ -70,24 +86,36 @@ function AmountStep({ amount, setAmount, reason, setReason, recipientHandle, set
         </View>
 
         <View style={styles.recipientSection}>
-          <Text style={styles.lbl}>À qui ? (handle K21)</Text>
+          <Text style={styles.lbl}>À qui ? (@handle ou numéro)</Text>
           <View style={styles.recCard}>
             <View style={styles.recAva}>
-              <Text style={{ fontSize: 20 }}>👤</Text>
+              <Text style={{ fontSize: 20 }}>{recipientProfile?.avatarEmoji ?? '👤'}</Text>
             </View>
             <TextInput
               style={styles.handleField}
-              placeholder="@handle"
+              placeholder="@handle ou 77…"
               placeholderTextColor={colors.whiteA30}
               autoCapitalize="none"
               autoCorrect={false}
-              value={recipientHandle}
-              onChangeText={(t) => setRecipientHandle(t.replace(/^@/, '').replace(/[^a-z0-9_]/gi, '').toLowerCase())}
+              keyboardType="default"
+              value={recipientQuery}
+              onChangeText={setRecipientQuery}
             />
+            {lookupLoading && <ActivityIndicator size="small" color={colors.green} />}
           </View>
-          {recipientHandle.length >= 3 ? (
-            <Text style={styles.recHandle}>{displayHandle(recipientHandle)}</Text>
-          ) : null}
+          {recipientProfile && (
+            <View style={styles.recipientPreview}>
+              <Text style={styles.recipientPreviewName}>{recipientProfile.name}</Text>
+              <Text style={styles.recipientPreviewMeta}>
+                {displayHandle(recipientProfile.handle)}
+                {recipientProfile.arrondissement?.name ? ` · ${recipientProfile.arrondissement.icon} ${recipientProfile.arrondissement.name}` : ''}
+              </Text>
+              <Text style={styles.recipientPreviewPhone}>{formatPhoneDisplay(recipientProfile.phone)}</Text>
+            </View>
+          )}
+          {lookupError && !lookupLoading && recipientQuery.length >= 3 && (
+            <Text style={styles.lookupError}>{lookupError}</Text>
+          )}
         </View>
 
         <View style={styles.reasonWrap}>
@@ -102,40 +130,36 @@ function AmountStep({ amount, setAmount, reason, setReason, recipientHandle, set
         </View>
 
         <View style={{ paddingHorizontal: spacing.huge, paddingBottom: spacing.giant }}>
-          <GlowButton label="Continuer →" onPress={onContinue} disabled={recipientHandle.length < 3 || amount <= 0} />
-        </View>
-
-        <View style={{ paddingHorizontal: spacing.huge, paddingBottom: spacing.giant }}>
-          <Text style={[styles.lbl, { marginBottom: spacing.lg }]}>Contacts récents</Text>
-          <View style={{ flexDirection: 'row', gap: spacing.xl }}>
-            {RECENT_HANDLES.map((c) => (
-              <PressScale key={c.handle} scaleTo={0.9} onPress={() => setRecipientHandle(c.handle)} style={styles.contactItem}>
-                <View style={[styles.contactAva, { backgroundColor: c.bg, borderColor: c.border }]}>
-                  <Text style={{ fontSize: 22 }}>{c.emoji}</Text>
-                </View>
-                <Text style={styles.contactLabel}>{c.name}</Text>
-              </PressScale>
-            ))}
-          </View>
+          <GlowButton
+            label="Continuer →"
+            onPress={onContinue}
+            disabled={!recipientProfile || amount <= 0 || lookupLoading}
+          />
         </View>
       </ScrollView>
     </View>
   );
 }
 
-function ConfirmStep({ amount, reason, balance, recipientHandle, onConfirm, onCancel, submitting }) {
+function ConfirmStep({ amount, reason, balance, recipientProfile, onConfirm, onCancel, submitting }) {
   const solde = balance - amount;
-  const label = displayHandle(recipientHandle);
+  const label = recipientProfile?.name || displayHandle(recipientProfile?.handle);
 
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.csHero}>
         <WaxPattern color="rgba(26,240,96,0.03)" size={18} animated={false} />
         <View style={styles.csAva}>
-          <Text style={{ fontSize: 28 }}>👤</Text>
+          <Text style={{ fontSize: 28 }}>{recipientProfile?.avatarEmoji ?? '👤'}</Text>
         </View>
-        <Text style={styles.csName}>{label}</Text>
-        <Text style={styles.csHandle}>Destinataire K21</Text>
+        <Text style={styles.csName}>{recipientProfile?.name}</Text>
+        <Text style={styles.csHandle}>{displayHandle(recipientProfile?.handle)}</Text>
+        <Text style={styles.csPhone}>{formatPhoneDisplay(recipientProfile?.phone)}</Text>
+        {recipientProfile?.arrondissement?.name ? (
+          <Text style={styles.csArr}>
+            {recipientProfile.arrondissement.icon} {recipientProfile.arrondissement.name}
+          </Text>
+        ) : null}
         <Text style={styles.csAmount}>
           {formatAmount(amount)} <Text style={{ fontSize: 20, fontWeight: '400', color: 'rgba(26,240,96,0.4)' }}>F</Text>
         </Text>
@@ -146,9 +170,9 @@ function ConfirmStep({ amount, reason, balance, recipientHandle, onConfirm, onCa
         <View style={styles.csConfirmPhoto}>
           <Text style={{ fontSize: 18 }}>🔒</Text>
           <Text style={styles.cspText}>
-            <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.whiteA85 }}>Oui c'est bien {label} ?</Text>
+            <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.whiteA85 }}>Oui c'est bien {recipientProfile?.name} ?</Text>
             {'\n'}
-            Vérifie le handle avant d'envoyer.
+            Vérifie le nom, le numéro et l'arrondissement avant d'envoyer.
           </Text>
         </View>
       </View>
@@ -156,7 +180,11 @@ function ConfirmStep({ amount, reason, balance, recipientHandle, onConfirm, onCa
       <View style={styles.csBody}>
         <View style={styles.csRow}>
           <Text style={styles.csrL}>Destinataire</Text>
-          <Text style={styles.csrR}>{label}</Text>
+          <Text style={styles.csrR}>{recipientProfile?.name}</Text>
+        </View>
+        <View style={styles.csRow}>
+          <Text style={styles.csrL}>Téléphone</Text>
+          <Text style={styles.csrR}>{formatPhoneDisplay(recipientProfile?.phone)}</Text>
         </View>
         <View style={styles.csRow}>
           <Text style={styles.csrL}>Montant</Text>
@@ -182,14 +210,14 @@ function ConfirmStep({ amount, reason, balance, recipientHandle, onConfirm, onCa
   );
 }
 
-function SuccessStep({ amount, reason, reference, recipientHandle, onDone, onMarkedUndone, onShareMbolo, undone }) {
+function SuccessStep({ amount, reason, reference, recipientProfile, onDone, onMarkedUndone, onShareMbolo, undone }) {
   useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.3);
   const title = useEntrance(200, 500, 10);
   const sub = useEntrance(300, 500, 10);
   const receipt = useEntrance(400, 500, 10);
   const bonus = useEntrance(500, 500, 10);
-  const label = displayHandle(recipientHandle);
+  const label = recipientProfile?.name || displayHandle(recipientProfile?.handle);
 
   return (
     <View style={styles.successRoot}>
@@ -247,24 +275,60 @@ function SuccessStep({ amount, reason, reference, recipientHandle, onDone, onMar
   );
 }
 
-export default function SendMoneyScreen({ navigation }) {
+export default function SendMoneyScreen({ navigation, route }) {
   useScreenshotBlock(true);
   const { reduceMotion } = usePreferences();
   const showToast = useToast();
   const [step, setStep] = useState('amount');
-  const [amount, setAmount] = useState(5000);
-  const [reason, setReason] = useState('');
-  const [recipientHandle, setRecipientHandle] = useState('');
+  const [amount, setAmount] = useState(route.params?.prefilledAmount ?? 5000);
+  const [reason, setReason] = useState(route.params?.note ?? '');
+  const [recipientQuery, setRecipientQuery] = useState(route.params?.recipientHandle ?? '');
+  const [recipientProfile, setRecipientProfile] = useState(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState('');
   const [reference, setReference] = useState('');
   const [undone, setUndone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const lookupTimer = useRef(null);
   const { balance, refreshWallet, setPendingMboloShare } = useAppState();
 
+  const runLookup = useCallback(
+    async (q) => {
+      const trimmed = String(q).trim();
+      if (trimmed.length < 3) {
+        setRecipientProfile(null);
+        setLookupError('');
+        return;
+      }
+      setLookupLoading(true);
+      setLookupError('');
+      try {
+        const profile = await lookupUser(trimmed);
+        setRecipientProfile(profile);
+      } catch (err) {
+        setRecipientProfile(null);
+        setLookupError(err.message ?? 'Personne introuvable');
+      } finally {
+        setLookupLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (lookupTimer.current) clearTimeout(lookupTimer.current);
+    lookupTimer.current = setTimeout(() => runLookup(recipientQuery), 400);
+    return () => {
+      if (lookupTimer.current) clearTimeout(lookupTimer.current);
+    };
+  }, [recipientQuery, runLookup]);
+
   const confirm = async () => {
+    if (!recipientProfile?.handle) return;
     setSubmitting(true);
     try {
       const result = await transferSend({
-        recipientHandle,
+        recipientHandle: recipientProfile.handle,
         amount,
         note: reason,
       });
@@ -293,7 +357,8 @@ export default function SendMoneyScreen({ navigation }) {
     setStep('amount');
     setAmount(5000);
     setReason('');
-    setRecipientHandle('');
+    setRecipientQuery('');
+    setRecipientProfile(null);
     setUndone(false);
     navigation.goBack();
   };
@@ -308,8 +373,11 @@ export default function SendMoneyScreen({ navigation }) {
               setAmount={setAmount}
               reason={reason}
               setReason={setReason}
-              recipientHandle={recipientHandle}
-              setRecipientHandle={setRecipientHandle}
+              recipientQuery={recipientQuery}
+              setRecipientQuery={setRecipientQuery}
+              recipientProfile={recipientProfile}
+              lookupLoading={lookupLoading}
+              lookupError={lookupError}
               onContinue={() => setStep('confirm')}
               onBack={() => navigation.goBack()}
               reduceMotion={reduceMotion}
@@ -318,7 +386,15 @@ export default function SendMoneyScreen({ navigation }) {
         )}
         {step === 'confirm' && (
           <StepTransition>
-            <ConfirmStep amount={amount} reason={reason} balance={balance} recipientHandle={recipientHandle} onConfirm={confirm} onCancel={() => setStep('amount')} submitting={submitting} />
+            <ConfirmStep
+              amount={amount}
+              reason={reason}
+              balance={balance}
+              recipientProfile={recipientProfile}
+              onConfirm={confirm}
+              onCancel={() => setStep('amount')}
+              submitting={submitting}
+            />
           </StepTransition>
         )}
         {step === 'success' && (
@@ -327,7 +403,7 @@ export default function SendMoneyScreen({ navigation }) {
               amount={amount}
               reason={reason}
               reference={reference}
-              recipientHandle={recipientHandle}
+              recipientProfile={recipientProfile}
               onDone={finish}
               onMarkedUndone={handleUndone}
               onShareMbolo={shareMbolo}
@@ -363,6 +439,18 @@ const styles = StyleSheet.create({
   recAva: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(26,240,96,0.1)', borderWidth: 2, borderColor: colors.greenA25, alignItems: 'center', justifyContent: 'center' },
   recName: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white },
   recHandle: { fontFamily: fontFamily.bodyRegular, fontSize: 11, color: colors.green },
+  recipientPreview: {
+    marginTop: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.greenA08,
+    borderWidth: 1,
+    borderColor: colors.greenA18,
+  },
+  recipientPreviewName: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white },
+  recipientPreviewMeta: { fontSize: 11, color: colors.whiteA55, marginTop: 2 },
+  recipientPreviewPhone: { fontSize: 11, color: colors.green, marginTop: 4, fontFamily: fontFamily.bodyBold },
+  lookupError: { fontSize: 11, color: colors.flagRed, marginTop: spacing.sm },
   recArr: { fontSize: 11, color: colors.whiteA40 },
 
   reasonWrap: { paddingHorizontal: spacing.huge, paddingBottom: spacing.xxl },
@@ -377,7 +465,9 @@ const styles = StyleSheet.create({
   csHero: { paddingHorizontal: spacing.giant, paddingTop: spacing.giant + 4, paddingBottom: spacing.giant, alignItems: 'center', position: 'relative', overflow: 'hidden', borderBottomWidth: 1, borderBottomColor: colors.greenA12 },
   csAva: { width: 68, height: 68, borderRadius: 34, borderWidth: 3, borderColor: colors.greenA30, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.lg },
   csName: { fontFamily: fontFamily.displayBlack, fontSize: 15, color: colors.white },
-  csHandle: { fontFamily: fontFamily.bodyRegular, fontSize: 11, color: colors.green, marginBottom: spacing.xs },
+  csHandle: { fontFamily: fontFamily.bodyRegular, fontSize: 11, color: colors.green, marginBottom: 2 },
+  csPhone: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.whiteA70, marginBottom: 2 },
+  csArr: { fontSize: 11, color: colors.whiteA40, marginBottom: spacing.md },
   csArr: { fontSize: 11, color: colors.whiteA35 },
   csAmount: { fontFamily: fontFamily.displayBlack, fontSize: 54, letterSpacing: -3, lineHeight: 54, color: colors.green, marginTop: spacing.xxl, marginBottom: spacing.xs },
   csFree: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.greenA08, borderWidth: 1, borderColor: colors.greenA20, borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: spacing.xs, marginTop: spacing.sm },

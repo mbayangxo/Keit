@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
+import { useToast } from '../components/Toast';
+import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useEntrance, useBlink, useScalePulse } from '../hooks/animations';
+import { getEvents, getProducts, getBusinesses, purchaseEventTickets, getCultureFeed } from '../lib/api-client';
+import { useLocale } from '../context/LocaleContext';
 
 // design/k21-complete-redesign.html Discover/Eat/Events sections, merged
 // into one tabbed hub matching the Phase 1 scope (events, tickets, merchant
@@ -13,35 +17,34 @@ import { useEntrance, useBlink, useScalePulse } from '../hooks/animations';
 
 const TABS = ['Tout', 'Culture', 'Eat', 'Gigs', 'Events'];
 
-const DISCOVER_GRID = [
-  { key: 'concert', wide: true, bg: ['#0a1f0a', '#020a02'], icon: '🎤', cat: 'CE SOIR', catColor: colors.green, title: 'Soirée Mbalax — Saliou K.', meta: 'Place de l’Obélisque · Gratuit K21', live: true, tab: 'Events' },
-  { key: 'chart', bg: ['#1a1000', '#0a0800'], icon: '🎵', cat: 'Chart 221', catColor: colors.flagGold, title: '"Yëkël" #1', meta: 'Saliou K.', info: true },
-  { key: 'flash', bg: ['#001a08', '#000a04'], icon: '🍖', cat: 'Flash deal', catColor: colors.green, title: '-30% Dibiterie', meta: 'Expire dans 2h ⏱️', tab: 'Eat' },
-  { key: 'merchant', bg: ['#1a0008', '#0a0004'], icon: '🏬', cat: 'Marchand', catColor: colors.flagRed, title: 'Sandaga Market', meta: '1 200 K21 payments', live: true, tab: 'Eat' },
-  { key: 'gig', bg: ['#0a0a1a', '#04040a'], icon: '💼', cat: 'Gig', catColor: colors.flagGold, title: 'Livreur weekend', meta: '5 000 F/jour', tab: 'Gigs' },
-  { key: 'event', bg: ['#1a0800', '#0a0400'], icon: '🌙', cat: 'Event', catColor: colors.orange, title: 'Concert ce soir', meta: 'Médina · Gratuit', tab: 'Events' },
-];
+function formatEventDate(iso) {
+  const d = new Date(iso);
+  return {
+    day: String(d.getDate()).padStart(2, '0'),
+    mon: d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', ''),
+    time: d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+    full: d.toLocaleString('fr-FR'),
+  };
+}
 
-const FLASH_DEALS = [
-  { key: 'dibiterie', bg: ['#1a0800', '#0a0400'], icon: '🍖', discount: '-30%', name: 'Dibiterie Papa', price: '1 400 F', old: '2 000 F', time: '⏱ 2h restantes' },
-  { key: 'yassa', bg: ['#001a0a', '#000a05'], icon: '🍚', discount: '-20%', name: 'Thiébou Yassa', price: '2 000 F', old: '2 500 F', time: '⏱ 4h restantes' },
-  { key: 'cafe', bg: ['#1a1a00', '#0a0a00'], icon: '☕', discount: '-15%', name: 'Café Touba', price: '425 F', old: '500 F', time: '⏱ Toute la journée' },
-  { key: 'salade', bg: ['#1a001a', '#0a000a'], icon: '🥗', discount: '-25%', name: 'Salade Médina', price: '1 500 F', old: '2 000 F', time: '⏱ 1h restante' },
-];
+const CATEGORY_ICONS = {
+  restaurant: '🍖',
+  deal: '🍖',
+  food: '🍚',
+  gig: '💼',
+  event: '🌙',
+  default: '✦',
+};
 
-const RESTAURANTS = [
-  { key: 'papa', bg: ['#1a0800', '#0a0400'], icon: '🍖', name: 'Chez Papa', meta: 'Dibiterie · 200m', rating: '4.8' },
-  { key: 'coura', bg: ['#001a0a', '#000a05'], icon: '🍚', name: 'Mame Coura', meta: 'Thiébou · 350m', rating: '4.6' },
-  { key: 'yassahouse', bg: ['#1a0a00', '#0a0500'], icon: '🌯', name: 'Yassa House', meta: 'Poulet · 500m', rating: '4.5' },
-  { key: 'ataya', bg: ['#0a001a', '#05000a'], icon: '☕', name: 'Salon Ataya', meta: 'Café · 100m', rating: '4.9' },
-];
+function productIcon(category) {
+  return CATEGORY_ICONS[category] ?? CATEGORY_ICONS.default;
+}
 
-const EVENTS_LIST = [
-  { key: 'freestyle', day: '15', mon: 'Mar', title: 'Freestyle Grand Prix', meta: '🏆 UCAD · 14h · 2 847 participants', price: 'Participer — Gratuit K21' },
-  { key: 'afcon', day: '18', mon: 'Mar', title: 'Sénégal vs Mali · AFCON 2026', meta: '⚽ Léopold Sédar Senghor · 17h', price: 'Billets — 5 000 F via K21' },
-  { key: 'mbalax', day: '22', mon: 'Mar', title: 'Nuit du Mbalax — Parcelles', meta: '🎵 Espace Lamantin · 21h', price: '3 000 F · -20% K21 Pass' },
-];
-
+function businessIcon(category) {
+  if (category === 'restaurant') return '🍖';
+  if (category === 'boutique') return '🛍️';
+  return '🏬';
+}
 const CULTURE_FIXTURES = [
   { key: 'can', icon: '⚽', title: 'Sénégal vs Mali', meta: 'AFCON 2026 · 18 Mars · 17h', tag: 'Sport' },
   { key: 'basket', icon: '🏀', title: 'AS Douanes vs Jaraaf', meta: 'Basket · Dakar Arena · 20h', tag: 'Sport' },
@@ -49,12 +52,78 @@ const CULTURE_FIXTURES = [
   { key: 'lutte', icon: '🤼', title: 'Gala de Lutte — Arène Nationale', meta: '25 Mars · 16h', tag: 'Sport' },
 ];
 
-const GIGS = [
-  { key: 'livreur', icon: '🛵', title: 'Livreur weekend', meta: 'Médina · Flexible', pay: '5 000 F/jour' },
-  { key: 'photo', icon: '📸', title: 'Photographe événementiel', meta: 'Freelance · Ponctuel', pay: '15 000 F/event' },
-  { key: 'demenagement', icon: '📦', title: 'Aide déménagement', meta: 'Plateau · Ce weekend', pay: '3 000 F/h' },
-  { key: 'cours', icon: '📚', title: 'Cours de maths niveau lycée', meta: 'À domicile · Récurrent', pay: '2 000 F/h' },
-];
+function buildDiscoverGrid({ events, deals, restaurants, gigs }) {
+  const tiles = [];
+  const ev = events[0];
+  if (ev) {
+    const when = formatEventDate(ev.startsAt);
+    tiles.push({
+      key: `ev-${ev.id}`,
+      wide: true,
+      bg: ['#0a1f0a', '#020a02'],
+      icon: '🎤',
+      cat: 'ÉVÉNEMENT',
+      catColor: colors.green,
+      title: ev.title,
+      meta: `${ev.venue ?? 'Dakar'} · ${when.time}`,
+      live: new Date(ev.startsAt) - Date.now() < 24 * 3600 * 1000,
+      tab: 'Events',
+    });
+  }
+  const deal = deals[0];
+  if (deal) {
+    tiles.push({
+      key: `deal-${deal.id}`,
+      bg: ['#001a08', '#000a04'],
+      icon: productIcon(deal.category),
+      cat: 'Flash deal',
+      catColor: colors.green,
+      title: deal.title,
+      meta: `${deal.price.toLocaleString('fr-FR')} F · K21`,
+      tab: 'Eat',
+    });
+  }
+  const biz = restaurants[0];
+  if (biz) {
+    tiles.push({
+      key: `biz-${biz.id}`,
+      bg: ['#1a0008', '#0a0004'],
+      icon: businessIcon(biz.category),
+      cat: 'Marchand',
+      catColor: colors.flagRed,
+      title: biz.name,
+      meta: biz.arrondissement ?? 'Dakar',
+      tab: 'Eat',
+    });
+  }
+  const gig = gigs[0];
+  if (gig) {
+    tiles.push({
+      key: `gig-${gig.id}`,
+      bg: ['#0a0a1a', '#04040a'],
+      icon: '💼',
+      cat: 'Gig',
+      catColor: colors.flagGold,
+      title: gig.title,
+      meta: `${gig.price.toLocaleString('fr-FR')} F`,
+      tab: 'Gigs',
+    });
+  }
+  if (events[1]) {
+    const when = formatEventDate(events[1].startsAt);
+    tiles.push({
+      key: `ev2-${events[1].id}`,
+      bg: ['#1a0800', '#0a0400'],
+      icon: '🌙',
+      cat: 'Event',
+      catColor: colors.orange,
+      title: events[1].title,
+      meta: `${events[1].venue ?? 'Dakar'} · ${when.time}`,
+      tab: 'Events',
+    });
+  }
+  return tiles;
+}
 
 function Pill({ label, active, onPress }) {
   return (
@@ -81,18 +150,18 @@ function GridTile({ item, delay, onPress }) {
   );
 }
 
-function AllTab({ query, onOpenTab, onOpenInfo }) {
-  const filtered = DISCOVER_GRID.filter((item) => item.title.toLowerCase().includes(query.trim().toLowerCase()));
+function AllTab({ query, onOpenTab, gridItems, loading }) {
+  const filtered = gridItems.filter((item) => item.title.toLowerCase().includes(query.trim().toLowerCase()));
   return (
     <View style={styles.discGrid}>
-      {filtered.length === 0 && <Text style={styles.noResults}>Rien pour "{query}"</Text>}
+      {loading && <Text style={styles.noResults}>Chargement…</Text>}
+      {!loading && filtered.length === 0 && (
+        <Text style={styles.noResults}>
+          {query.trim() ? `Rien pour "${query}"` : 'Rien publié pour l’instant — explore les onglets Eat, Gigs et Events.'}
+        </Text>
+      )}
       {filtered.map((item, i) => (
-        <GridTile
-          key={item.key}
-          item={item}
-          delay={i * 50}
-          onPress={() => (item.info ? onOpenInfo(item) : onOpenTab(item.tab ?? 'Tout'))}
-        />
+        <GridTile key={item.key} item={item} delay={i * 50} onPress={() => onOpenTab(item.tab ?? 'Tout')} />
       ))}
     </View>
   );
@@ -138,25 +207,74 @@ function RestaurantCard({ item, delay }) {
 }
 
 function EatTab() {
-  const flashTimer = useBlink(1000, 0.6);
+  const [deals, setDeals] = useState([]);
+  const [restaurants, setRestaurants] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([getProducts('deal').catch(() => []), getBusinesses('restaurant').catch(() => [])])
+      .then(([dealList, bizList]) => {
+        if (cancelled) return;
+        setDeals(
+          (Array.isArray(dealList) ? dealList : []).map((p) => ({
+            key: p.id,
+            bg: ['#1a0800', '#0a0400'],
+            icon: productIcon(p.category),
+            discount: p.description?.includes('%') ? p.description.split(' ')[0] : 'K21',
+            name: p.title,
+            price: `${p.price.toLocaleString('fr-FR')} F`,
+            old: p.inventory > 0 ? `${Math.round(p.price * 1.3).toLocaleString('fr-FR')} F` : '',
+            time: p.category === 'deal' ? 'Offre K21' : '',
+          })),
+        );
+        setRestaurants(
+          (Array.isArray(bizList) ? bizList : []).map((b) => ({
+            key: b.id,
+            bg: ['#1a0800', '#0a0400'],
+            icon: businessIcon(b.category),
+            name: b.name,
+            meta: `${b.category ?? 'Commerce'} · ${b.arrondissement ?? 'Dakar'}`,
+            rating: b.verified ? 'Vérifié' : 'Nouveau',
+          })),
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <View>
       <View style={styles.flashLabelRow}>
-        <Text style={styles.flTitle}>⚡ FLASH DEALS</Text>
-        <Animated.View style={[styles.flTimer, { opacity: flashTimer }]}>
-          <Text style={styles.flTimerText}>02:14:33</Text>
-        </Animated.View>
+        <Text style={styles.flTitle}>⚡ OFFRES K21</Text>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.flashCarousel}>
-        {FLASH_DEALS.map((item, i) => (
-          <FlashCard key={item.key} item={item} delay={i * 50} />
-        ))}
-      </ScrollView>
+      {loading && <Text style={[styles.noResults, { paddingHorizontal: spacing.huge }]}>Chargement…</Text>}
+      {!loading && deals.length === 0 && (
+        <Text style={[styles.noResults, { paddingHorizontal: spacing.huge, paddingBottom: spacing.lg }]}>
+          Aucune offre publiée — les commerçants peuvent ajouter des produits via l’API.
+        </Text>
+      )}
+      {deals.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.flashCarousel}>
+          {deals.map((item, i) => (
+            <FlashCard key={item.key} item={item} delay={i * 50} />
+          ))}
+        </ScrollView>
+      )}
 
       <View style={styles.restSection}>
-        <Text style={styles.restLabel}>Restaurants près de toi</Text>
+        <Text style={styles.restLabel}>Restaurants & commerces</Text>
+        {!loading && restaurants.length === 0 && (
+          <Text style={[styles.noResults, { textAlign: 'left', paddingVertical: spacing.lg }]}>
+            Aucun commerce inscrit pour l’instant.
+          </Text>
+        )}
         <View style={styles.restGrid}>
-          {RESTAURANTS.map((item, i) => (
+          {restaurants.map((item, i) => (
             <RestaurantCard key={item.key} item={item} delay={i * 60} />
           ))}
         </View>
@@ -165,7 +283,7 @@ function EatTab() {
   );
 }
 
-function EventHeroCard() {
+function EventHeroCard({ title = 'Événement K21', meta = 'Dakar · bientôt' }) {
   const liveDot = useBlink(1000, 0.3);
   const entrance = useEntrance(0, 450, 10);
   return (
@@ -174,25 +292,41 @@ function EventHeroCard() {
       <View style={styles.ehcOverlay} />
       <View style={styles.ehcLive}>
         <Animated.View style={[styles.ldDot, { opacity: liveDot }]} />
-        <Text style={styles.ehcLiveText}>CE SOIR</Text>
+        <Text style={styles.ehcLiveText}>À VENIR</Text>
       </View>
       <View style={styles.ehcBody}>
-        <Text style={styles.ehcCat}>Concert · Médina</Text>
-        <Text style={styles.ehcTitle}>Soirée Mbalax — Saliou K. en live</Text>
+        <Text style={styles.ehcCat}>Concert · Dakar</Text>
+        <Text style={styles.ehcTitle}>{title}</Text>
         <View style={styles.ehcMetaRow}>
-          <Text style={styles.ehcMeta}>🕗 20h · Place de l'Obélisque</Text>
-          <View style={styles.ehcPrice}>
-            <Text style={styles.ehcPriceText}>Gratuit K21</Text>
-          </View>
+          <Text style={styles.ehcMeta}>🕗 {meta}</Text>
         </View>
       </View>
     </Animated.View>
   );
 }
 
-function EventRow({ item, delay }) {
+function EventRow({ item, delay, onBuyTicket, buying }) {
   const entrance = useEntrance(delay, 350, 8);
   const [going, setGoing] = useState(false);
+  const price =
+    item.ticketPrice === 0
+      ? 'Gratuit K21'
+      : `${item.ticketPrice.toLocaleString('fr-FR')} F via K21`;
+
+  const handleTicket = async () => {
+    if (going || buying) return;
+    if (item.ticketPrice === 0) {
+      setGoing(true);
+      return;
+    }
+    try {
+      await onBuyTicket(item.id);
+      setGoing(true);
+    } catch {
+      // toast handled by parent
+    }
+  };
+
   return (
     <Animated.View style={[styles.evItem, entrance]}>
       <View style={styles.evDateBox}>
@@ -202,22 +336,80 @@ function EventRow({ item, delay }) {
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={styles.evTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.evMeta}>{item.meta}</Text>
-        <Text style={styles.evPrice}>{going ? 'Tu y vas ✓' : item.price}</Text>
+        <Text style={styles.evPrice}>{going ? 'Billet confirmé ✓' : price}</Text>
       </View>
-      <PressScale scaleTo={0.9} onPress={() => setGoing((v) => !v)} style={[styles.evGoing, going && styles.evGoingOn]}>
-        <Text style={{ fontSize: 12 }}>{going ? '✓' : '🎟️'}</Text>
+      <PressScale
+        scaleTo={0.9}
+        onPress={handleTicket}
+        disabled={buying || going}
+        style={[styles.evGoing, going && styles.evGoingOn]}
+      >
+        <Text style={{ fontSize: 12 }}>{going ? '✓' : buying ? '…' : '🎟️'}</Text>
       </PressScale>
     </Animated.View>
   );
 }
 
-function EventsTab() {
+function EventsTab({ onBuyTicket, buyingTicketId }) {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getEvents()
+      .then((list) => {
+        if (cancelled) return;
+        const mapped = (Array.isArray(list) ? list : []).map((ev) => {
+          const when = formatEventDate(ev.startsAt);
+          return {
+            id: ev.id,
+            day: when.day,
+            mon: when.mon,
+            title: ev.title,
+            meta: `${ev.venue ?? 'Dakar'} · ${when.time}`,
+            ticketPrice: ev.ticketPrice ?? 0,
+            description: ev.description,
+          };
+        });
+        setEvents(mapped);
+      })
+      .catch(() => setEvents([]))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const hero = events[0];
+
   return (
     <View>
-      <EventHeroCard />
+      {hero ? (
+        <EventHeroCard
+          title={hero.title}
+          meta={`${hero.meta}${hero.ticketPrice === 0 ? ' · Gratuit K21' : ''}`}
+        />
+      ) : (
+        !loading && (
+          <Text style={[styles.noResults, { paddingHorizontal: spacing.huge, paddingTop: spacing.lg }]}>
+            Aucun événement publié — les promoteurs peuvent en créer via l’API.
+          </Text>
+        )
+      )}
+      {loading && (
+        <Text style={[styles.noResults, { padding: spacing.giant }]}>Chargement…</Text>
+      )}
       <View style={styles.eventList}>
-        {EVENTS_LIST.map((item, i) => (
-          <EventRow key={item.key} item={item} delay={i * 60} />
+        {events.map((item, i) => (
+          <EventRow
+            key={item.id}
+            item={item}
+            delay={i * 60}
+            onBuyTicket={onBuyTicket}
+            buying={buyingTicketId === item.id}
+          />
         ))}
       </View>
     </View>
@@ -245,17 +437,44 @@ function ListRow({ icon, title, meta, tag, tagColor, delay }) {
 }
 
 function CultureTab() {
+  const { country } = useLocale();
+  const [items, setItems] = useState(CULTURE_FIXTURES);
+  const [note, setNote] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    getCultureFeed(country?.code ?? 'SN')
+      .then((data) => {
+        if (cancelled) return;
+        if (Array.isArray(data?.items) && data.items.length) {
+          setItems(data.items);
+          setNote(data.message ?? '');
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [country?.code]);
+
   return (
     <View style={{ paddingHorizontal: spacing.huge, paddingTop: spacing.lg, gap: spacing.sm }}>
-      <Text style={styles.sectionLabel}>Sport & Culture</Text>
-      {CULTURE_FIXTURES.map((item, i) => (
+      <Text style={styles.sectionLabel}>Sport & Culture · {country?.nameEn ?? country?.name ?? 'Local'}</Text>
+      {note ? (
+        <Text style={[styles.noResults, { textAlign: 'left', paddingVertical: 0, marginBottom: spacing.sm }]}>{note}</Text>
+      ) : (
+        <Text style={[styles.noResults, { textAlign: 'left', paddingVertical: 0, marginBottom: spacing.sm }]}>
+          Aperçu local — pas de billetterie ici. Les vrais événements sont dans Events.
+        </Text>
+      )}
+      {items.map((item, i) => (
         <ListRow
           key={item.key}
           icon={item.icon}
           title={item.title}
           meta={item.meta}
           tag={item.tag}
-          tagColor={item.tag === 'Sport' ? colors.green : colors.flagGold}
+          tagColor={item.tag === 'Sport' ? colors.green : colors.orange}
           delay={i * 60}
         />
       ))}
@@ -264,19 +483,104 @@ function CultureTab() {
 }
 
 function GigsTab() {
+  const [gigs, setGigs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getProducts('gig')
+      .then((list) => {
+        if (cancelled) return;
+        setGigs(
+          (Array.isArray(list) ? list : []).map((g) => ({
+            key: g.id,
+            icon: '💼',
+            title: g.title,
+            meta: g.description ?? 'Dakar · Flexible',
+            pay: `${g.price.toLocaleString('fr-FR')} F`,
+          })),
+        );
+      })
+      .catch(() => setGigs([]))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <View style={{ paddingHorizontal: spacing.huge, paddingTop: spacing.lg, gap: spacing.sm }}>
-      <Text style={styles.sectionLabel}>Gigs & Hustle près de toi</Text>
-      {GIGS.map((item, i) => (
+      <Text style={styles.sectionLabel}>Gigs & Hustle</Text>
+      {loading && <Text style={styles.noResults}>Chargement…</Text>}
+      {!loading && gigs.length === 0 && (
+        <Text style={[styles.noResults, { textAlign: 'left' }]}>
+          Aucun gig publié — les vendeurs peuvent poster des offres via l’API.
+        </Text>
+      )}
+      {gigs.map((item, i) => (
         <ListRow key={item.key} icon={item.icon} title={item.title} meta={item.meta} tag={item.pay} tagColor={colors.green} delay={i * 60} />
       ))}
     </View>
   );
 }
 
-export default function DiscoverScreen({ navigation }) {
-  const [tab, setTab] = useState('Tout');
+export default function DiscoverScreen({ navigation, route }) {
+  const showToast = useToast();
+  const { refreshWallet } = useAppState();
+  const initialTab = route.params?.initialTab ?? 'Tout';
+  const [tab, setTab] = useState(initialTab);
   const [query, setQuery] = useState('');
+  const [gridItems, setGridItems] = useState([]);
+  const [gridLoading, setGridLoading] = useState(true);
+  const [buyingTicketId, setBuyingTicketId] = useState(null);
+
+  const loadGrid = useCallback(async () => {
+    setGridLoading(true);
+    try {
+      const [events, deals, restaurants, gigs] = await Promise.all([
+        getEvents().catch(() => []),
+        getProducts('deal').catch(() => []),
+        getBusinesses('restaurant').catch(() => []),
+        getProducts('gig').catch(() => []),
+      ]);
+      setGridItems(
+        buildDiscoverGrid({
+          events: Array.isArray(events) ? events : [],
+          deals: Array.isArray(deals) ? deals : [],
+          restaurants: Array.isArray(restaurants) ? restaurants : [],
+          gigs: Array.isArray(gigs) ? gigs : [],
+        }),
+      );
+    } catch {
+      setGridItems([]);
+    } finally {
+      setGridLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadGrid();
+  }, [loadGrid]);
+
+  useEffect(() => {
+    if (route.params?.initialTab) setTab(route.params.initialTab);
+  }, [route.params?.initialTab]);
+
+  const buyTicket = async (eventId) => {
+    setBuyingTicketId(eventId);
+    try {
+      await purchaseEventTickets(eventId, 1);
+      await refreshWallet();
+      showToast('Billet acheté ✓');
+    } catch (err) {
+      showToast(err.message ?? 'Achat impossible');
+      throw err;
+    } finally {
+      setBuyingTicketId(null);
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -300,17 +604,11 @@ export default function DiscoverScreen({ navigation }) {
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
-          {tab === 'Tout' && (
-            <AllTab
-              query={query}
-              onOpenTab={setTab}
-              onOpenInfo={(item) => navigation.navigate('Info', { title: item.title, subtitle: `${item.cat} — bientôt disponible.`, icon: item.icon })}
-            />
-          )}
+          {tab === 'Tout' && <AllTab query={query} onOpenTab={setTab} gridItems={gridItems} loading={gridLoading} />}
           {tab === 'Culture' && <CultureTab />}
           {tab === 'Eat' && <EatTab />}
           {tab === 'Gigs' && <GigsTab />}
-          {tab === 'Events' && <EventsTab />}
+          {tab === 'Events' && <EventsTab onBuyTicket={buyTicket} buyingTicketId={buyingTicketId} />}
         </ScrollView>
       </SafeAreaView>
     </View>

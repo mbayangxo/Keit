@@ -11,9 +11,12 @@ const EMPTY_PROFILE = {
   accountType: 'personal',
   name: '',
   handle: '',
+  phone: '',
+  email: '',
   arrondissement: { key: '', icon: '📍', name: '' },
   afriId: '',
   business: null,
+  businesses: [],
 };
 
 const AppStateContext = createContext(null);
@@ -39,9 +42,12 @@ export function AppStateProvider({ children }) {
       accountType: p.accountType ?? 'personal',
       name: p.name ?? '',
       handle: p.handle ?? '',
+      phone: p.phone ?? '',
+      email: p.email ?? '',
       arrondissement: p.arrondissement ?? EMPTY_PROFILE.arrondissement,
       afriId: p.afriId ?? '',
       business: p.business ?? null,
+      businesses: p.businesses ?? [],
     });
     setBalance(b ?? 0);
     setTransactions(txs ?? []);
@@ -85,12 +91,18 @@ export function AppStateProvider({ children }) {
     setAuthenticated(true);
   }, []);
 
-  const initBusinessAccount = useCallback(({ businessName, category, arrondissement }) => {
+  const initBusinessAccount = useCallback(({ businessName, category, arrondissement, businessId, kebuId, type }) => {
     setProfileState((prev) => ({
       ...prev,
-      accountType: 'business',
+      accountType: type === 'cooperative' ? 'cooperative' : 'business',
       arrondissement,
-      business: { name: businessName, category, keboId: generateId('KEBU') },
+      business: {
+        id: businessId,
+        name: businessName,
+        category,
+        type: type ?? 'merchant',
+        kebuId: kebuId ?? prev.business?.kebuId,
+      },
     }));
     setBalance(0);
     setTransactions([]);
