@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path } from 'react-native-svg';
 import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
 import { colors, fontFamily, radius, spacing } from '../theme';
@@ -13,32 +12,12 @@ const LANGS = ['FR', 'WO', 'EN'];
 const LANG_NAMES = { FR: 'Français', WO: 'Wolof', EN: 'English' };
 const SPLASH_FROM_CODE = { fr: 'FR', wo: 'WO', en: 'EN' };
 
-function AppleMark({ size = 16, color = colors.ink }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path
-        fill={color}
-        d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8.98-.2 1.98-.85 3.32-.76 1.61.13 2.83.77 3.63 1.94-3.36 2.01-2.56 6.43.66 7.72-.61 1.6-1.39 3.17-2.69 4.27zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"
-      />
-    </Svg>
-  );
-}
-
-function GoogleMark({ size = 16 }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 48 48">
-      <Path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z" />
-      <Path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 18.9 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
-      <Path fill="#4CAF50" d="M24 44c5.2 0 10-1.9 13.6-5.2l-6.3-5.3C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
-      <Path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.7l6.3 5.3C40.6 35.7 44 30.3 44 24c0-1.3-.1-2.7-.4-3.5z" />
-    </Svg>
-  );
-}
-
 // Entry screen — editorial "lifestyle brand" treatment (no photos):
 // crisp animated sunrise mark + stacked display headline + one gold CTA,
 // on the shared bright canvas (ScreenBackground) used across the app.
-export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinueApple, onContinueGoogle }) {
+// Apple/Google sign-in removed until real OAuth credentials exist —
+// email/phone signup is the single entry path for the beta.
+export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
   const sunrise = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
   const goldPulse = useRef(new Animated.Value(0)).current;
@@ -221,21 +200,6 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount, onContinu
               </View>
             </PressScale>
 
-            <View style={styles.orRow}>
-              <View style={styles.orLine} />
-              <Text style={styles.orText}>{t(langCode, 'splashOr')}</Text>
-              <View style={styles.orLine} />
-            </View>
-
-            <PressScale scaleTo={0.97} onPress={onContinueApple} style={styles.outlineBtn}>
-              <AppleMark color={colors.ink} />
-              <Text style={styles.outlineBtnText}>{t(langCode, 'splashApple')}</Text>
-            </PressScale>
-            <PressScale scaleTo={0.97} onPress={onContinueGoogle} style={styles.outlineBtn}>
-              <GoogleMark />
-              <Text style={styles.outlineBtnText}>{t(langCode, 'splashGoogle')}</Text>
-            </PressScale>
-
             <Text style={styles.caption}>{t(langCode, 'splashCaption')}</Text>
           </Animated.View>
         </View>
@@ -322,17 +286,7 @@ const styles = StyleSheet.create({
   primaryBtnBadgeArrow: { fontSize: 16, color: colors.flagGold },
   primaryBtnStripe: { position: 'absolute', bottom: 0, left: '38%', right: '38%', height: 3, flexDirection: 'row', borderRadius: 2, overflow: 'hidden' },
 
-  orRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginVertical: spacing.lg },
-  orLine: { flex: 1, height: 1, backgroundColor: 'rgba(5,8,5,0.14)' },
-  orText: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: 'rgba(5,8,5,0.45)' },
 
-  outlineBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md,
-    height: 52, borderRadius: radius.round, borderBottomRightRadius: 9,
-    borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.65)',
-    marginBottom: spacing.md, backgroundColor: 'rgba(255,255,255,0.65)',
-  },
-  outlineBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 13.5, color: colors.ink },
 
   caption: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: 'rgba(5,8,5,0.5)', textAlign: 'center', marginTop: spacing.sm, letterSpacing: 0.4 },
 });

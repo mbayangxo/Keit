@@ -57,12 +57,6 @@ export default function RootNavigator() {
           <SplashScreen
             onCreateAccount={() => navigation.navigate('Welcome')}
             onHaveAccount={() => navigation.navigate('SignUp', { mode: 'login' })}
-            onContinueApple={() =>
-              navigation.navigate('Info', { title: 'Continuer avec Apple', subtitle: 'La connexion avec Apple arrive bientôt — utilise Email pour l’instant.', icon: '🍎' })
-            }
-            onContinueGoogle={() =>
-              navigation.navigate('Info', { title: 'Continuer avec Google', subtitle: 'La connexion avec Google arrive bientôt — utilise Email pour l’instant.', icon: '🔎' })
-            }
           />
         )}
       </Stack.Screen>
