@@ -1,4 +1,5 @@
 import { createHandler } from './_lib/http.js';
+import { apiPathSegments } from './_lib/path.js';
 import { dispatchApi, prepareApiBody } from '../lib/api-router.js';
 
 export default createHandler({
@@ -7,7 +8,6 @@ export default createHandler({
   skipRateLimit: true,
   handler: async (req, res) => {
     await prepareApiBody(req);
-    const segments = req.query.path;
-    return dispatchApi(req, res, segments);
+    return dispatchApi(req, res, apiPathSegments(req));
   },
 });
