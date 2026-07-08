@@ -180,6 +180,14 @@ export default function MoiScreen({ navigation }) {
                         <Text style={styles.afriPillText}>✦ {profile.afriId}</Text>
                       </View>
                     ) : null}
+                    <View style={styles.qrRow}>
+                      <PressScale scaleTo={0.96} onPress={() => navigation.navigate('MyQr')} style={styles.qrBtn}>
+                        <Text style={styles.qrBtnText}>📲 Mon QR</Text>
+                      </PressScale>
+                      <PressScale scaleTo={0.96} onPress={() => navigation.navigate('Friends')} style={styles.qrBtn}>
+                        <Text style={styles.qrBtnText}>🧑‍🤝‍🧑 Amis</Text>
+                      </PressScale>
+                    </View>
                   </View>
                 </View>
                 <PressScale
@@ -293,6 +301,9 @@ const styles = StyleSheet.create({
   contactLine: { fontSize: 10, color: colors.whiteA45, marginTop: 2 },
   afriPill: { alignSelf: 'flex-start', marginTop: spacing.sm, backgroundColor: colors.greenA08, borderWidth: 1, borderColor: colors.greenA20, borderRadius: radius.round, paddingHorizontal: spacing.md, paddingVertical: 2 },
   afriPillText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.green },
+  qrRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, flexWrap: 'wrap' },
+  qrBtn: { backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA10, borderRadius: radius.round, paddingHorizontal: spacing.md, paddingVertical: 4 },
+  qrBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.whiteA70 },
   editBtn: { height: 30, paddingHorizontal: spacing.xl, borderRadius: radius.round, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
   editBtnText: { fontSize: 10, fontWeight: '700', color: colors.whiteA55 },
 

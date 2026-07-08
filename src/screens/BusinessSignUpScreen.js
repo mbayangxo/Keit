@@ -12,9 +12,8 @@ import { ob } from '../theme/onboarding';
 import { useEntrance } from '../hooks/animations';
 
 // Business-account equivalent of SignUpScreen.js: phone -> OTP -> business
-// profile -> arrondissement -> fund wallet. Mirrors the personal flow's
-// visual system exactly but skips the CNI step (that's a personal-identity
-// concept) and ends by generating a KEBU ID instead of an AFRI ID.
+// profile -> arrondissement -> AFRI ID confirm -> fund wallet.
+// Business needs AFRI ID (personal) + KEBU ID (commerce) at Tier 1 — no address verification.
 
 const CATEGORIES = [
   { key: 'restaurant', icon: '🍽️', name: 'Restaurant / Dibiterie' },
@@ -57,7 +56,7 @@ function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ /g, ' ');
 }
 
-function StepHeader({ title, step, onBack }) {
+function StepHeader({ title, step, onBack, total = 6 }) {
   return (
     <>
       <View style={styles.headRow}>
@@ -67,13 +66,13 @@ function StepHeader({ title, step, onBack }) {
         <Text style={styles.headTitle}>{title}</Text>
       </View>
       <View style={styles.stepRow}>
-        {[1, 2, 3, 4].map((s) => (
+        {Array.from({ length: total }, (_, i) => i + 1).map((s) => (
           <View key={s} style={styles.stepTrack}>
             <View style={[styles.stepFill, s <= step && { width: '100%' }]} />
           </View>
         ))}
       </View>
-      <Text style={styles.stepLabel}>Étape {step} sur 4</Text>
+      <Text style={styles.stepLabel}>Étape {step} sur {total}</Text>
     </>
   );
 }
@@ -249,6 +248,39 @@ function ArrondissementStep({ arrondissement, setArrondissement, onNext, onBack 
   );
 }
 
+function AfriStep({ afriId, loading, onNext, onBack }) {
+  const entrance = useEntrance(0, 350, 8);
+  return (
+    <Animated.View style={[styles.body, entrance]}>
+      <StepHeader title="Identité AFRI" step={5} onBack={onBack} />
+      <Text style={styles.headline}>
+        Ton{'\n'}
+        <Text style={styles.g}>AFRI ID</Text>
+      </Text>
+      <Text style={[styles.sub, { marginBottom: spacing.xl }]}>
+        Identité personnelle africaine — obligatoire avant d'ouvrir un commerce KEBU. Pas besoin de vérifier ton adresse (Tier 1).
+      </Text>
+
+      <View style={styles.afriCard}>
+        <Text style={styles.afriCardLabel}>TON AFRI ID</Text>
+        {loading ? (
+          <Text style={styles.afriCardValue}>Création…</Text>
+        ) : (
+          <Text style={styles.afriCardValue}>{afriId || '—'}</Text>
+        )}
+      </View>
+
+      <View style={styles.afriExplain}>
+        <Text style={styles.afriExplainRow}>✦ <Text style={styles.afriBold}>AFRI ID</Text> — toi, la personne</Text>
+        <Text style={styles.afriExplainRow}>🏪 <Text style={styles.afriBold}>KEBU ID</Text> — ton commerce (étape suivante)</Text>
+      </View>
+
+      <View style={{ flex: 1 }} />
+      <GlowButton label="Continuer vers KEBU →" onPress={onNext} disabled={!afriId || loading} style={{ backgroundColor: ob.orange }} />
+    </Animated.View>
+  );
+}
+
 function FundStep({ amount, setAmount, method, setMethod, onNext, onSkip, loading }) {
   const betaCredits = process.env.EXPO_PUBLIC_ALLOW_BETA_DEPOSITS === 'true';
   const entrance = useEntrance(0, 350, 8);
@@ -310,7 +342,7 @@ function FundStep({ amount, setAmount, method, setMethod, onNext, onSkip, loadin
   );
 }
 
-const STEP_ORDER = ['phone', 'otp', 'profile', 'arrondissement', 'fund'];
+const STEP_ORDER = ['phone', 'otp', 'profile', 'arrondissement', 'afri', 'fund'];
 
 export default function BusinessSignUpScreen({ onComplete, onCancel }) {
   const showToast = useToast();
@@ -322,6 +354,8 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
   const [businessName, setBusinessName] = useState('');
   const [category, setCategory] = useState(null);
   const [arrondissement, setArrondissement] = useState(null);
+  const [afriId, setAfriId] = useState('');
+  const [ownerHandle, setOwnerHandle] = useState('');
   const [fundMethod, setFundMethod] = useState('orange');
   const [fundAmount, setFundAmount] = useState(25000);
   const [loading, setLoading] = useState(false);
@@ -379,12 +413,12 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
     }
   };
 
-  const finishSignup = async (amount) => {
+  const savePersonalProfile = async () => {
     if (!businessName.trim() || !category || !arrondissement) return;
     setLoading(true);
     try {
       const handle = businessHandleFromName(businessName);
-      await authCompleteProfile({
+      const res = await authCompleteProfile({
         name: businessName.trim(),
         handle,
         arrondissement: { key: arrondissement.key, icon: arrondissement.icon, name: arrondissement.name },
@@ -392,7 +426,21 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
         countryCode: 'SN',
         isDiaspora: false,
       });
+      setOwnerHandle(handle);
+      setAfriId(res.profile?.afriId ?? '');
+      goTo('afri');
+    } catch (err) {
+      showToast(err.message ?? 'Profil impossible');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const finishSignup = async (amount) => {
+    if (!businessName.trim() || !category || !arrondissement || !afriId) return;
+    setLoading(true);
+    try {
+      const handle = ownerHandle || businessHandleFromName(businessName);
       const business = await createBusiness({
         name: businessName.trim(),
         category: category.key,
@@ -423,6 +471,8 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
         fundAmount: balance,
         businessId: business.id,
         handle,
+        afriId,
+        kebuId: business.kebuId,
       });
     } catch (err) {
       showToast(err.message ?? 'Création impossible');
@@ -459,7 +509,15 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
           />
         )}
         {step === 'arrondissement' && (
-          <ArrondissementStep arrondissement={arrondissement} setArrondissement={setArrondissement} onNext={() => goTo('fund')} onBack={back} />
+          <ArrondissementStep
+            arrondissement={arrondissement}
+            setArrondissement={setArrondissement}
+            onNext={savePersonalProfile}
+            onBack={back}
+          />
+        )}
+        {step === 'afri' && (
+          <AfriStep afriId={afriId} loading={loading} onNext={() => goTo('fund')} onBack={back} />
         )}
         {step === 'fund' && (
           <FundStep
@@ -537,4 +595,18 @@ const styles = StyleSheet.create({
   faChipOn: { backgroundColor: ob.orangeSoft, borderColor: ob.orangeBorder },
   faChipText: { fontSize: 12, fontWeight: '700', color: ob.ink },
   skipFund: { fontSize: 11, color: ob.faint },
+  afriCard: {
+    backgroundColor: ob.orangeSoft,
+    borderWidth: 1.5,
+    borderColor: ob.orangeBorder,
+    borderRadius: radius.xl,
+    padding: spacing.xxl,
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  afriCardLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: ob.faint, marginBottom: spacing.sm },
+  afriCardValue: { fontFamily: fontFamily.displayBlack, fontSize: 16, color: ob.orange },
+  afriExplain: { gap: spacing.sm, marginBottom: spacing.xl },
+  afriExplainRow: { fontSize: 12, color: ob.muted, lineHeight: 18 },
+  afriBold: { fontFamily: fontFamily.bodyBold, color: ob.ink },
 });

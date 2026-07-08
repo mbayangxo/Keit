@@ -41,6 +41,7 @@ model User {
   smsBalanceQueryEnabled Boolean   @default(true)
   email                  String?   @unique
   emailVerifiedAt        DateTime?
+  afriId                 String?   @unique
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
@@ -89,8 +90,11 @@ model User {
   reportsFiled          ContentReport[]        @relation("Reporter")
   reportsReceived       ContentReport[]        @relation("ReportedUser")
   offlineSyncItems      OfflineSyncQueue[]
+  friendsInitiated      UserFriend[]           @relation("FriendUser")
+  friendsReceived       UserFriend[]           @relation("FriendTarget")
 
   @@index([phone])
+  @@index([afriId])
   @@index([frozenByAdminAt])
   @@index([verificationTier])
   @@index([handle])
@@ -1100,6 +1104,21 @@ model ContentReport {
   @@index([reporterId])
   @@index([targetUserId])
   @@index([targetBusinessId])
+}
+
+/** Friend link — bidirectional rows (A→B and B→A). */
+model UserFriend {
+  id        String   @id @default(cuid())
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  user   User @relation("FriendUser", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendTarget", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
 }
 
 /** Offline-first queue — cooperative delivery logs, etc. */

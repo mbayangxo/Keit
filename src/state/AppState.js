@@ -46,6 +46,7 @@ export function AppStateProvider({ children }) {
       email: p.email ?? '',
       arrondissement: p.arrondissement ?? EMPTY_PROFILE.arrondissement,
       afriId: p.afriId ?? '',
+      payQrUrl: p.payQrUrl ?? null,
       business: p.business ?? null,
       businesses: p.businesses ?? [],
     });
@@ -68,14 +69,14 @@ export function AppStateProvider({ children }) {
     return wallet;
   }, []);
 
-  const initAccount = useCallback(({ name, handle, arrondissement, fundAmount, transactions: txs }) => {
+  const initAccount = useCallback(({ name, handle, arrondissement, fundAmount, transactions: txs, profile: apiProfile, afriId }) => {
     setProfileState((prev) => ({
       ...prev,
       accountType: 'personal',
       name: name ?? prev.name,
       handle: handle ?? prev.handle,
       arrondissement: arrondissement ?? prev.arrondissement,
-      afriId: prev.afriId || generateId('AFRI'),
+      afriId: afriId ?? apiProfile?.afriId ?? prev.afriId ?? generateId('AFRI'),
       business: null,
     }));
     if (fundAmount != null) setBalance(fundAmount);
@@ -91,17 +92,18 @@ export function AppStateProvider({ children }) {
     setAuthenticated(true);
   }, []);
 
-  const initBusinessAccount = useCallback(({ businessName, category, arrondissement, businessId, kebuId, type }) => {
+  const initBusinessAccount = useCallback(({ businessName, category, arrondissement, businessId, kebuId, keboId, afriId, type }) => {
     setProfileState((prev) => ({
       ...prev,
       accountType: type === 'cooperative' ? 'cooperative' : 'business',
       arrondissement,
+      afriId: afriId ?? prev.afriId,
       business: {
         id: businessId,
         name: businessName,
         category,
         type: type ?? 'merchant',
-        kebuId: kebuId ?? prev.business?.kebuId,
+        kebuId: kebuId ?? keboId ?? prev.business?.kebuId,
       },
     }));
     setBalance(0);

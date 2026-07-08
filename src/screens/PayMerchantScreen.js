@@ -57,7 +57,7 @@ function useScanLine(frameSize, periodMs = 2000) {
 
 const FRAME_SIZE = 200;
 
-function ScanStep({ merchant, merchants, onSelectMerchant, amount, setAmount, onBack, onContinue }) {
+function ScanStep({ merchant, merchants, onSelectMerchant, amount, setAmount, onBack, onContinue, onScan }) {
   const scanY = useScanLine(FRAME_SIZE);
   const entrance = useEntrance(0, 350, 10);
   const historyEntrance = useEntrance(150, 350, 10);
@@ -106,15 +106,15 @@ function ScanStep({ merchant, merchants, onSelectMerchant, amount, setAmount, on
           ) : null}
         </LinearGradient>
 
-        <View style={styles.scannerArea}>
+        <PressScale scaleTo={0.98} onPress={onScan} style={styles.scannerArea}>
           <Text style={styles.scannerBackdrop}>🏪</Text>
           <View style={styles.viewfinder}>
             <View style={[styles.corner, styles.cornerTL]} />
             <View style={[styles.corner, styles.cornerBR]} />
             <Animated.View style={[styles.scanLine, { top: scanY }]} />
           </View>
-          <Text style={styles.scannerLabel}>Pointe vers le QR code du marchand</Text>
-        </View>
+          <Text style={styles.scannerLabel}>Appuie pour scanner le QR du marchand</Text>
+        </PressScale>
 
         <View style={styles.amountSection}>
           <Text style={styles.amountSectionLabel}>Montant à payer</Text>
@@ -274,7 +274,7 @@ function SuccessStep({ merchant, amount, oldBalance, newBalance, reference, onDo
   );
 }
 
-export default function PayMerchantScreen({ navigation }) {
+export default function PayMerchantScreen({ navigation, route }) {
   useScreenshotBlock(true);
   const showToast = useToast();
   const [step, setStep] = useState('scan');
@@ -293,17 +293,19 @@ export default function PayMerchantScreen({ navigation }) {
       .then((list) => {
         const items = Array.isArray(list) ? list : [];
         setMerchants(items);
-        if (items[0]) {
+        const presetId = route.params?.merchantId;
+        const picked = presetId ? items.find((b) => b.id === presetId) : items[0];
+        if (picked) {
           setMerchant({
-            name: items[0].name,
-            arr: items[0].arrondissement ?? items[0].category ?? 'K21',
-            emoji: items[0].type === 'cooperative' ? '🌾' : '🏪',
-            businessId: items[0].id,
+            name: route.params?.merchantName ?? picked.name,
+            arr: picked.arrondissement ?? picked.category ?? 'K21',
+            emoji: picked.type === 'cooperative' ? '🌾' : '🏪',
+            businessId: picked.id,
           });
         }
       })
       .catch(() => {});
-  }, []);
+  }, [route.params?.merchantId, route.params?.merchantName]);
 
   const selectMerchant = (m) => {
     setMerchant({
@@ -365,6 +367,7 @@ export default function PayMerchantScreen({ navigation }) {
               setAmount={setAmount}
               onBack={() => navigation.goBack()}
               onContinue={() => setStep('confirm')}
+              onScan={() => navigation.navigate('QrScan', { mode: 'merchant' })}
             />
           </StepTransition>
         )}

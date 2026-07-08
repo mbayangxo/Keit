@@ -50,6 +50,13 @@ export default function WelcomeCelebrationScreen({ accountType = 'personal', nam
               : "Ton compte est prêt. Ton quartier t'attend.\nLa musique tourne déjà."}
           </Text>
 
+          {isBusiness && afriId ? (
+            <View style={[styles.idPill, { borderColor: ob.green, marginBottom: spacing.sm }]}>
+              <Text style={[styles.idPillLabel, { color: ob.green }]}>Ton AFRI ID</Text>
+              <Text style={styles.idPillValue}>{afriId}</Text>
+            </View>
+          ) : null}
+
           {idValue ? (
             <View style={[styles.idPill, { borderColor: accent }]}>
               <Text style={[styles.idPillLabel, { color: accent }]}>{idLabel}</Text>

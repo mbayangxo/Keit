@@ -56,6 +56,7 @@ function AmountStep({
   lookupError,
   onContinue,
   onBack,
+  onScan,
   reduceMotion,
 }) {
   const popIn = usePopIn(0, 400, 0.8);
@@ -86,7 +87,14 @@ function AmountStep({
         </View>
 
         <View style={styles.recipientSection}>
-          <Text style={styles.lbl}>À qui ? (@handle ou numéro)</Text>
+          <View style={styles.recipientHead}>
+            <Text style={styles.lbl}>À qui ? (@handle ou numéro)</Text>
+            {onScan ? (
+              <PressScale scaleTo={0.9} onPress={onScan} style={styles.scanChip}>
+                <Text style={styles.scanChipText}>📷 Scanner</Text>
+              </PressScale>
+            ) : null}
+          </View>
           <View style={styles.recCard}>
             <View style={styles.recAva}>
               <Text style={{ fontSize: 20 }}>{recipientProfile?.avatarEmoji ?? '👤'}</Text>
@@ -380,6 +388,7 @@ export default function SendMoneyScreen({ navigation, route }) {
               lookupError={lookupError}
               onContinue={() => setStep('confirm')}
               onBack={() => navigation.goBack()}
+              onScan={() => navigation.navigate('QrScan')}
               reduceMotion={reduceMotion}
             />
           </StepTransition>
@@ -433,6 +442,9 @@ const styles = StyleSheet.create({
   quickRow: { justifyContent: 'center', marginTop: spacing.xl },
 
   recipientSection: { paddingHorizontal: spacing.huge, paddingVertical: spacing.xxl },
+  recipientHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
+  scanChip: { backgroundColor: colors.greenA08, borderWidth: 1, borderColor: colors.greenA20, borderRadius: radius.round, paddingHorizontal: spacing.md, paddingVertical: 4 },
+  scanChipText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.green },
   lbl: { ...type.eyebrow, color: colors.whiteA30 },
   recCard: { backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA12, borderRadius: radius.xxl, padding: spacing.xxl, flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginTop: spacing.sm },
   handleField: { flex: 1, fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white },

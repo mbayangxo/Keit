@@ -491,6 +491,29 @@ export function createTontineGroup(body) {
   return apiFetch('/api/tontine/groups', { method: 'POST', body, skipCache: true });
 }
 
+export function releaseTontinePot(groupId) {
+  return apiFetch(`/api/tontine/groups/${encodeURIComponent(groupId)}/release`, {
+    method: 'POST',
+    skipCache: true,
+  });
+}
+
+export function getFriends() {
+  return apiFetch('/api/friends', { skipCache: true });
+}
+
+export function addFriend(handle) {
+  return apiFetch('/api/friends', {
+    method: 'POST',
+    body: { handle: String(handle).replace(/^@/, '') },
+    skipCache: true,
+  });
+}
+
+export function removeFriend(friendUserId) {
+  return apiFetch(`/api/friends/${encodeURIComponent(friendUserId)}`, { method: 'DELETE', skipCache: true });
+}
+
 export function getNotifications() {
   return apiFetch('/api/notifications', { skipCache: true });
 }

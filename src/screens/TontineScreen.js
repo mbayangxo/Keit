@@ -11,7 +11,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import AmountChips from '../components/AmountChips';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
-import { createTontineGroup, getTontineGroups } from '../lib/api-client';
+import { createTontineGroup, getTontineGroups, releaseTontinePot } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useEntrance, useFillIn } from '../hooks/animations';
 
@@ -325,9 +325,9 @@ function ReleaseStep({ group, onBack, onReceive, receiving }) {
 
       <View style={styles.footer}>
         <PressScale scaleTo={0.97} onPress={onReceive} style={styles.receiveBtn} disabled={receiving}>
-          <Text style={styles.receiveBtnText}>{receiving ? 'Mise à jour…' : 'Actualiser mon solde →'}</Text>
+          <Text style={styles.receiveBtnText}>{receiving ? 'Versement…' : 'Recevoir mon pot →'}</Text>
         </PressScale>
-        <Text style={styles.releaseFootnote}>K21 verse le pot automatiquement quand tous ont cotisé</Text>
+        <Text style={styles.releaseFootnote}>K21 collecte les cotisations puis verse le pot à ton tour</Text>
       </View>
     </View>
   );
@@ -367,14 +367,22 @@ export default function TontineScreen({ navigation }) {
   }, [loadGroups]);
 
   const receivePot = async () => {
+    if (!activeGroup?.id) return;
     setReceiving(true);
     try {
+      const result = await releaseTontinePot(activeGroup.id);
       await refreshWallet();
-      showToast('Solde mis à jour ✓');
+      if (result.payoutAmount > 0) {
+        showToast(`Pot reçu · ${formatAmount(result.payoutAmount)} F ✓`);
+      } else if (result.partial) {
+        showToast('Collecte partielle — certains membres n\'ont pas assez de solde');
+      } else {
+        showToast('Tontine traitée ✓');
+      }
       setStep('home');
       await loadGroups();
     } catch (err) {
-      showToast(err.message ?? 'Erreur');
+      showToast(err.message ?? 'Versement impossible');
     } finally {
       setReceiving(false);
     }

@@ -19,7 +19,9 @@ import ReceiveScreen from '../screens/ReceiveScreen';
 import TontineScreen from '../screens/TontineScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ComingSoonScreen from '../screens/ComingSoonScreen';
-import EditProfileScreen from '../screens/EditProfileScreen';
+import QrScanScreen from '../screens/QrScanScreen';
+import MyQrScreen from '../screens/MyQrScreen';
+import FriendsScreen from '../screens/FriendsScreen';
 import PinGateScreen from '../screens/PinGateScreen';
 import ForgotAccessScreen from '../screens/ForgotAccessScreen';
 import { useAppState } from '../state/AppState';
@@ -129,8 +131,8 @@ export default function RootNavigator() {
           <WelcomeCelebrationScreen
             {...route.params}
             accountType={route.params?.accountType ?? profile.accountType}
-            afriId={profile.afriId}
-            keboId={profile.business?.keboId}
+            keboId={route.params?.kebuId ?? route.params?.keboId ?? profile.business?.kebuId}
+            afriId={route.params?.afriId ?? profile.afriId}
             onEnter={() => navigation.replace('PinSetup')}
           />
         )}
@@ -157,6 +159,9 @@ export default function RootNavigator() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Accessibility" component={AccessibilityScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="QrScan" component={QrScanScreen} />
+      <Stack.Screen name="MyQr" component={MyQrScreen} />
+      <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="Info" component={ComingSoonScreen} />
     </Stack.Navigator>
   );
