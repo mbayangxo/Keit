@@ -19,6 +19,7 @@ import ReceiveScreen from '../screens/ReceiveScreen';
 import TontineScreen from '../screens/TontineScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ComingSoonScreen from '../screens/ComingSoonScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 import QrScanScreen from '../screens/QrScanScreen';
 import MyQrScreen from '../screens/MyQrScreen';
 import FriendsScreen from '../screens/FriendsScreen';

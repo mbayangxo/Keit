@@ -8,6 +8,7 @@ import { useFonts } from 'expo-font';
 import { colors, fontsToLoad } from './src/theme';
 import RootNavigator from './src/navigation/RootNavigator';
 import WebAppShell from './src/components/WebAppShell';
+import AppLoadingScreen from './src/screens/AppLoadingScreen';
 import { AppStateProvider } from './src/state/AppState';
 import { PreferencesProvider } from './src/context/PreferencesContext';
 import { LocaleProvider } from './src/context/LocaleContext';
@@ -50,7 +51,7 @@ export default Sentry.wrap(function App() {
     }
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded) return <AppLoadingScreen />;
 
   return (
     <SafeAreaProvider>
