@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -45,13 +45,29 @@ export default Sentry.wrap(function App() {
   const [fontsLoaded] = useFonts(fontsToLoad);
   const navigationRef = useRef(null);
 
-  const onLayout = useCallback(async () => {
-    if (fontsLoaded) {
-      await ExpoSplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
+  // Web: hide the native splash overlay as soon as JS runs — otherwise a white
+  // sheet can sit on top of the app forever if fonts or onLayout are slow.
+  useEffect(() => {
+    ExpoSplashScreen.hideAsync().catch(() => {});
+    const fallback = setTimeout(() => {
+      ExpoSplashScreen.hideAsync().catch(() => {});
+    }, 2500);
+    return () => clearTimeout(fallback);
+  }, []);
 
-  if (!fontsLoaded) return <AppLoadingScreen />;
+  const onLayout = useCallback(async () => {
+    await ExpoSplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  if (!fontsLoaded) {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.root}>
+          <AppLoadingScreen />
+        </View>
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <SafeAreaProvider>
