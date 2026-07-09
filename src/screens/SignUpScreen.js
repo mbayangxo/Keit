@@ -166,7 +166,9 @@ function OtpStep({ lang, mode, displayPhone, otp, setOtp, loading, devHint, emai
         <View style={styles.devOtpBox}>
           <Text style={styles.devOtpLabel}>{t(lang, 'forgotBetaCode')}</Text>
           <Text style={styles.devOtpHint}>{devHint}</Text>
-          <Text style={styles.devOtpNote}>{t(lang, 'signupOtpUseLatest')}</Text>
+          <Text style={styles.devOtpNote}>
+            {emailOnly ? t(lang, 'signupOtpSameAsEmail') : t(lang, 'signupOtpUseLatest')}
+          </Text>
         </View>
       ) : emailOnly ? (
         <View style={styles.devOtpBox}>
@@ -434,7 +436,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
       const res = await authEmail(otpDestination, authIntent);
       if (res.otp) {
         setDevOtpHint(String(res.otp));
-        setOtpViaEmail(false);
+        setOtpViaEmail(Boolean(res.emailSent));
       } else {
         setDevOtpHint(null);
         setOtpViaEmail(Boolean(res.emailSent ?? res.sent));
@@ -460,7 +462,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
       const res = await authEmail(otpDestination, authIntent);
       if (res.otp) {
         setDevOtpHint(String(res.otp));
-        setOtpViaEmail(false);
+        setOtpViaEmail(Boolean(res.emailSent));
       } else {
         setDevOtpHint(null);
         setOtpViaEmail(Boolean(res.emailSent ?? res.sent));
