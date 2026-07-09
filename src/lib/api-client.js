@@ -29,16 +29,23 @@ function normalizeBase(base) {
 
 function resolveUrl(path) {
   if (path.startsWith('http')) return path;
-  // On web, prefer same-origin relative /api/* so Vercel routes hit serverless functions.
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  // Web deploys ship frontend + /api on the same Vercel origin. Never call a
+  // different host (e.g. EXPO_PUBLIC_API_URL=keit-six while on os-projects).
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    if (normalizedPath.startsWith('/api')) {
+      return normalizedPath;
+    }
     const base = normalizeBase(API_BASE);
     const origin = window.location.origin;
     if (!base || base.replace(/\/$/, '') === origin) {
-      return path.startsWith('/') ? path : `/${path}`;
+      return normalizedPath;
     }
   }
+
   const base = normalizeBase(API_BASE) || (Platform.OS === 'web' ? '' : 'https://localhost');
-  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  return `${base}${normalizedPath}`;
 }
 
 function assertHttps(url) {
@@ -161,6 +168,12 @@ export async function apiFetch(path, { method = 'GET', body, stepUpToken, auth =
     const slow = new Error('Connexion lente — réessaie dans un instant');
     slow.code = 'timeout';
     throw slow;
+  }
+  const raw = lastError?.message ?? '';
+  if (raw === 'Load failed' || raw.includes('Failed to fetch') || raw.includes('Network request failed')) {
+    const network = new Error('Connexion impossible — vérifie ta connexion et réessaie');
+    network.code = 'network';
+    throw network;
   }
   throw lastError;
 }

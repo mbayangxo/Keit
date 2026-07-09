@@ -27,7 +27,7 @@ import { transferSend, lookupUser } from '../lib/api-client';
 const QUICK_AMOUNTS = [1000, 5000, 10000, 25000];
 
 function formatPhoneDisplay(phone) {
-  if (!phone) return '';
+  if (!phone || String(phone).startsWith('e:')) return '';
   const d = String(phone).replace(/\D/g, '');
   if (d.length >= 12 && d.startsWith('221')) {
     return `+221 ${d.slice(3, 5)} ${d.slice(5, 8)} ${d.slice(8)}`.trim();
