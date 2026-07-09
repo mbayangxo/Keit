@@ -3,6 +3,7 @@ import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle } from 'react-native-svg';
 import WaxPattern from '../components/WaxPattern';
 import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
@@ -139,6 +140,118 @@ function MbooloPulseCard({ onPress }) {
       <Animated.View style={[styles.mmBadge, { transform: [{ scale: badgeScale }] }]}>
         <Text style={styles.mmBadgeText}>4</Text>
       </Animated.View>
+    </PressScale>
+  );
+}
+
+// "Yónnee rapide" — your people first (initials, no photos): tinted discs
+// cycling through the three brand colors, one tap to send.
+const QUICK_CONTACTS = [
+  { name: 'Fatou', tone: { bg: 'rgba(26,240,96,0.16)', border: 'rgba(15,188,72,0.45)', text: colors.greenDark } },
+  { name: 'Ibou', tone: { bg: 'rgba(247,183,49,0.18)', border: 'rgba(232,146,10,0.45)', text: colors.goldDark } },
+  { name: 'Awa', tone: { bg: 'rgba(232,92,26,0.14)', border: 'rgba(232,92,26,0.4)', text: colors.terracottaDark } },
+  { name: 'Moussa', tone: { bg: 'rgba(26,240,96,0.16)', border: 'rgba(15,188,72,0.45)', text: colors.greenDark } },
+  { name: 'Khady', tone: { bg: 'rgba(247,183,49,0.18)', border: 'rgba(232,146,10,0.45)', text: colors.goldDark } },
+];
+
+function QuickSendRow({ navigation }) {
+  return (
+    <View style={styles.qs}>
+      <View style={styles.discHead}>
+        <Text style={styles.discLabel}>Yónnee rapide</Text>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.qsRow}>
+        <PressScale scaleTo={0.9} onPress={() => navigation.navigate('SendMoney')} style={styles.qsItem}>
+          <View style={styles.qsAddDisc}>
+            <Text style={styles.qsAddPlus}>+</Text>
+          </View>
+          <Text style={styles.qsName}>Yónnee</Text>
+        </PressScale>
+        {QUICK_CONTACTS.map((c) => (
+          <PressScale key={c.name} scaleTo={0.9} onPress={() => navigation.navigate('SendMoney')} style={styles.qsItem}>
+            <View style={[styles.qsDisc, { backgroundColor: c.tone.bg, borderColor: c.tone.border }]}>
+              <Text style={[styles.qsInitial, { color: c.tone.text }]}>{c.name[0]}</Text>
+            </View>
+            <Text style={styles.qsName}>{c.name}</Text>
+          </PressScale>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+// "Dépenses du mois" — the tontine circle as a spending ring: three arcs,
+// three brand colors, dashed orbit accent. Demo data until the backend
+// categorizes spending.
+const RING_R = 46;
+const RING_C = 2 * Math.PI * RING_R;
+const SPEND_SEGMENTS = [
+  { label: 'Envois', pct: 48, color: colors.greenDark },
+  { label: 'Marché', pct: 32, color: colors.flagGold },
+  { label: 'Transport', pct: 20, color: colors.terracotta },
+];
+
+function SpendingRing({ navigation }) {
+  let acc = 0;
+  return (
+    <PressScale scaleTo={0.98} onPress={() => navigation.navigate('MoreActions')} style={styles.spendCard}>
+      <View style={styles.spendRingWrap}>
+        <Svg width={124} height={124} viewBox="0 0 124 124">
+          <Circle cx="62" cy="62" r="58" stroke="rgba(5,8,5,0.14)" strokeWidth="1.5" strokeDasharray="3 5" fill="none" />
+          {SPEND_SEGMENTS.map((s) => {
+            const dash = (s.pct / 100) * RING_C;
+            const offset = -(acc / 100) * RING_C;
+            acc += s.pct;
+            return (
+              <Circle
+                key={s.label}
+                cx="62" cy="62" r={RING_R}
+                stroke={s.color} strokeWidth="13" fill="none" strokeLinecap="round"
+                strokeDasharray={`${dash - 4} ${RING_C - dash + 4}`}
+                strokeDashoffset={offset}
+                transform="rotate(-90 62 62)"
+              />
+            );
+          })}
+        </Svg>
+        <View style={styles.spendCenter}>
+          <Text style={styles.spendMonth}>JUILLET</Text>
+          <Text style={styles.spendTotal}>42 500</Text>
+          <Text style={styles.spendCurrency}>FCFA</Text>
+        </View>
+      </View>
+      <View style={styles.spendLegend}>
+        <Text style={styles.spendTitle}>Dépenses du mois</Text>
+        {SPEND_SEGMENTS.map((s) => (
+          <View key={s.label} style={styles.spendLegendRow}>
+            <View style={[styles.spendDot, { backgroundColor: s.color }]} />
+            <Text style={styles.spendLegendLabel}>{s.label}</Text>
+            <Text style={styles.spendLegendPct}>{s.pct}%</Text>
+          </View>
+        ))}
+      </View>
+    </PressScale>
+  );
+}
+
+// Tontine as a living goal card — rounds progress toward the pot.
+function TontineGoalCard({ navigation }) {
+  return (
+    <PressScale scaleTo={0.98} onPress={() => navigation.navigate('Tontine')} style={styles.goalCard}>
+      <View style={styles.goalRing}>
+        <Text style={styles.goalRingText}>3/9</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.goalTitle}>Tontine Médina</Text>
+        <Text style={styles.goalSub}>Prochain tour · Sam 18h</Text>
+        <View style={styles.goalBar}>
+          <View style={[styles.goalFill, { width: '33%' }]} />
+        </View>
+      </View>
+      <View style={styles.goalAmount}>
+        <Text style={styles.goalAmountText}>30 000</Text>
+        <Text style={styles.goalAmountF}>F</Text>
+      </View>
     </PressScale>
   );
 }
@@ -348,7 +461,11 @@ export default function HomeScreen({ navigation }) {
             <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
           </View>
 
+          <QuickSendRow navigation={navigation} />
+
           <View style={styles.homeCards}>
+            <SpendingRing navigation={navigation} />
+            <TontineGoalCard navigation={navigation} />
             <EventsTonightCard
               event={tonightEvent}
               onPress={() => navigation.navigate('ExplorerTab', { initialTab: 'Events' })}
@@ -452,6 +569,57 @@ const styles = StyleSheet.create({
   mmSub: { ...type.caption, color: 'rgba(5,8,5,0.5)' },
   mmBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.terracotta, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   mmBadgeText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.white },
+
+  qs: { paddingTop: spacing.xl },
+  qsRow: { paddingHorizontal: spacing.xxxl, gap: spacing.xl, paddingBottom: spacing.lg },
+  qsItem: { alignItems: 'center', gap: 5 },
+  qsAddDisc: {
+    width: 54, height: 54, borderRadius: 27, borderBottomRightRadius: 9, backgroundColor: colors.ink,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 5,
+  },
+  qsAddPlus: { fontSize: 22, color: colors.flagGold, marginTop: -2 },
+  qsDisc: {
+    width: 54, height: 54, borderRadius: 27, borderBottomRightRadius: 9, borderWidth: 1.5,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  qsInitial: { fontFamily: fontFamily.displayBlack, fontSize: 19 },
+  qsName: { fontFamily: fontFamily.bodySemiBold, fontSize: 10.5, color: 'rgba(5,8,5,0.6)' },
+
+  spendCard: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xxl,
+    backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.07)',
+    borderRadius: radius.xxxl, borderBottomRightRadius: 12, padding: spacing.xxl,
+  },
+  spendRingWrap: { width: 124, height: 124, alignItems: 'center', justifyContent: 'center' },
+  spendCenter: { position: 'absolute', alignItems: 'center' },
+  spendMonth: { fontFamily: fontFamily.bodyBold, fontSize: 8, letterSpacing: 1.4, color: 'rgba(5,8,5,0.45)' },
+  spendTotal: { fontFamily: fontFamily.displayBlack, fontSize: 19, letterSpacing: -0.8, color: colors.ink },
+  spendCurrency: { fontFamily: fontFamily.bodySemiBold, fontSize: 8.5, color: 'rgba(5,8,5,0.45)' },
+  spendLegend: { flex: 1, gap: 7 },
+  spendTitle: { fontFamily: fontFamily.displayBlack, fontSize: 13.5, letterSpacing: -0.3, color: colors.ink, marginBottom: 3 },
+  spendLegendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  spendDot: { width: 9, height: 9, borderRadius: 4.5 },
+  spendLegendLabel: { flex: 1, fontFamily: fontFamily.bodySemiBold, fontSize: 12, color: 'rgba(5,8,5,0.65)' },
+  spendLegendPct: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.ink },
+
+  goalCard: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xl,
+    backgroundColor: 'rgba(247,183,49,0.14)', borderWidth: 1, borderColor: 'rgba(232,146,10,0.28)',
+    borderRadius: radius.xxl, borderBottomRightRadius: 10, paddingHorizontal: spacing.xxl, paddingVertical: spacing.xl,
+  },
+  goalRing: {
+    width: 46, height: 46, borderRadius: 23, borderWidth: 2.5, borderColor: colors.goldDark,
+    borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center',
+  },
+  goalRingText: { fontFamily: fontFamily.displayBlack, fontSize: 12, color: colors.goldDark },
+  goalTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
+  goalSub: { fontFamily: fontFamily.bodyRegular, fontSize: 10.5, color: 'rgba(5,8,5,0.55)', marginBottom: 6 },
+  goalBar: { height: 5, borderRadius: 3, backgroundColor: 'rgba(5,8,5,0.08)', overflow: 'hidden' },
+  goalFill: { height: '100%', borderRadius: 3, backgroundColor: colors.goldDark },
+  goalAmount: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
+  goalAmountText: { fontFamily: fontFamily.displayBlack, fontSize: 17, letterSpacing: -0.5, color: colors.goldDark },
+  goalAmountF: { fontFamily: fontFamily.bodySemiBold, fontSize: 10, color: 'rgba(5,8,5,0.5)' },
 
   discover: { paddingBottom: spacing.xxxl },
   discHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xxxl, marginBottom: spacing.lg },
