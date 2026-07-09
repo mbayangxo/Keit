@@ -31,9 +31,11 @@ export default function ForgotAccessScreen({ onCancel, onRecovered }) {
 
   const requestCode = async () => {
     setLoading(true);
+    setOtp('');
     try {
       const res = await authEmail(emailNorm, 'recover');
       if (res.otp) setDevOtpHint(String(res.otp));
+      else setDevOtpHint(null);
       setStep('otp');
       showToast(t(langCode, 'forgotCodeSent'));
     } catch (err) {
@@ -54,7 +56,9 @@ export default function ForgotAccessScreen({ onCancel, onRecovered }) {
       await saveSessionTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
       await onRecovered?.();
     } catch (err) {
-      showToast(err.message ?? t(langCode, 'signupInvalidOtp'));
+      const hint = err.data?.hint;
+      const msg = hint ? `${err.message ?? t(langCode, 'signupInvalidOtp')} — ${hint}` : (err.message ?? t(langCode, 'signupInvalidOtp'));
+      showToast(msg);
     } finally {
       setLoading(false);
     }

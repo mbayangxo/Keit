@@ -140,7 +140,7 @@ function EmailStep({
   );
 }
 
-function OtpStep({ lang, mode, displayPhone, otp, setOtp, loading, devHint, onResend, onNext, onBack }) {
+function OtpStep({ lang, mode, displayPhone, otp, setOtp, loading, devHint, emailOnly, onResend, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
   const boxes = [0, 1, 2, 3, 4, 5];
   const isLogin = mode === 'login';
@@ -167,6 +167,11 @@ function OtpStep({ lang, mode, displayPhone, otp, setOtp, loading, devHint, onRe
           <Text style={styles.devOtpLabel}>{t(lang, 'forgotBetaCode')}</Text>
           <Text style={styles.devOtpHint}>{devHint}</Text>
           <Text style={styles.devOtpNote}>{t(lang, 'signupOtpUseLatest')}</Text>
+        </View>
+      ) : emailOnly ? (
+        <View style={styles.devOtpBox}>
+          <Text style={styles.devOtpLabel}>{t(lang, 'signupOtpCheckInbox')}</Text>
+          <Text style={styles.devOtpNote}>{t(lang, 'signupOtpCheckSpam')}</Text>
         </View>
       ) : null}
 
@@ -404,6 +409,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
   const [authEmailAddress, setAuthEmailAddress] = useState('');
   const [otp, setOtp] = useState('');
   const [devOtpHint, setDevOtpHint] = useState(null);
+  const [otpViaEmail, setOtpViaEmail] = useState(false);
   const [name, setName] = useState('');
   const [handle, setHandle] = useState('');
   const [intent, setIntent] = useState(null);
@@ -423,10 +429,15 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
 
   const requestOtp = async () => {
     setLoading(true);
+    setOtp('');
     try {
       const res = await authEmail(otpDestination, authIntent);
       if (res.otp) {
         setDevOtpHint(String(res.otp));
+        setOtpViaEmail(false);
+      } else {
+        setDevOtpHint(null);
+        setOtpViaEmail(Boolean(res.emailSent ?? res.sent));
       }
       goTo('otp');
     } catch (err) {
@@ -444,10 +455,15 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
 
   const resendOtp = async () => {
     setLoading(true);
+    setOtp('');
     try {
       const res = await authEmail(otpDestination, authIntent);
       if (res.otp) {
         setDevOtpHint(String(res.otp));
+        setOtpViaEmail(false);
+      } else {
+        setDevOtpHint(null);
+        setOtpViaEmail(Boolean(res.emailSent ?? res.sent));
       }
       showToast('Code renvoyé ✓');
     } catch (err) {
@@ -488,7 +504,9 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
       }
       goTo('profile');
     } catch (err) {
-      showToast(err.message ?? t(langCode, 'signupInvalidOtp'));
+      const hint = err.data?.hint;
+      const msg = hint ? `${err.message ?? t(langCode, 'signupInvalidOtp')} — ${hint}` : (err.message ?? t(langCode, 'signupInvalidOtp'));
+      showToast(msg);
     } finally {
       setLoading(false);
     }
@@ -565,6 +583,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
             setOtp={setOtp}
             loading={loading}
             devHint={devOtpHint}
+            emailOnly={otpViaEmail}
             onResend={resendOtp}
             onNext={verifyOtp}
             onBack={back}
