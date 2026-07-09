@@ -15,7 +15,7 @@ const TAB_ICONS = {
 const TAB_LABELS = {
   HomeTab: 'Accueil',
   MbooloTab: 'Mboolo',
-  ExplorerTab: 'Explorer',
+  ExplorerTab: 'Discover',
   MoiTab: 'Moi',
 };
 
