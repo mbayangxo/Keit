@@ -20,6 +20,8 @@ import {
 
 after(() => prisma.$disconnect());
 
+const UNIQUE_CNI = `SN-CNI-${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
 const walletEndpoint = createHandler({ methods: 'GET', auth: true, handler: getWallet });
 
 async function sendVia(user, deviceId, body) {
@@ -152,7 +154,7 @@ test('ATTACK: session expired after 30 minutes of inactivity → 401', async () 
 
 test('ATTACK: brute-force PIN — locked after 5 wrong attempts, CNI required to unlock', async () => {
   const user = await createUserWithWallet();
-  await prisma.user.update({ where: { id: user.id }, data: { cniHash: hashCni('SN-CNI-778899') } });
+  await prisma.user.update({ where: { id: user.id }, data: { cniHash: hashCni(UNIQUE_CNI) } });
   await setUserPin(user.id, '135790');
 
   for (let i = 0; i < 4; i++) {
@@ -174,7 +176,7 @@ test('ATTACK: brute-force PIN — locked after 5 wrong attempts, CNI required to
 
   // Wrong CNI does not unlock; correct CNI does.
   await assert.rejects(unlockAccountWithCni(user.id, 'WRONG-CNI'), PinError);
-  const unlocked = await unlockAccountWithCni(user.id, 'sn-cni-778899');
+  const unlocked = await unlockAccountWithCni(user.id, UNIQUE_CNI.toLowerCase());
   assert.equal(unlocked.unlocked, true);
   const result = await verifyUserPin(user.id, '135790');
   assert.equal(result.verified, true);

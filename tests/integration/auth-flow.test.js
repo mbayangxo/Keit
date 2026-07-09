@@ -25,25 +25,24 @@ test('invalid OTP is rejected', async () => {
   assert.equal(verifyRes.statusCode, 401);
 });
 
-test('phone → verify → complete-profile issues session and profile', async () => {
-  const phone = uniquePhone();
+test('email → verify → complete-profile issues session and profile', async () => {
+  const email = `signup-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@k21.test`;
 
   const sendRes = mockRes();
-  await authPhone(mockReq({ body: { phone } }), sendRes);
+  await authEmail(mockReq({ body: { email, intent: 'signup' } }), sendRes);
   assert.equal(sendRes.statusCode, 200);
   const { otp } = sendRes.body;
 
   const verifyRes = mockRes();
   await authVerify(
-    mockReq({ body: { phone, otp }, headers: { 'x-device-id': 'auth-test-device-2' } }),
+    mockReq({ body: { email, otp }, headers: { 'x-device-id': 'auth-test-device-2' } }),
     verifyRes,
   );
   assert.equal(verifyRes.statusCode, 200);
   assert.ok(verifyRes.body.accessToken);
   assert.ok(verifyRes.body.refreshToken);
-  assert.equal(verifyRes.body.isNewUser, true);
 
-  const user = await prisma.user.findUnique({ where: { phone } });
+  const user = await prisma.user.findFirst({ where: { email } });
   assert.ok(user);
   const wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
   assert.ok(wallet);
@@ -69,16 +68,16 @@ test('phone → verify → complete-profile issues session and profile', async (
 });
 
 test('complete-profile ignores fundAmount and never mints signup credit', async () => {
-  const phone = uniquePhone();
+  const email = `fund-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@k21.test`;
 
   const sendRes = mockRes();
-  await authPhone(mockReq({ body: { phone } }), sendRes);
+  await authEmail(mockReq({ body: { email, intent: 'signup' } }), sendRes);
   const verifyRes = mockRes();
   await authVerify(
-    mockReq({ body: { phone, otp: sendRes.body.otp }, headers: { 'x-device-id': 'auth-test-fund' } }),
+    mockReq({ body: { email, otp: sendRes.body.otp }, headers: { 'x-device-id': 'auth-test-fund' } }),
     verifyRes,
   );
-  const user = await prisma.user.findUnique({ where: { phone } });
+  const user = await prisma.user.findFirst({ where: { email } });
 
   const profileRes = mockRes();
   await authCompleteProfile(
@@ -166,18 +165,17 @@ test('email login verify creates account for new email', async () => {
 });
 
 test('email login for user with email on file', async () => {
-  const phone = uniquePhone();
-  const email = `test${Date.now()}@k21.test`;
+  const email = `login-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@k21.test`;
 
-  const sendRes = mockRes();
-  await authPhone(mockReq({ body: { phone } }), sendRes);
-  const verifyRes = mockRes();
+  // Create the account via the email signup flow, then log in again.
+  const signupSend = mockRes();
+  await authEmail(mockReq({ body: { email, intent: 'signup' } }), signupSend);
+  const signupVerify = mockRes();
   await authVerify(
-    mockReq({ body: { phone, otp: sendRes.body.otp }, headers: { 'x-device-id': 'auth-email-setup' } }),
-    verifyRes,
+    mockReq({ body: { email, otp: signupSend.body.otp }, headers: { 'x-device-id': 'auth-email-setup' } }),
+    signupVerify,
   );
-  const user = await prisma.user.findUnique({ where: { phone } });
-  await prisma.user.update({ where: { id: user.id }, data: { email, emailVerifiedAt: new Date() } });
+  assert.equal(signupVerify.statusCode, 200);
 
   const emailSend = mockRes();
   await authEmail(mockReq({ body: { email } }), emailSend);

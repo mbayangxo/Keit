@@ -2,6 +2,8 @@ import { createHandler } from './_lib/http.js';
 import { apiPathSegments } from './_lib/path.js';
 import { dispatchApi, prepareApiBody } from '../lib/api-router.js';
 
+export const config = { api: { bodyParser: false } };
+
 /** Single Vercel entry — all /api/* traffic is rewritten here (see vercel.json). */
 export default createHandler({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
