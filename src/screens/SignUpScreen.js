@@ -467,6 +467,15 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
       });
       await saveSessionTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
       if (mode === 'login') {
+        if (res.isNewUser) {
+          goTo('profile');
+          return;
+        }
+        const me = await getMe();
+        if (!(me.name?.length >= 2) || !(me.handle?.length >= 3)) {
+          goTo('profile');
+          return;
+        }
         await onLoginComplete?.();
         return;
       }
@@ -561,16 +570,16 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
             onBack={back}
           />
         )}
-        {mode === 'signup' && step === 'profile' && (
+        {step === 'profile' && (
           <ProfileStep name={name} setName={setName} handle={handle} setHandle={setHandle} onNext={() => goTo('intent')} onBack={back} />
         )}
-        {mode === 'signup' && step === 'intent' && (
+        {step === 'intent' && (
           <IntentStep lang={langCode} intent={intent} setIntent={setIntent} onNext={() => goTo('arrondissement')} onBack={back} />
         )}
-        {mode === 'signup' && step === 'arrondissement' && (
+        {step === 'arrondissement' && (
           <ArrondissementStep arrondissement={arrondissement} setArrondissement={setArrondissement} onNext={() => goTo('fund')} onBack={back} />
         )}
-        {mode === 'signup' && step === 'fund' && (
+        {step === 'fund' && (
           <FundStep
             lang={langCode}
             amount={fundAmount}

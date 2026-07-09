@@ -143,6 +143,28 @@ test('email signup creates account without phone', async () => {
   assert.ok(user.phone.startsWith('e:'));
 });
 
+test('email login sends OTP even when account does not exist yet', async () => {
+  const email = `newlogin${Date.now()}@k21.test`;
+  const sendRes = mockRes();
+  await authEmail(mockReq({ body: { email, intent: 'login' } }), sendRes);
+  assert.equal(sendRes.statusCode, 200);
+  assert.equal(sendRes.body.accountExists, false);
+  assert.ok(sendRes.body.otp);
+});
+
+test('email login verify creates account for new email', async () => {
+  const email = `newlogin${Date.now()}@k21.test`;
+  const sendRes = mockRes();
+  await authEmail(mockReq({ body: { email, intent: 'login' } }), sendRes);
+  const verifyRes = mockRes();
+  await authVerify(
+    mockReq({ body: { email, otp: sendRes.body.otp, intent: 'login' }, headers: { 'x-device-id': 'auth-email-login-new' } }),
+    verifyRes,
+  );
+  assert.equal(verifyRes.statusCode, 200);
+  assert.equal(verifyRes.body.isNewUser, true);
+});
+
 test('email login for user with email on file', async () => {
   const phone = uniquePhone();
   const email = `test${Date.now()}@k21.test`;
