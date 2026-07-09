@@ -81,6 +81,7 @@ function EmailStep({
   onNext,
   onBack,
   onForgot,
+  onSwitchToSignup,
 }) {
   const entrance = useEntrance(0, 350, 8);
   const validEmail = isValidEmail(email);
@@ -127,6 +128,11 @@ function EmailStep({
       {isLogin && onForgot ? (
         <PressScale scaleTo={0.95} onPress={onForgot} style={{ alignSelf: 'center', marginTop: spacing.lg }}>
           <Text style={{ fontSize: 12, color: ob.orange, fontFamily: fontFamily.bodyBold }}>{t(lang, 'signupForgotAccess')}</Text>
+        </PressScale>
+      ) : null}
+      {isLogin && onSwitchToSignup ? (
+        <PressScale scaleTo={0.95} onPress={onSwitchToSignup} style={{ alignSelf: 'center', marginTop: spacing.md }}>
+          <Text style={styles.createInstead}>{t(lang, 'signupCreateInstead')}</Text>
         </PressScale>
       ) : null}
       {loading && <ActivityIndicator color={colors.green} style={{ marginTop: spacing.md }} />}
@@ -391,7 +397,7 @@ function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext,
   );
 }
 
-export default function SignUpScreen({ mode = 'signup', onComplete, onLoginComplete, onCancel, onForgot }) {
+export default function SignUpScreen({ mode = 'signup', onComplete, onLoginComplete, onCancel, onForgot, onSwitchToSignup }) {
   const { country, langCode, setOnboardingIntent, setCountry } = useLocale();
   const showToast = useToast();
   const [step, setStep] = useState('phone');
@@ -538,6 +544,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
             onNext={requestOtp}
             onBack={onCancel}
             onForgot={onForgot}
+            onSwitchToSignup={onSwitchToSignup}
           />
         )}
         {step === 'otp' && (
@@ -658,6 +665,7 @@ const styles = StyleSheet.create({
   loginBanner: { backgroundColor: ob.orangeSoft, borderWidth: 1, borderColor: ob.orangeBorder, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.lg },
   loginBannerText: { fontFamily: fontFamily.displayBlack, fontSize: 10, letterSpacing: 2, color: ob.orange, marginBottom: 4 },
   loginBannerSub: { fontSize: 11, color: ob.muted, lineHeight: 16 },
+  createInstead: { fontSize: 13, color: colors.green, fontFamily: fontFamily.bodyBold, textDecorationLine: 'underline' },
 
   avatarPick: { alignItems: 'center', marginBottom: spacing.xl },
   avatarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: ob.greenSoft, borderWidth: 2, borderColor: ob.greenBorder, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },

@@ -89,6 +89,7 @@ export default function RootNavigator() {
             mode={route.params?.mode ?? 'signup'}
             onCancel={() => navigation.goBack()}
             onForgot={() => navigation.navigate('ForgotAccess')}
+            onSwitchToSignup={() => navigation.replace('SignUp', { mode: 'signup' })}
             onLoginComplete={async () => {
               const payload = await fetchSessionPayload();
               hydrateFromApi(payload);
