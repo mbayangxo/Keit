@@ -122,6 +122,27 @@ test('returning user verify sets isNewUser false', async () => {
   assert.equal(verify2.body.isNewUser, false);
 });
 
+test('email signup creates account without phone', async () => {
+  const email = `signup${Date.now()}@k21.test`;
+
+  const sendRes = mockRes();
+  await authEmail(mockReq({ body: { email, intent: 'signup' } }), sendRes);
+  assert.equal(sendRes.statusCode, 200);
+  assert.ok(sendRes.body.otp);
+
+  const verifyRes = mockRes();
+  await authVerify(
+    mockReq({ body: { email, otp: sendRes.body.otp, intent: 'signup' }, headers: { 'x-device-id': 'auth-email-signup' } }),
+    verifyRes,
+  );
+  assert.equal(verifyRes.statusCode, 200);
+  assert.equal(verifyRes.body.isNewUser, true);
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  assert.ok(user);
+  assert.ok(user.phone.startsWith('e:'));
+});
+
 test('email login for user with email on file', async () => {
   const phone = uniquePhone();
   const email = `test${Date.now()}@k21.test`;

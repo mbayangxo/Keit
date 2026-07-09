@@ -9,38 +9,30 @@ import { ob } from '../theme/onboarding';
 import { useEntrance } from '../hooks/animations';
 import { useLocale } from '../context/LocaleContext';
 import { t } from '../i18n/translations';
-import { authRecover, authVerify } from '../lib/api-client';
+import { authEmail, authVerify } from '../lib/api-client';
 import { saveSessionTokens } from '../lib/secure-storage';
-import { toE164, isValidLocalPhone } from '../lib/phone';
-import { COUNTRIES } from '../i18n/countries';
-
-const SN = COUNTRIES.find((c) => c.code === 'SN') ?? COUNTRIES[0];
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim());
 }
 
 export default function ForgotAccessScreen({ onCancel, onRecovered }) {
-  const { langCode, country = SN } = useLocale();
+  const { langCode } = useLocale();
   const showToast = useToast();
   const [step, setStep] = useState('form');
-  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [e164Phone, setE164Phone] = useState('');
   const [otp, setOtp] = useState('');
   const [devOtpHint, setDevOtpHint] = useState(null);
   const [loading, setLoading] = useState(false);
   const entrance = useEntrance(0, 350, 8);
 
-  const validPhone = isValidLocalPhone(country, phone);
-  const validForm = validPhone && isValidEmail(email);
+  const emailNorm = email.trim().toLowerCase();
+  const validForm = isValidEmail(emailNorm);
 
   const requestCode = async () => {
-    const normalized = toE164(country, phone);
     setLoading(true);
     try {
-      const res = await authRecover(normalized, email);
-      setE164Phone(normalized);
+      const res = await authEmail(emailNorm, 'recover');
       if (res.otp) setDevOtpHint(String(res.otp));
       setStep('otp');
       showToast(t(langCode, 'forgotCodeSent'));
@@ -52,10 +44,13 @@ export default function ForgotAccessScreen({ onCancel, onRecovered }) {
   };
 
   const verifyAndContinue = async () => {
-    const phoneForVerify = e164Phone || toE164(country, phone);
     setLoading(true);
     try {
-      const res = await authVerify(phoneForVerify, otp.replace(/\D/g, ''), 'recover');
+      const res = await authVerify({
+        email: emailNorm,
+        otp: otp.replace(/\D/g, ''),
+        intent: 'recover',
+      });
       await saveSessionTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
       await onRecovered?.();
     } catch (err) {
@@ -81,24 +76,12 @@ export default function ForgotAccessScreen({ onCancel, onRecovered }) {
               {t(langCode, 'forgotHead1')}{'\n'}
               <Text style={styles.g}>{t(langCode, 'forgotHead2')}</Text>
             </Text>
-            <Text style={styles.sub}>{t(langCode, 'forgotSub')}</Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.igLabel}>{t(langCode, 'forgotPhoneLabel')}</Text>
-              <TextInput
-                style={[styles.igField, validPhone && styles.fieldOk]}
-                placeholder="77 000 00 00"
-                placeholderTextColor={ob.faint}
-                keyboardType="number-pad"
-                value={phone}
-                onChangeText={(v) => setPhone(v.replace(/[^0-9]/g, ''))}
-              />
-            </View>
+            <Text style={styles.sub}>{t(langCode, 'forgotSubEmail')}</Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.igLabel}>{t(langCode, 'forgotEmailLabel')}</Text>
               <TextInput
-                style={[styles.igField, isValidEmail(email) && styles.fieldOk]}
+                style={[styles.igField, validForm && styles.fieldOk]}
                 placeholder="saliou@email.com"
                 placeholderTextColor={ob.faint}
                 keyboardType="email-address"
@@ -118,7 +101,7 @@ export default function ForgotAccessScreen({ onCancel, onRecovered }) {
               {t(langCode, 'signupOtpHeadPrefix')}{'\n'}
               <Text style={styles.g}>{t(langCode, 'forgotOtpHead')}</Text>
             </Text>
-            <Text style={styles.sub}>{t(langCode, 'forgotOtpSub')}</Text>
+            <Text style={styles.sub}>{t(langCode, 'forgotOtpSubEmail')}</Text>
 
             {devOtpHint ? (
               <View style={styles.devOtpBox}>

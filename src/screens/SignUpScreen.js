@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Animated, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import OnboardingShell from '../components/OnboardingShell';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
@@ -8,13 +8,11 @@ import { colors, fontFamily, radius, spacing } from '../theme';
 import { ob } from '../theme/onboarding';
 import { useEntrance } from '../hooks/animations';
 import { useLocale } from '../context/LocaleContext';
-import { authPhone, authEmail, authVerify, authCompleteProfile, getMe, getWallet, depositNational } from '../lib/api-client';
+import { authEmail, authVerify, authCompleteProfile, getMe, getWallet, depositNational } from '../lib/api-client';
 import { saveSessionTokens } from '../lib/secure-storage';
-import { toE164, isValidLocalPhone } from '../lib/phone';
 import { t } from '../i18n/translations';
-import { COUNTRIES, getCountryDisplayName } from '../i18n/countries';
 
-// Backend-driven signup: phone → OTP (API) → profile → intent → arrondissement → fund (optional).
+// Backend-driven signup: email → OTP (API) → profile → intent → arrondissement → fund (optional).
 // CNI deferred to KYC flow (POST /api/kyc/cni/submit).
 const ARRONDISSEMENTS = [
   { key: 'medina', icon: '🏘️', name: 'Médina', count: '4 821 K21' },
@@ -49,13 +47,6 @@ function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ /g, ' ');
 }
 
-function phonePlaceholder(country) {
-  if (country?.code === 'US') return '555 123 4567';
-  if (country?.code === 'FR') return '6 12 34 56 78';
-  if (country?.code === 'SN') return '77 000 00 00';
-  return '000 000 000';
-}
-
 function StepHeader({ lang, title, step, total = 4, onBack }) {
   return (
     <>
@@ -81,47 +72,19 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value ?? '').trim());
 }
 
-function PhoneStep({
+function EmailStep({
   lang,
   mode,
-  country,
-  phone,
-  setPhone,
-  loginChannel,
-  setLoginChannel,
-  loginEmail,
-  setLoginEmail,
+  email,
+  setEmail,
   loading,
   onNext,
   onBack,
-  onCountryChange,
   onForgot,
 }) {
   const entrance = useEntrance(0, 350, 8);
-  const [showCountries, setShowCountries] = useState(false);
-  const [countryQuery, setCountryQuery] = useState('');
-  const validPhone = isValidLocalPhone(country, phone);
-  const validEmail = isValidEmail(loginEmail);
+  const validEmail = isValidEmail(email);
   const isLogin = mode === 'login';
-  const useEmail = isLogin && loginChannel === 'email';
-  const valid = useEmail ? validEmail : validPhone;
-  const filteredCountries = COUNTRIES.filter((c) => {
-    const q = countryQuery.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      getCountryDisplayName(c, lang).toLowerCase().includes(q) ||
-      c.name.toLowerCase().includes(q) ||
-      (c.nameEn ?? '').toLowerCase().includes(q) ||
-      c.dial.includes(q) ||
-      c.code.toLowerCase().includes(q)
-    );
-  });
-
-  const pickCountry = (c) => {
-    onCountryChange?.(c);
-    setShowCountries(false);
-    setCountryQuery('');
-  };
 
   return (
     <Animated.View style={[styles.body, entrance]}>
@@ -139,121 +102,34 @@ function PhoneStep({
         onBack={onBack}
       />
       <Text style={styles.headline}>
-        {isLogin ? t(lang, 'signupSignInHead') : t(lang, 'signupPhoneHead')}{'\n'}
+        {isLogin ? t(lang, 'signupSignInHead') : t(lang, 'signupEmailHead')}{'\n'}
         <Text style={styles.g}>
-          {isLogin
-            ? useEmail
-              ? t(lang, 'signupSignInEmailTitle')
-              : t(lang, 'signupSignInPhoneTitle')
-            : t(lang, 'signupPhoneTitle')}
+          {isLogin ? t(lang, 'signupSignInEmailTitle') : t(lang, 'signupEmailTitle')}
         </Text>
       </Text>
       <Text style={styles.sub}>
-        {isLogin
-          ? useEmail
-            ? t(lang, 'signupSignInEmailSub')
-            : t(lang, 'signupSignInPhoneSub')
-          : t(lang, 'signupPhoneSub')}
+        {isLogin ? t(lang, 'signupSignInEmailSub') : t(lang, 'signupEmailSub')}
       </Text>
 
-      {isLogin ? (
-        <View style={styles.channelRow}>
-          <PressScale
-            scaleTo={0.96}
-            onPress={() => setLoginChannel('phone')}
-            style={[styles.channelPill, loginChannel === 'phone' && styles.channelPillOn]}
-          >
-            <Text style={[styles.channelPillText, loginChannel === 'phone' && styles.channelPillTextOn]}>
-              {t(lang, 'signupLoginChannelPhone')}
-            </Text>
-          </PressScale>
-          <PressScale
-            scaleTo={0.96}
-            onPress={() => setLoginChannel('email')}
-            style={[styles.channelPill, loginChannel === 'email' && styles.channelPillOn]}
-          >
-            <Text style={[styles.channelPillText, loginChannel === 'email' && styles.channelPillTextOn]}>
-              {t(lang, 'signupLoginChannelEmail')}
-            </Text>
-          </PressScale>
-        </View>
-      ) : null}
-
-      {useEmail ? (
-        <TextInput
-          style={[styles.emailField, validEmail && styles.phoneFieldFilled]}
-          placeholder={t(lang, 'signupEmailPlaceholder')}
-          placeholderTextColor={ob.faint}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={loginEmail}
-          onChangeText={setLoginEmail}
-        />
-      ) : (
-        <>
-          <View style={styles.phoneRow}>
-            <PressScale scaleTo={0.96} onPress={() => setShowCountries(true)} style={styles.countrySel} accessibilityLabel={t(lang, 'signupChangeCountry')}>
-              <Text style={{ fontSize: 18 }}>{country?.flag ?? '🇸🇳'}</Text>
-              <Text style={styles.countryCode}>{country?.dial ?? '+221'}</Text>
-              <Text style={styles.countryChevron}>▾</Text>
-            </PressScale>
-            <TextInput
-              style={[styles.phoneField, validPhone && styles.phoneFieldFilled]}
-              placeholder={phonePlaceholder(country)}
-              placeholderTextColor={ob.faint}
-              keyboardType="number-pad"
-              value={phone}
-              onChangeText={(v) => setPhone(v.replace(/[^0-9]/g, ''))}
-              maxLength={country?.code === 'US' ? 11 : country?.phoneMax ?? 12}
-            />
-          </View>
-          <Text style={styles.fieldNote}>{t(lang, 'signupPhoneNote')}</Text>
-        </>
-      )}
+      <TextInput
+        style={[styles.emailField, validEmail && styles.phoneFieldFilled]}
+        placeholder={t(lang, 'signupEmailPlaceholder')}
+        placeholderTextColor={ob.faint}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+        value={email}
+        onChangeText={setEmail}
+      />
 
       <View style={{ flex: 1 }} />
-      <GlowButton label={loading ? t(lang, 'signupSending') : t(lang, 'signupSendCode')} onPress={onNext} disabled={!valid || loading} />
+      <GlowButton label={loading ? t(lang, 'signupSending') : t(lang, 'signupSendCode')} onPress={onNext} disabled={!validEmail || loading} />
       {isLogin && onForgot ? (
         <PressScale scaleTo={0.95} onPress={onForgot} style={{ alignSelf: 'center', marginTop: spacing.lg }}>
           <Text style={{ fontSize: 12, color: ob.orange, fontFamily: fontFamily.bodyBold }}>{t(lang, 'signupForgotAccess')}</Text>
         </PressScale>
       ) : null}
       {loading && <ActivityIndicator color={colors.green} style={{ marginTop: spacing.md }} />}
-
-      <Modal visible={showCountries} animationType="slide" transparent onRequestClose={() => setShowCountries(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>{t(lang, 'signupSelectCountry')}</Text>
-            <View style={styles.modalSearch}>
-              <Text style={{ fontSize: 14, opacity: 0.4 }}>🔍</Text>
-              <TextInput
-                style={styles.modalSearchInput}
-                placeholder={t(lang, 'countrySearchPlaceholder')}
-                placeholderTextColor={ob.faint}
-                value={countryQuery}
-                onChangeText={setCountryQuery}
-                autoFocus
-              />
-            </View>
-            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {filteredCountries.map((c) => (
-                <PressScale key={c.code} scaleTo={0.98} onPress={() => pickCountry(c)} style={[styles.modalRow, country?.code === c.code && styles.modalRowOn]}>
-                  <Text style={{ fontSize: 20 }}>{c.flag}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.modalRowTitle}>{getCountryDisplayName(c, lang)}</Text>
-                    <Text style={styles.modalRowSub}>{c.dial}</Text>
-                  </View>
-                  {country?.code === c.code ? <Text style={{ color: colors.green, fontWeight: '800' }}>✓</Text> : null}
-                </PressScale>
-              ))}
-            </ScrollView>
-            <PressScale scaleTo={0.96} onPress={() => setShowCountries(false)} style={styles.modalClose}>
-              <Text style={styles.modalCloseText}>{t(lang, 'backLabel')}</Text>
-            </PressScale>
-          </View>
-        </View>
-      </Modal>
     </Animated.View>
   );
 }
@@ -278,7 +154,7 @@ function OtpStep({ lang, mode, displayPhone, otp, setOtp, loading, devHint, onRe
       <Text style={styles.otpSentTo}>
         {t(lang, 'signupOtpSent')}{' '}
         <Text style={{ fontFamily: fontFamily.bodyBold, color: ob.ink }}>{displayPhone}</Text>
-        {'\n'}{t(lang, 'signupOtpValid')}
+        {'\n'}{t(lang, 'signupOtpValidEmail')}
       </Text>
       {devHint ? (
         <View style={styles.devOtpBox}>
@@ -332,7 +208,7 @@ function OtpStep({ lang, mode, displayPhone, otp, setOtp, loading, devHint, onRe
   );
 }
 
-function ProfileStep({ name, setName, handle, setHandle, email, setEmail, onNext, onBack }) {
+function ProfileStep({ name, setName, handle, setHandle, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
   return (
     <Animated.View style={[styles.body, entrance]}>
@@ -371,19 +247,6 @@ function ProfileStep({ name, setName, handle, setHandle, email, setEmail, onNext
             </View>
           )}
         </View>
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.igLabel}>Email (récupération)</Text>
-        <TextInput
-          style={styles.igField}
-          placeholder="saliou@email.com"
-          placeholderTextColor={ob.faint}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-        />
       </View>
 
       <View style={{ flex: 1 }} />
@@ -532,15 +395,11 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
   const { country, langCode, setOnboardingIntent, setCountry } = useLocale();
   const showToast = useToast();
   const [step, setStep] = useState('phone');
-  const [phone, setPhone] = useState('');
-  const [loginChannel, setLoginChannel] = useState('phone');
-  const [loginEmail, setLoginEmail] = useState('');
-  const [e164Phone, setE164Phone] = useState('');
+  const [authEmailAddress, setAuthEmailAddress] = useState('');
   const [otp, setOtp] = useState('');
   const [devOtpHint, setDevOtpHint] = useState(null);
   const [name, setName] = useState('');
   const [handle, setHandle] = useState('');
-  const [email, setEmail] = useState('');
   const [intent, setIntent] = useState(null);
   const [arrondissement, setArrondissement] = useState(ARRONDISSEMENTS[0]);
   const [fundMethod, setFundMethod] = useState('mobile_money');
@@ -553,33 +412,21 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
     if (i > 0) setStep(STEP_ORDER[i - 1]);
   };
 
-  const displayPhone = e164Phone || (country ? `${country.dial} ${phone}` : phone);
-  const otpDestination = mode === 'login' && loginChannel === 'email' ? loginEmail.trim().toLowerCase() : displayPhone;
-
+  const otpDestination = authEmailAddress.trim().toLowerCase();
   const authIntent = mode === 'login' ? 'login' : 'signup';
 
   const requestOtp = async () => {
     setLoading(true);
     try {
-      if (mode === 'login' && loginChannel === 'email') {
-        const res = await authEmail(loginEmail.trim().toLowerCase(), authIntent);
-        if (res.otp) {
-          setDevOtpHint(String(res.otp));
-        }
-        goTo('otp');
-        return;
-      }
-      const normalized = toE164(country, phone);
-      const res = await authPhone(normalized, authIntent);
-      setE164Phone(res.phoneNormalized ?? normalized);
+      const res = await authEmail(otpDestination, authIntent);
       if (res.otp) {
         setDevOtpHint(String(res.otp));
       }
       goTo('otp');
     } catch (err) {
       const msg =
-        err.status === 404
-          ? t(langCode, loginChannel === 'email' ? 'signupNoAccountEmail' : 'signupNoAccount')
+        err.status === 404 || err.status === 409
+          ? (err.message ?? t(langCode, 'signupNoAccountEmail'))
           : err.code === 'db_unavailable'
             ? t(langCode, 'signupDbUnavailable')
             : (err.message ?? t(langCode, 'signupSendFailed'));
@@ -592,16 +439,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
   const resendOtp = async () => {
     setLoading(true);
     try {
-      if (mode === 'login' && loginChannel === 'email') {
-        const res = await authEmail(loginEmail.trim().toLowerCase(), authIntent);
-        if (res.otp) {
-          setDevOtpHint(String(res.otp));
-        }
-        showToast('Code renvoyé ✓');
-        return;
-      }
-      if (!e164Phone) return;
-      const res = await authPhone(e164Phone, authIntent);
+      const res = await authEmail(otpDestination, authIntent);
       if (res.otp) {
         setDevOtpHint(String(res.otp));
       }
@@ -616,21 +454,11 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
   const verifyOtp = async () => {
     setLoading(true);
     try {
-      let res;
-      if (mode === 'login' && loginChannel === 'email') {
-        res = await authVerify({
-          email: loginEmail.trim().toLowerCase(),
-          otp: otp.replace(/\D/g, ''),
-          intent: authIntent,
-        });
-      } else {
-        const phoneForVerify = e164Phone || toE164(country, phone);
-        if (!phoneForVerify) {
-          showToast(t(langCode, 'signupSendFailed'));
-          return;
-        }
-        res = await authVerify(phoneForVerify, otp.replace(/\D/g, ''), authIntent);
-      }
+      const res = await authVerify({
+        email: otpDestination,
+        otp: otp.replace(/\D/g, ''),
+        intent: authIntent,
+      });
       await saveSessionTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
       if (mode === 'login') {
         await onLoginComplete?.();
@@ -663,7 +491,6 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
         identityChoice: intent,
         isDiaspora: country?.code !== 'SN',
         countryCode: country?.code,
-        ...(email.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? { email: email.trim() } : {}),
       });
 
       let wallet = res;
@@ -682,7 +509,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
 
       const balance = wallet.nationalBalance ?? wallet.balance ?? 0;
       onComplete?.({
-        phone: e164Phone,
+        email: otpDestination,
         name,
         handle,
         arrondissement,
@@ -702,20 +529,14 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
   return (
     <OnboardingShell>
         {step === 'phone' && (
-          <PhoneStep
+          <EmailStep
             lang={langCode}
             mode={mode}
-            country={country}
-            phone={phone}
-            setPhone={setPhone}
-            loginChannel={loginChannel}
-            setLoginChannel={setLoginChannel}
-            loginEmail={loginEmail}
-            setLoginEmail={setLoginEmail}
+            email={authEmailAddress}
+            setEmail={setAuthEmailAddress}
             loading={loading}
             onNext={requestOtp}
             onBack={onCancel}
-            onCountryChange={setCountry}
             onForgot={onForgot}
           />
         )}
@@ -734,7 +555,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
           />
         )}
         {mode === 'signup' && step === 'profile' && (
-          <ProfileStep name={name} setName={setName} handle={handle} setHandle={setHandle} email={email} setEmail={setEmail} onNext={() => goTo('intent')} onBack={back} />
+          <ProfileStep name={name} setName={setName} handle={handle} setHandle={setHandle} onNext={() => goTo('intent')} onBack={back} />
         )}
         {mode === 'signup' && step === 'intent' && (
           <IntentStep lang={langCode} intent={intent} setIntent={setIntent} onNext={() => goTo('arrondissement')} onBack={back} />
