@@ -15,7 +15,7 @@ const DOTS = [
   { size: 5, left: '12%', color: 'rgba(232,92,26,0.25)', duration: 9000, delay: 0 },
   { size: 4, left: '45%', color: 'rgba(255,179,71,0.3)', duration: 13000, delay: 3000 },
   { size: 6, left: '75%', color: 'rgba(26,240,96,0.2)', duration: 10000, delay: 5000 },
-  { size: 3, left: '88%', color: 'rgba(232,25,44,0.2)', duration: 11000, delay: 1500 },
+  { size: 3, left: '88%', color: 'rgba(232,92,26,0.2)', duration: 11000, delay: 1500 },
 ];
 
 function formatThreadTime(iso) {

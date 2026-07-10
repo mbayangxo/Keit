@@ -17,7 +17,7 @@ export default function WebAppShell({ children }) {
   return (
     <View style={styles.desktopOuter}>
       <LinearGradient
-        colors={['#0a1a0d', '#020402', '#050805']}
+        colors={['#f9fdf4', '#edf6e4', '#e2eed6']}
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.desktopFrame}>
@@ -28,10 +28,10 @@ export default function WebAppShell({ children }) {
 }
 
 const styles = StyleSheet.create({
-  mobile: { flex: 1, backgroundColor: colors.ink, width: '100%' },
+  mobile: { flex: 1, backgroundColor: '#f2f8ec', width: '100%' },
   desktopOuter: {
     flex: 1,
-    backgroundColor: '#020402',
+    backgroundColor: '#f2f8ec',
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: '100vh',
@@ -50,9 +50,9 @@ const styles = StyleSheet.create({
     maxHeight: 860,
     borderRadius: 28,
     overflow: 'hidden',
-    backgroundColor: colors.ink,
+    backgroundColor: '#f2f8ec',
     borderWidth: 1,
-    borderColor: colors.whiteA12,
+    borderColor: 'rgba(5,8,5,0.12)',
     ...shadow.phoneFrame,
   },
 });

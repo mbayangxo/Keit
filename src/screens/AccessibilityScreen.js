@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenBackground from '../components/ScreenBackground';
 import ScreenHeader from '../components/ScreenHeader';
 import { usePreferences } from '../context/PreferencesContext';
 import { colors, fontFamily, radius, spacing } from '../theme';
@@ -15,8 +16,8 @@ function SettingRow({ title, subtitle, value, onValueChange, largeText }) {
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: colors.whiteA12, true: colors.greenA30 }}
-        thumbColor={value ? colors.green : colors.whiteA40}
+        trackColor={{ false: 'rgba(5,8,5,0.1)', true: colors.greenA30 }}
+        thumbColor={value ? colors.green : 'rgba(5,8,5,0.5)'}
       />
     </View>
   );
@@ -27,6 +28,7 @@ export default function AccessibilityScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView contentContainerStyle={styles.body}>
           <ScreenHeader onBack={() => navigation.goBack()} title="Accessibilité" />
@@ -61,21 +63,21 @@ export default function AccessibilityScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
   body: { paddingHorizontal: spacing.huge, paddingBottom: spacing.giant },
-  intro: { color: colors.whiteA40, marginBottom: spacing.xxl, lineHeight: 20 },
+  intro: { color: 'rgba(5,8,5,0.5)', marginBottom: spacing.xxl, lineHeight: 20 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.whiteA04,
+    backgroundColor: 'rgba(255,255,255,0.6)',
     borderWidth: 1,
-    borderColor: colors.whiteA08,
+    borderColor: 'rgba(5,8,5,0.08)',
     borderRadius: radius.xl,
     padding: spacing.xl,
     marginBottom: spacing.lg,
   },
-  title: { fontFamily: fontFamily.bodyBold, color: colors.white },
-  sub: { color: colors.whiteA35, marginTop: 4, lineHeight: 16 },
+  title: { fontFamily: fontFamily.bodyBold, color: colors.ink },
+  sub: { color: 'rgba(5,8,5,0.45)', marginTop: 4, lineHeight: 16 },
   note: {
     marginTop: spacing.xxl,
     padding: spacing.xl,
@@ -84,5 +86,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.greenA15,
   },
-  noteText: { color: colors.whiteA55, lineHeight: 18 },
+  noteText: { color: 'rgba(5,8,5,0.6)', lineHeight: 18 },
 });

@@ -89,9 +89,9 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   barDone: { backgroundColor: colors.greenA08, borderColor: colors.greenA25 },
-  title: { fontFamily: fontFamily.bodyBold, color: colors.flagGold },
-  sub: { color: colors.whiteA55, marginTop: 2 },
-  err: { fontSize: 10, color: colors.flagRed, marginTop: 4 },
+  title: { fontFamily: fontFamily.bodyBold, color: colors.goldDark },
+  sub: { color: 'rgba(5,8,5,0.6)', marginTop: 2 },
+  err: { fontSize: 10, color: colors.terracotta, marginTop: 4 },
   undoBtn: {
     backgroundColor: colors.flagGold,
     borderRadius: radius.lg,
@@ -101,5 +101,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   undoText: { fontFamily: fontFamily.bodyBold, color: colors.ink },
-  doneText: { fontFamily: fontFamily.bodyBold, color: colors.green, textAlign: 'center', flex: 1 },
+  doneText: { fontFamily: fontFamily.bodyBold, color: colors.greenDark, textAlign: 'center', flex: 1 },
 });

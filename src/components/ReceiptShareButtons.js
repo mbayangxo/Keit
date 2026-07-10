@@ -76,8 +76,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.whiteA12,
+    borderColor: 'rgba(5,8,5,0.15)',
     justifyContent: 'center',
   },
-  btnGhostText: { fontFamily: fontFamily.bodySemiBold, color: colors.whiteA55 },
+  btnGhostText: { fontFamily: fontFamily.bodySemiBold, color: 'rgba(5,8,5,0.6)' },
 });

@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
+import ScreenBackground from '../components/ScreenBackground';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
 // Destination for Home's "Plus" quick action — the grid of secondary money
@@ -15,10 +16,11 @@ const ACTIONS = [
 export default function MoreActionsScreen({ navigation }) {
   return (
     <View style={styles.root}>
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.header}>
           <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
+            <Text style={{ fontSize: 14, color: colors.ink }}>←</Text>
           </PressScale>
           <Text style={styles.title}>Plus d'actions</Text>
         </View>
@@ -43,13 +45,13 @@ export default function MoreActionsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.xl },
-  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: fontFamily.displayBlack, fontSize: 16, color: colors.white },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA12, borderRadius: radius.xxl, padding: spacing.xxl },
+  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.75)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', alignItems: 'center', justifyContent: 'center' },
+  title: { fontFamily: fontFamily.displayBlack, fontSize: 16, color: colors.ink },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', borderRadius: radius.xxl, padding: spacing.xxl },
   rowIcon: { width: 48, height: 48, borderRadius: radius.xl, backgroundColor: colors.greenA10, alignItems: 'center', justifyContent: 'center' },
-  rowTitle: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white },
-  rowSubtitle: { ...type.bodySmall, color: colors.whiteA40, marginTop: 2 },
-  rowArrow: { fontSize: 14, color: colors.whiteA30 },
+  rowTitle: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink },
+  rowSubtitle: { ...type.bodySmall, color: 'rgba(5,8,5,0.5)', marginTop: 2 },
+  rowArrow: { fontSize: 14, color: 'rgba(5,8,5,0.45)' },
 });

@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
+import ScreenBackground from '../components/ScreenBackground';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useEntrance, useScalePulse } from '../hooks/animations';
 import { getNotifications, markNotificationRead } from '../lib/api-client';
 
-const ACCENT_COLORS = { g: colors.green, o: colors.orange, r: colors.flagRed, y: colors.flagGold };
+const ACCENT_COLORS = { g: colors.green, o: colors.terracotta, r: colors.terracotta, y: colors.flagGold };
 
 function inferKind(notification) {
   const t = `${notification.title} ${notification.body}`.toLowerCase();
@@ -116,10 +117,11 @@ export default function NotificationsScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.header}>
           <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={{ fontSize: 14, color: colors.white }}>←</Text>
+            <Text style={{ fontSize: 14, color: colors.ink }}>←</Text>
           </PressScale>
           <Text style={styles.title}>Notifications</Text>
           <View style={styles.countBadge}>
@@ -148,22 +150,22 @@ export default function NotificationsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.xl, backgroundColor: colors.greenA08, borderBottomWidth: 1, borderBottomColor: colors.greenA10 },
-  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: fontFamily.displayBlack, fontSize: 16, color: colors.white, flex: 1 },
-  countBadge: { backgroundColor: colors.flagRed, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3 },
-  countText: { fontSize: 10, fontWeight: '700', color: colors.white },
-  empty: { textAlign: 'center', color: colors.whiteA40, fontSize: 12, padding: spacing.giant },
+  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.75)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', alignItems: 'center', justifyContent: 'center' },
+  title: { fontFamily: fontFamily.displayBlack, fontSize: 16, color: colors.ink, flex: 1 },
+  countBadge: { backgroundColor: colors.terracotta, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3 },
+  countText: { fontSize: 10, fontWeight: '700', color: colors.ink },
+  empty: { textAlign: 'center', color: 'rgba(5,8,5,0.5)', fontSize: 12, padding: spacing.giant },
   list: { padding: spacing.xxl, gap: spacing.sm },
-  item: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, borderRadius: radius.xl, padding: spacing.xl, position: 'relative', overflow: 'hidden', backgroundColor: colors.whiteA04 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, borderRadius: radius.xl, padding: spacing.xl, position: 'relative', overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.6)' },
   itemCelebrate: { backgroundColor: 'rgba(250,216,54,0.08)', borderWidth: 1.5, borderColor: 'rgba(250,216,54,0.2)' },
   accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
   iconWrap: { width: 38, height: 38, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
-  text: { fontSize: 11, lineHeight: 16.5, color: colors.whiteA70 },
-  time: { fontSize: 10, color: colors.whiteA40, marginTop: 2 },
+  text: { fontSize: 11, lineHeight: 16.5, color: 'rgba(5,8,5,0.7)' },
+  time: { fontSize: 10, color: 'rgba(5,8,5,0.5)', marginTop: 2 },
   actionBtn: { height: 26, paddingHorizontal: spacing.lg, borderRadius: radius.round, alignItems: 'center', justifyContent: 'center' },
   actionBtnG: { backgroundColor: colors.green },
-  actionBtnO: { backgroundColor: colors.orangeA10, borderWidth: 1, borderColor: colors.orangeA20 },
-  actionText: { fontSize: 9, fontWeight: '700', color: colors.orange },
+  actionBtnO: { backgroundColor: colors.terracottaA10, borderWidth: 1, borderColor: colors.terracottaA20 },
+  actionText: { fontSize: 9, fontWeight: '700', color: colors.terracotta },
 });

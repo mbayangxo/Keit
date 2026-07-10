@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
+import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
@@ -252,6 +253,7 @@ export default function BusinessHubScreen({ navigation }) {
   if (!business) {
     return (
       <View style={styles.root}>
+      <ScreenBackground />
         <SafeAreaView style={styles.emptyWrap}>
           <Text style={styles.emptyTitle}>Aucun commerce</Text>
           <Text style={styles.emptySub}>Crée un compte business depuis l'inscription.</Text>
@@ -262,7 +264,7 @@ export default function BusinessHubScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-      <WaxPattern color="rgba(255,255,255,0.025)" size={18} animated={false} />
+      <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>
@@ -318,7 +320,7 @@ export default function BusinessHubScreen({ navigation }) {
               {transactions.slice(0, 5).map((tx) => (
                 <View key={tx.key} style={styles.txRow}>
                   <Text style={styles.txTitle}>{tx.title}</Text>
-                  <Text style={[styles.txAmt, { color: tx.amount > 0 ? colors.flagGold : colors.flagRed }]}>
+                  <Text style={[styles.txAmt, { color: tx.amount > 0 ? colors.flagGold : colors.terracotta }]}>
                     {tx.amount > 0 ? '+' : ''}{formatAmount(tx.amount)} F
                   </Text>
                 </View>
@@ -329,9 +331,9 @@ export default function BusinessHubScreen({ navigation }) {
           {tab === 'payroll' && (
             <View style={styles.panel}>
               <SectionCard title="Ajouter un employé">
-                <TextInput style={styles.input} placeholder="@handle K21" placeholderTextColor={colors.whiteA30} value={newHandle} onChangeText={setNewHandle} autoCapitalize="none" />
-                <TextInput style={styles.input} placeholder="Rôle (staff, CEO…)" placeholderTextColor={colors.whiteA30} value={newRole} onChangeText={setNewRole} />
-                <TextInput style={styles.input} placeholder="Salaire XOF" placeholderTextColor={colors.whiteA30} keyboardType="number-pad" value={newPay} onChangeText={setNewPay} />
+                <TextInput style={styles.input} placeholder="@handle K21" placeholderTextColor={'rgba(5,8,5,0.45)'} value={newHandle} onChangeText={setNewHandle} autoCapitalize="none" />
+                <TextInput style={styles.input} placeholder="Rôle (staff, CEO…)" placeholderTextColor={'rgba(5,8,5,0.45)'} value={newRole} onChangeText={setNewRole} />
+                <TextInput style={styles.input} placeholder="Salaire XOF" placeholderTextColor={'rgba(5,8,5,0.45)'} keyboardType="number-pad" value={newPay} onChangeText={setNewPay} />
                 <GlowButton label="Ajouter" onPress={addEmployee} disabled={loading} />
               </SectionCard>
               <SectionCard title={`Équipe (${employees.length})`}>
@@ -353,13 +355,13 @@ export default function BusinessHubScreen({ navigation }) {
           {tab === 'school' && (
             <View style={styles.panel}>
               <SectionCard title="Inscrire un élève">
-                <TextInput style={styles.input} placeholder="Nom de l'enfant" placeholderTextColor={colors.whiteA30} value={newStudentName} onChangeText={setNewStudentName} />
-                <TextInput style={styles.input} placeholder="@handle du parent" placeholderTextColor={colors.whiteA30} value={newParentHandle} onChangeText={setNewParentHandle} autoCapitalize="none" />
+                <TextInput style={styles.input} placeholder="Nom de l'enfant" placeholderTextColor={'rgba(5,8,5,0.45)'} value={newStudentName} onChangeText={setNewStudentName} />
+                <TextInput style={styles.input} placeholder="@handle du parent" placeholderTextColor={'rgba(5,8,5,0.45)'} value={newParentHandle} onChangeText={setNewParentHandle} autoCapitalize="none" />
                 <GlowButton label="Inscrire" onPress={enrollStudent} disabled={loading} />
               </SectionCard>
               <SectionCard title="Frais mensuels">
-                <TextInput style={styles.input} placeholder="Ex: Mars 2026" placeholderTextColor={colors.whiteA30} value={periodLabel} onChangeText={setPeriodLabel} />
-                <TextInput style={styles.input} placeholder="Montant XOF" placeholderTextColor={colors.whiteA30} keyboardType="number-pad" value={periodAmount} onChangeText={setPeriodAmount} />
+                <TextInput style={styles.input} placeholder="Ex: Mars 2026" placeholderTextColor={'rgba(5,8,5,0.45)'} value={periodLabel} onChangeText={setPeriodLabel} />
+                <TextInput style={styles.input} placeholder="Montant XOF" placeholderTextColor={'rgba(5,8,5,0.45)'} keyboardType="number-pad" value={periodAmount} onChangeText={setPeriodAmount} />
                 <GlowButton label="Ouvrir la période" onPress={openPeriod} disabled={loading} />
                 {periods[0] ? (
                   <>
@@ -383,8 +385,8 @@ export default function BusinessHubScreen({ navigation }) {
           {tab === 'coop' && (
             <View style={styles.panel}>
               <SectionCard title="Log livraison (offline OK)">
-                <TextInput style={styles.input} placeholder="ID ou @handle paysan" placeholderTextColor={colors.whiteA30} value={farmerHandle} onChangeText={setFarmerHandle} />
-                <TextInput style={styles.input} placeholder="Tonnes" placeholderTextColor={colors.whiteA30} keyboardType="decimal-pad" value={deliveryTons} onChangeText={setDeliveryTons} />
+                <TextInput style={styles.input} placeholder="ID ou @handle paysan" placeholderTextColor={'rgba(5,8,5,0.45)'} value={farmerHandle} onChangeText={setFarmerHandle} />
+                <TextInput style={styles.input} placeholder="Tonnes" placeholderTextColor={'rgba(5,8,5,0.45)'} keyboardType="decimal-pad" value={deliveryTons} onChangeText={setDeliveryTons} />
                 <GlowButton label="Enregistrer" onPress={logDelivery} disabled={loading} />
               </SectionCard>
               <SectionCard title="Livraisons">
@@ -419,40 +421,40 @@ export default function BusinessHubScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
-  emptyTitle: { fontFamily: fontFamily.displayBold, fontSize: 18, color: colors.white },
-  emptySub: { fontSize: 12, color: colors.whiteA40, marginTop: spacing.sm, textAlign: 'center' },
+  emptyTitle: { fontFamily: fontFamily.displayBold, fontSize: 18, color: colors.ink },
+  emptySub: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginTop: spacing.sm, textAlign: 'center' },
   hero: { padding: spacing.xxl, backgroundColor: colors.goldA10, borderBottomWidth: 1, borderBottomColor: colors.goldA20 },
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
-  bizName: { fontFamily: fontFamily.displayBold, fontSize: 16, color: colors.white },
-  bizMeta: { fontSize: 11, color: colors.whiteA40, marginTop: 2 },
-  notifBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
-  bizChip: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.round, backgroundColor: colors.whiteA06, marginRight: spacing.sm },
+  bizName: { fontFamily: fontFamily.displayBold, fontSize: 16, color: colors.ink },
+  bizMeta: { fontSize: 11, color: 'rgba(5,8,5,0.5)', marginTop: 2 },
+  notifBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
+  bizChip: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.round, backgroundColor: 'rgba(255,255,255,0.7)', marginRight: spacing.sm },
   bizChipOn: { backgroundColor: colors.goldA20 },
-  bizChipText: { fontSize: 11, color: colors.whiteA50 },
-  bizChipTextOn: { color: colors.flagGold, fontWeight: '700' },
-  balance: { fontFamily: fontFamily.displayBlack, fontSize: 36, color: colors.flagGold, letterSpacing: -1 },
-  balanceLabel: { fontSize: 11, color: colors.whiteA35 },
+  bizChipText: { fontSize: 11, color: 'rgba(5,8,5,0.55)' },
+  bizChipTextOn: { color: colors.goldDark, fontWeight: '700' },
+  balance: { fontFamily: fontFamily.displayBlack, fontSize: 36, color: colors.goldDark, letterSpacing: -1 },
+  balanceLabel: { fontSize: 11, color: 'rgba(5,8,5,0.45)' },
   tabRow: { paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, gap: spacing.sm },
-  tab: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.round, backgroundColor: colors.whiteA06, marginRight: spacing.sm },
+  tab: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.round, backgroundColor: 'rgba(255,255,255,0.7)', marginRight: spacing.sm },
   tabOn: { backgroundColor: colors.goldA20 },
-  tabText: { fontSize: 11, fontWeight: '700', color: colors.whiteA45 },
-  tabTextOn: { color: colors.flagGold },
+  tabText: { fontSize: 11, fontWeight: '700', color: 'rgba(5,8,5,0.5)' },
+  tabTextOn: { color: colors.goldDark },
   panel: { paddingHorizontal: spacing.xxl, gap: spacing.lg },
   actionsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: spacing.lg },
   actionBtn: { alignItems: 'center', gap: spacing.xs },
-  actionLabel: { fontSize: 9, color: colors.whiteA50, fontWeight: '700' },
-  sectionEyebrow: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.sm },
-  txRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.whiteA06 },
-  txTitle: { fontSize: 12, color: colors.white },
+  actionLabel: { fontSize: 9, color: 'rgba(5,8,5,0.55)', fontWeight: '700' },
+  sectionEyebrow: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginBottom: spacing.sm },
+  txRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: 'rgba(5,8,5,0.07)' },
+  txTitle: { fontSize: 12, color: colors.ink },
   txAmt: { fontFamily: fontFamily.bodyBold, fontSize: 12 },
-  card: { backgroundColor: colors.whiteA04, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.whiteA08, padding: spacing.lg, gap: spacing.sm },
-  cardTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.flagGold, marginBottom: spacing.xs },
-  input: { height: 44, borderRadius: radius.lg, backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA10, paddingHorizontal: spacing.lg, color: colors.white, fontSize: 13 },
-  listRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.whiteA06 },
-  rowTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
-  rowSub: { fontSize: 10, color: colors.whiteA40, marginTop: 2 },
+  card: { backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: radius.xl, borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', padding: spacing.lg, gap: spacing.sm },
+  cardTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.goldDark, marginBottom: spacing.xs },
+  input: { height: 44, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.09)', paddingHorizontal: spacing.lg, color: colors.ink, fontSize: 13 },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: 'rgba(5,8,5,0.07)' },
+  rowTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.ink },
+  rowSub: { fontSize: 10, color: 'rgba(5,8,5,0.5)', marginTop: 2 },
   payChip: { backgroundColor: colors.greenA12, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.lg },
-  payChipText: { fontSize: 10, fontWeight: '800', color: colors.green },
+  payChipText: { fontSize: 10, fontWeight: '800', color: colors.greenDark },
 });

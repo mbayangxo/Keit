@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
+import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
@@ -95,10 +96,11 @@ export default function EditProfileScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.header}>
           <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={{ fontSize: 16, color: colors.white }}>←</Text>
+            <Text style={{ fontSize: 16, color: colors.ink }}>←</Text>
           </PressScale>
           <Text style={styles.headerTitle}>Mon compte</Text>
         </View>
@@ -109,7 +111,7 @@ export default function EditProfileScreen({ navigation }) {
             <Text style={styles.fieldLabel}>Nom</Text>
             <Text style={styles.fieldValue}>{profile.name || '—'}</Text>
             <Text style={styles.fieldLabel}>@handle</Text>
-            <Text style={styles.fieldValue}>@{profile.handle || '—'}</Text>
+            <Text style={styles.fieldValue}>@{String(profile.handle ?? '').replace(/^@+/, '') || '—'}</Text>
           </View>
 
           <Text style={styles.sectionLabel}>Téléphone</Text>
@@ -128,7 +130,7 @@ export default function EditProfileScreen({ navigation }) {
                   <TextInput
                     style={styles.input}
                     placeholder="77 000 00 00"
-                    placeholderTextColor={colors.whiteA30}
+                    placeholderTextColor={'rgba(5,8,5,0.45)'}
                     keyboardType="number-pad"
                     value={newPhone}
                     onChangeText={(v) => setNewPhone(v.replace(/[^0-9]/g, ''))}
@@ -153,7 +155,7 @@ export default function EditProfileScreen({ navigation }) {
                 <TextInput
                   style={styles.input}
                   placeholder="000000"
-                  placeholderTextColor={colors.whiteA30}
+                  placeholderTextColor={'rgba(5,8,5,0.45)'}
                   keyboardType="number-pad"
                   value={otp}
                   onChangeText={(v) => setOtp(v.replace(/[^0-9]/g, '').slice(0, 6))}
@@ -173,7 +175,7 @@ export default function EditProfileScreen({ navigation }) {
             <TextInput
               style={styles.input}
               placeholder="ton@email.com"
-              placeholderTextColor={colors.whiteA30}
+              placeholderTextColor={'rgba(5,8,5,0.45)'}
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -197,33 +199,33 @@ export default function EditProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, paddingHorizontal: spacing.xxl, paddingVertical: spacing.lg },
-  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: fontFamily.displayBold, fontSize: 16, color: colors.white },
+  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontFamily: fontFamily.displayBold, fontSize: 16, color: colors.ink },
   body: { padding: spacing.xxl, paddingBottom: spacing.giant, gap: spacing.md },
-  sectionLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: colors.whiteA30, textTransform: 'uppercase', marginTop: spacing.md },
-  card: { backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA08, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.sm },
-  fieldLabel: { fontSize: 10, color: colors.whiteA40, fontWeight: '700' },
-  fieldValue: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white, marginBottom: spacing.sm },
-  hint: { fontSize: 11, color: colors.whiteA40, lineHeight: 16, marginBottom: spacing.sm },
-  bold: { fontFamily: fontFamily.bodyBold, color: colors.green },
+  sectionLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginTop: spacing.md },
+  card: { backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', borderRadius: radius.xl, padding: spacing.xl, gap: spacing.sm },
+  fieldLabel: { fontSize: 10, color: 'rgba(5,8,5,0.5)', fontWeight: '700' },
+  fieldValue: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink, marginBottom: spacing.sm },
+  hint: { fontSize: 11, color: 'rgba(5,8,5,0.5)', lineHeight: 16, marginBottom: spacing.sm },
+  bold: { fontFamily: fontFamily.bodyBold, color: colors.greenDark },
   phoneRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md },
-  dial: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white },
+  dial: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink },
   input: {
     flex: 1,
     height: 48,
     borderRadius: radius.lg,
-    backgroundColor: colors.whiteA06,
+    backgroundColor: 'rgba(255,255,255,0.7)',
     borderWidth: 1,
-    borderColor: colors.whiteA12,
+    borderColor: 'rgba(5,8,5,0.1)',
     paddingHorizontal: spacing.lg,
     fontSize: 15,
-    color: colors.white,
+    color: colors.ink,
     marginBottom: spacing.md,
   },
   devOtp: { backgroundColor: 'rgba(255,100,34,0.15)', borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.md },
-  devOtpLabel: { fontSize: 10, color: colors.orange, fontWeight: '700' },
-  devOtpCode: { fontFamily: fontFamily.displayBlack, fontSize: 24, color: colors.orange, letterSpacing: 4 },
-  link: { fontSize: 12, color: colors.green, fontWeight: '700' },
+  devOtpLabel: { fontSize: 10, color: colors.terracotta, fontWeight: '700' },
+  devOtpCode: { fontFamily: fontFamily.displayBlack, fontSize: 24, color: colors.terracotta, letterSpacing: 4 },
+  link: { fontSize: 12, color: colors.greenDark, fontWeight: '700' },
 });

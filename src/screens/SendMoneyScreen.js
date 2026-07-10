@@ -3,6 +3,7 @@ import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, V
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
+import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import StepTransition from '../components/StepTransition';
 import Keypad from '../components/Keypad';
@@ -97,12 +98,16 @@ function AmountStep({
           </View>
           <View style={styles.recCard}>
             <View style={styles.recAva}>
-              <Text style={{ fontSize: 20 }}>{recipientProfile?.avatarEmoji ?? '👤'}</Text>
+              {recipientProfile?.avatarEmoji ? (
+                <Text style={{ fontSize: 20 }}>{recipientProfile.avatarEmoji}</Text>
+              ) : (
+                <Text style={{ fontFamily: fontFamily.displayBlack, fontSize: 16, color: colors.greenDark }}>@</Text>
+              )}
             </View>
             <TextInput
               style={styles.handleField}
               placeholder="@handle ou 77…"
-              placeholderTextColor={colors.whiteA30}
+              placeholderTextColor={'rgba(5,8,5,0.45)'}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="default"
@@ -131,7 +136,7 @@ function AmountStep({
           <TextInput
             style={styles.reasonField}
             placeholder="Pour le taxi, pour manger..."
-            placeholderTextColor={colors.whiteA30}
+            placeholderTextColor={'rgba(5,8,5,0.45)'}
             value={reason}
             onChangeText={setReason}
           />
@@ -158,7 +163,11 @@ function ConfirmStep({ amount, reason, balance, recipientProfile, onConfirm, onC
       <View style={styles.csHero}>
         <WaxPattern color="rgba(26,240,96,0.03)" size={18} animated={false} />
         <View style={styles.csAva}>
-          <Text style={{ fontSize: 28 }}>{recipientProfile?.avatarEmoji ?? '👤'}</Text>
+          {recipientProfile?.avatarEmoji ? (
+            <Text style={{ fontSize: 28 }}>{recipientProfile.avatarEmoji}</Text>
+          ) : (
+            <Text style={{ fontFamily: fontFamily.displayBlack, fontSize: 22, color: colors.greenDark }}>@</Text>
+          )}
         </View>
         <Text style={styles.csName}>{recipientProfile?.name}</Text>
         <Text style={styles.csHandle}>{displayHandle(recipientProfile?.handle)}</Text>
@@ -178,7 +187,7 @@ function ConfirmStep({ amount, reason, balance, recipientProfile, onConfirm, onC
         <View style={styles.csConfirmPhoto}>
           <Text style={{ fontSize: 18 }}>🔒</Text>
           <Text style={styles.cspText}>
-            <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.whiteA85 }}>Oui c'est bien {recipientProfile?.name} ?</Text>
+            <Text style={{ fontFamily: fontFamily.bodyBold, color: 'rgba(5,8,5,0.8)' }}>Oui c'est bien {recipientProfile?.name} ?</Text>
             {'\n'}
             Vérifie le nom, le numéro et l'arrondissement avant d'envoyer.
           </Text>
@@ -196,15 +205,15 @@ function ConfirmStep({ amount, reason, balance, recipientProfile, onConfirm, onC
         </View>
         <View style={styles.csRow}>
           <Text style={styles.csrL}>Montant</Text>
-          <Text style={[styles.csrR, { color: colors.green }]}>{formatAmount(amount)} F CFA</Text>
+          <Text style={[styles.csrR, { color: colors.greenDark }]}>{formatAmount(amount)} F CFA</Text>
         </View>
         <View style={styles.csRow}>
           <Text style={styles.csrL}>Frais</Text>
-          <Text style={[styles.csrR, { color: colors.green }]}>0 F ✦</Text>
+          <Text style={[styles.csrR, { color: colors.greenDark }]}>0 F ✦</Text>
         </View>
         <View style={[styles.csRow, { borderBottomWidth: 0 }]}>
           <Text style={styles.csrL}>Solde après</Text>
-          <Text style={[styles.csrR, { color: colors.whiteA55 }]}>{formatAmount(solde)} F</Text>
+          <Text style={[styles.csrR, { color: 'rgba(5,8,5,0.6)' }]}>{formatAmount(solde)} F</Text>
         </View>
       </View>
 
@@ -232,7 +241,7 @@ function SuccessStep({ amount, reason, reference, recipientProfile, onDone, onMa
       <View style={styles.successBg} />
       <View style={styles.successContent}>
         <Animated.View style={[styles.ssRing, ring]}>
-          <Text style={{ fontSize: 38, color: colors.green }}>{undone ? '↩' : '✓'}</Text>
+          <Text style={{ fontSize: 38, color: colors.greenDark }}>{undone ? '↩' : '✓'}</Text>
         </Animated.View>
         <Animated.Text style={[styles.ssTitle, title]}>{undone ? 'Annulé' : 'Envoyé !'}</Animated.Text>
         <Animated.Text style={[styles.ssSub, sub]}>
@@ -250,8 +259,8 @@ function SuccessStep({ amount, reason, reference, recipientProfile, onDone, onMa
             style={{ marginBottom: spacing.lg }}
             rows={[
               { key: 'to', label: 'À', value: label },
-              { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.green },
-              { key: 'fee', label: 'Frais', value: '0 F ✦', color: colors.green },
+              { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.greenDark },
+              { key: 'fee', label: 'Frais', value: '0 F ✦', color: colors.greenDark },
               { key: 'reason', label: 'Motif', value: reason || '—' },
               { key: 'ref', label: 'Référence', value: reference, small: true },
             ]}
@@ -272,7 +281,7 @@ function SuccessStep({ amount, reason, reference, recipientProfile, onDone, onMa
           <Animated.View style={[styles.wakhnaBonus, bonus]}>
             <Text style={{ fontSize: 16 }}>✦</Text>
             <Text style={styles.wbText}>
-              <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.green }}>+10 Wakhna</Text> pour cet envoi
+              <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.greenDark }}>+10 Wakhna</Text> pour cet envoi
             </Text>
           </Animated.View>
         )}
@@ -373,6 +382,7 @@ export default function SendMoneyScreen({ navigation, route }) {
 
   return (
     <View style={styles.root}>
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'amount' && (
           <StepTransition>
@@ -426,7 +436,7 @@ export default function SendMoneyScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
 
   // Amount step
   sendHero: { paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.huge, position: 'relative', overflow: 'hidden' },
@@ -435,7 +445,7 @@ const styles = StyleSheet.create({
   amountHero: { alignItems: 'center' },
   ahLbl: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: 'rgba(26,240,96,0.6)', textTransform: 'uppercase', marginBottom: spacing.lg },
   ahRow: { flexDirection: 'row', alignItems: 'center' },
-  ahNum: { fontFamily: fontFamily.displayBlack, fontSize: 52, letterSpacing: -3, lineHeight: 52, color: colors.green },
+  ahNum: { fontFamily: fontFamily.displayBlack, fontSize: 52, letterSpacing: -3, lineHeight: 52, color: colors.greenDark },
   ahCurr: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(26,240,96,0.4)' },
   keypadWrap: { marginTop: spacing.xxl },
 
@@ -444,13 +454,13 @@ const styles = StyleSheet.create({
   recipientSection: { paddingHorizontal: spacing.huge, paddingVertical: spacing.xxl },
   recipientHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   scanChip: { backgroundColor: colors.greenA08, borderWidth: 1, borderColor: colors.greenA20, borderRadius: radius.round, paddingHorizontal: spacing.md, paddingVertical: 4 },
-  scanChipText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.green },
-  lbl: { ...type.eyebrow, color: colors.whiteA30 },
-  recCard: { backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA12, borderRadius: radius.xxl, padding: spacing.xxl, flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginTop: spacing.sm },
-  handleField: { flex: 1, fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white },
+  scanChipText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.greenDark },
+  lbl: { ...type.eyebrow, color: 'rgba(5,8,5,0.45)' },
+  recCard: { backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)', borderRadius: radius.xxl, padding: spacing.xxl, flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginTop: spacing.sm },
+  handleField: { flex: 1, fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink },
   recAva: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(26,240,96,0.1)', borderWidth: 2, borderColor: colors.greenA25, alignItems: 'center', justifyContent: 'center' },
-  recName: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white },
-  recHandle: { fontFamily: fontFamily.bodyRegular, fontSize: 11, color: colors.green },
+  recName: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink },
+  recHandle: { fontFamily: fontFamily.bodyRegular, fontSize: 11, color: colors.greenDark },
   recipientPreview: {
     marginTop: spacing.md,
     padding: spacing.lg,
@@ -459,49 +469,49 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.greenA18,
   },
-  recipientPreviewName: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white },
-  recipientPreviewMeta: { fontSize: 11, color: colors.whiteA55, marginTop: 2 },
-  recipientPreviewPhone: { fontSize: 11, color: colors.green, marginTop: 4, fontFamily: fontFamily.bodyBold },
-  lookupError: { fontSize: 11, color: colors.flagRed, marginTop: spacing.sm },
-  recArr: { fontSize: 11, color: colors.whiteA40 },
+  recipientPreviewName: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink },
+  recipientPreviewMeta: { fontSize: 11, color: 'rgba(5,8,5,0.6)', marginTop: 2 },
+  recipientPreviewPhone: { fontSize: 11, color: colors.greenDark, marginTop: 4, fontFamily: fontFamily.bodyBold },
+  lookupError: { fontSize: 11, color: colors.terracotta, marginTop: spacing.sm },
+  recArr: { fontSize: 11, color: 'rgba(5,8,5,0.5)' },
 
   reasonWrap: { paddingHorizontal: spacing.huge, paddingBottom: spacing.xxl },
-  reasonField: { width: '100%', height: 48, borderRadius: radius.lg, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA12, paddingHorizontal: spacing.xxxl, fontFamily: fontFamily.bodyRegular, fontSize: 13, color: colors.white, marginTop: spacing.sm },
+  reasonField: { width: '100%', height: 48, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)', paddingHorizontal: spacing.xxxl, fontFamily: fontFamily.bodyRegular, fontSize: 13, color: colors.ink, marginTop: spacing.sm },
 
   contactItem: { alignItems: 'center', gap: spacing.xs },
   contactAva: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  contactLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.whiteA40 },
+  contactLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: 'rgba(5,8,5,0.5)' },
 
 
   // Confirm step
   csHero: { paddingHorizontal: spacing.giant, paddingTop: spacing.giant + 4, paddingBottom: spacing.giant, alignItems: 'center', position: 'relative', overflow: 'hidden', borderBottomWidth: 1, borderBottomColor: colors.greenA12 },
-  csAva: { width: 68, height: 68, borderRadius: 34, borderWidth: 3, borderColor: colors.greenA30, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.lg },
-  csName: { fontFamily: fontFamily.displayBlack, fontSize: 15, color: colors.white },
-  csHandle: { fontFamily: fontFamily.bodyRegular, fontSize: 11, color: colors.green, marginBottom: 2 },
-  csPhone: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.whiteA70, marginBottom: 2 },
-  csArr: { fontSize: 11, color: colors.whiteA40, marginBottom: spacing.md },
-  csArr: { fontSize: 11, color: colors.whiteA35 },
-  csAmount: { fontFamily: fontFamily.displayBlack, fontSize: 54, letterSpacing: -3, lineHeight: 54, color: colors.green, marginTop: spacing.xxl, marginBottom: spacing.xs },
+  csAva: { width: 68, height: 68, borderRadius: 34, borderWidth: 3, borderColor: colors.greenA30, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.lg },
+  csName: { fontFamily: fontFamily.displayBlack, fontSize: 15, color: colors.ink },
+  csHandle: { fontFamily: fontFamily.bodyRegular, fontSize: 11, color: colors.greenDark, marginBottom: 2 },
+  csPhone: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: 'rgba(5,8,5,0.7)', marginBottom: 2 },
+  csArr: { fontSize: 11, color: 'rgba(5,8,5,0.5)', marginBottom: spacing.md },
+  csArr: { fontSize: 11, color: 'rgba(5,8,5,0.45)' },
+  csAmount: { fontFamily: fontFamily.displayBlack, fontSize: 54, letterSpacing: -3, lineHeight: 54, color: colors.greenDark, marginTop: spacing.xxl, marginBottom: spacing.xs },
   csFree: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.greenA08, borderWidth: 1, borderColor: colors.greenA20, borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: spacing.xs, marginTop: spacing.sm },
   csFreeText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: 'rgba(26,240,96,0.8)' },
   csConfirmPhoto: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.greenA06, borderWidth: 1, borderColor: colors.greenA15, borderRadius: radius.lg, paddingHorizontal: spacing.xxl, paddingVertical: spacing.lg, marginTop: spacing.xxl, width: '100%' },
-  cspText: { flex: 1, fontFamily: fontFamily.bodyRegular, fontSize: 11, color: colors.whiteA55, lineHeight: 16.5 },
+  cspText: { flex: 1, fontFamily: fontFamily.bodyRegular, fontSize: 11, color: 'rgba(5,8,5,0.6)', lineHeight: 16.5 },
 
   csBody: { paddingHorizontal: spacing.huge, paddingVertical: spacing.xxl },
-  csRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.whiteA06 },
-  csrL: { fontSize: 11, color: colors.whiteA35 },
-  csrR: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
+  csRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(5,8,5,0.07)' },
+  csrL: { fontSize: 11, color: 'rgba(5,8,5,0.45)' },
+  csrR: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.ink },
 
   csActions: { paddingHorizontal: spacing.huge, paddingBottom: spacing.giant, paddingTop: spacing.lg, gap: spacing.md, marginTop: 'auto' },
-  csNo: { textAlign: 'center', fontSize: 11, color: colors.flagRed, fontFamily: fontFamily.bodySemiBold },
+  csNo: { textAlign: 'center', fontSize: 11, color: colors.terracotta, fontFamily: fontFamily.bodySemiBold },
 
   // Success step
   successRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl + 14 },
-  successBg: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.ink },
+  successBg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#f2f8ec' },
   successContent: { alignItems: 'center', width: '100%' },
   ssRing: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.greenA08, borderWidth: 3, borderColor: colors.green, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xxxl, shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 50, elevation: 8 },
-  ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 24, letterSpacing: -0.8, color: colors.white, marginBottom: spacing.md, textAlign: 'center' },
-  ssSub: { fontSize: 12, color: colors.whiteA40, marginBottom: spacing.giant + 2, lineHeight: 20.4, textAlign: 'center' },
+  ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 24, letterSpacing: -0.8, color: colors.ink, marginBottom: spacing.md, textAlign: 'center' },
+  ssSub: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginBottom: spacing.giant + 2, lineHeight: 20.4, textAlign: 'center' },
   wakhnaBonus: { backgroundColor: colors.greenA05, borderWidth: 1, borderColor: colors.greenA15, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xxxl, alignSelf: 'stretch' },
-  wbText: { fontSize: 11, color: colors.whiteA40 },
+  wbText: { fontSize: 11, color: 'rgba(5,8,5,0.5)' },
 });

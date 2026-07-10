@@ -182,7 +182,7 @@ export default function MbooloChatScreen({ navigation, route }) {
           <View style={{ flex: 1 }}>
             <Text style={styles.chName}>{chatTitle}</Text>
             <Text style={styles.chSub}>
-              {memberCount > 0 ? `${memberCount} membre${memberCount > 1 ? 's' : ''}` : `@${profile.handle}`}
+              {memberCount > 0 ? `${memberCount} membre${memberCount > 1 ? 's' : ''}` : `@${String(profile.handle ?? '').replace(/^@+/, '')}`}
             </Text>
           </View>
         </View>
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   msgImage: { width: 200, height: 150, borderRadius: radius.lg, marginBottom: 4 },
   inputRow: { backgroundColor: '#fff', borderTopWidth: 2, borderTopColor: 'rgba(232,92,26,0.1)', paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   ciAttach: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.mboolo.terraPale, borderWidth: 1.5, borderColor: colors.mboolo.border, alignItems: 'center', justifyContent: 'center' },
-  ciRecording: { backgroundColor: 'rgba(232,25,44,0.15)', borderColor: colors.flagRed },
+  ciRecording: { backgroundColor: 'rgba(232,92,26,0.15)', borderColor: colors.terracotta },
   ciField: { flex: 1, minHeight: 38, borderRadius: 19, backgroundColor: colors.mboolo.bg2, borderWidth: 2, borderColor: colors.mboolo.border, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.sm, fontSize: 13, color: colors.mboolo.ink },
   ciSend: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
 });

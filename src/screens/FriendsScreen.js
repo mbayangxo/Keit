@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import ScreenHeader from '../components/ScreenHeader';
 import PressScale from '../components/PressScale';
+import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import { useToast } from '../components/Toast';
 import { getFriends, addFriend } from '../lib/api-client';
@@ -17,7 +18,7 @@ function FriendRow({ friend, onSend, onMbolo }) {
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.rowName}>{friend.name}</Text>
-        <Text style={styles.rowMeta}>@{friend.handle}</Text>
+        <Text style={styles.rowMeta}>@{String(friend.handle ?? '').replace(/^@+/, '')}</Text>
       </View>
       <PressScale scaleTo={0.9} onPress={onMbolo} style={styles.mboloBtn}>
         <Text style={styles.mboloBtnText}>💬</Text>
@@ -69,6 +70,7 @@ export default function FriendsScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll}>
           <ScreenHeader onBack={() => navigation.goBack()} title="Mes amis" style={styles.header} />
@@ -80,7 +82,7 @@ export default function FriendsScreen({ navigation }) {
               value={handle}
               onChangeText={setHandle}
               placeholder="@handle"
-              placeholderTextColor={colors.whiteA30}
+              placeholderTextColor={'rgba(5,8,5,0.45)'}
               autoCapitalize="none"
             />
             <GlowButton label={adding ? '…' : 'Ajouter'} onPress={submitAdd} disabled={adding || handle.trim().length < 3} style={styles.addBtn} />
@@ -116,40 +118,40 @@ export default function FriendsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
   scroll: { paddingHorizontal: spacing.xl, paddingBottom: spacing.giant },
   header: { marginBottom: spacing.sm },
-  sub: { fontSize: 12, color: colors.whiteA40, marginBottom: spacing.xl },
+  sub: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginBottom: spacing.xl },
   addRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   input: {
     flex: 1,
     height: 48,
     borderRadius: radius.lg,
-    backgroundColor: colors.whiteA08,
+    backgroundColor: 'rgba(255,255,255,0.75)',
     borderWidth: 1.5,
-    borderColor: colors.whiteA12,
+    borderColor: 'rgba(5,8,5,0.1)',
     paddingHorizontal: spacing.lg,
-    color: colors.white,
+    color: colors.ink,
     fontSize: 14,
   },
-  addBtn: { minWidth: 100 },
+  addBtn: { width: 112 },
   scanLink: { alignSelf: 'center', marginBottom: spacing.xxl },
-  scanLinkText: { fontSize: 12, color: colors.green, fontFamily: fontFamily.bodyBold },
-  empty: { textAlign: 'center', color: colors.whiteA35, fontSize: 12, marginTop: spacing.xxl },
+  scanLinkText: { fontSize: 12, color: colors.greenDark, fontFamily: fontFamily.bodyBold },
+  empty: { textAlign: 'center', color: 'rgba(5,8,5,0.45)', fontSize: 12, marginTop: spacing.xxl },
   list: { gap: spacing.sm },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.whiteA04,
+    backgroundColor: 'rgba(255,255,255,0.6)',
     borderWidth: 1,
-    borderColor: colors.whiteA08,
+    borderColor: 'rgba(5,8,5,0.08)',
     borderRadius: radius.lg,
     padding: spacing.lg,
   },
   ava: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.greenA08, alignItems: 'center', justifyContent: 'center' },
-  rowName: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white },
-  rowMeta: { fontSize: 11, color: colors.whiteA35 },
+  rowName: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
+  rowMeta: { fontSize: 11, color: 'rgba(5,8,5,0.45)' },
   mboloBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.greenA10, alignItems: 'center', justifyContent: 'center' },
   mboloBtnText: { fontSize: 16 },
 });

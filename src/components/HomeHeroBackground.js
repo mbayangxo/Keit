@@ -8,7 +8,7 @@ const AnimatedRect = Animated.createAnimatedComponent(Rect);
 // Home hero background — matches `.hh-bg` in k21remainingflows.html:
 //   radial-gradient(ellipse at 25% 20%, rgba(26,240,96,.14) 0%, transparent 50%),
 //   radial-gradient(ellipse at 75% 80%, rgba(250,216,54,.10) 0%, transparent 50%),
-//   radial-gradient(ellipse at 50% 50%, rgba(232,25,44,.06) 0%, transparent 60%),
+//   radial-gradient(ellipse at 50% 50%, rgba(232,92,26,.06) 0%, transparent 60%),
 //   linear-gradient(160deg, #0d1f0f 0%, #050805 100%)
 // `hh-breathe` (7s ease-in-out infinite, alternates 0%/100% <-> 50%) intensifies
 // each bloom's opacity at the midpoint — reproduced by animating rect opacity.

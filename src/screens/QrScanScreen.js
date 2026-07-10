@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '../components/ScreenHeader';
 import GlowButton from '../components/GlowButton';
 import PressScale from '../components/PressScale';
+import ScreenBackground from '../components/ScreenBackground';
 import { useToast } from '../components/Toast';
 import { parseK21Qr } from '../lib/k21-qr';
 import { addFriend, lookupUser, getBusinesses } from '../lib/api-client';
@@ -59,6 +60,7 @@ export default function QrScanScreen({ navigation, route }) {
 
   return (
     <View style={styles.root}>
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll}>
           <ScreenHeader onBack={() => navigation.goBack()} title={title} style={styles.header} />
@@ -76,7 +78,7 @@ export default function QrScanScreen({ navigation, route }) {
             value={raw}
             onChangeText={setRaw}
             placeholder="k21://pay/@fatou ou @fatou"
-            placeholderTextColor={colors.whiteA30}
+            placeholderTextColor={'rgba(5,8,5,0.45)'}
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -95,7 +97,7 @@ export default function QrScanScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
   scroll: { paddingHorizontal: spacing.xl, paddingBottom: spacing.giant },
   header: { marginBottom: spacing.xl },
   scanFrame: {
@@ -109,19 +111,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.greenA08,
   },
   frameIcon: { fontSize: 40, marginBottom: spacing.md },
-  frameHint: { fontSize: 12, color: colors.whiteA40, textAlign: 'center', lineHeight: 18 },
-  label: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.sm },
+  frameHint: { fontSize: 12, color: 'rgba(5,8,5,0.5)', textAlign: 'center', lineHeight: 18 },
+  label: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginBottom: spacing.sm },
   input: {
     height: 52,
     borderRadius: radius.lg,
-    backgroundColor: colors.whiteA08,
+    backgroundColor: 'rgba(255,255,255,0.75)',
     borderWidth: 1.5,
-    borderColor: colors.whiteA12,
+    borderColor: 'rgba(5,8,5,0.1)',
     paddingHorizontal: spacing.xl,
-    color: colors.white,
+    color: colors.ink,
     fontSize: 14,
     marginBottom: spacing.xl,
   },
   altLink: { alignSelf: 'center', marginTop: spacing.lg },
-  altLinkText: { fontSize: 12, color: colors.green, fontFamily: fontFamily.bodyBold },
+  altLinkText: { fontSize: 12, color: colors.greenDark, fontFamily: fontFamily.bodyBold },
 });

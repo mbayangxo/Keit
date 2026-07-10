@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import * as ExpoSplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { colors, fontsToLoad } from './src/theme';
@@ -37,8 +37,8 @@ function AppShell() {
 ExpoSplashScreen.preventAutoHideAsync();
 
 const navTheme = {
-  ...DarkTheme,
-  colors: { ...DarkTheme.colors, background: colors.ink, card: colors.ink, border: colors.whiteA08 },
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, background: '#f2f8ec', card: '#f2f8ec', border: 'rgba(5,8,5,0.08)' },
 };
 
 export default Sentry.wrap(function App() {
@@ -73,7 +73,7 @@ export default Sentry.wrap(function App() {
     <SafeAreaProvider>
       <WebAppShell>
         <View style={styles.root} onLayout={onLayout}>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
           <NavigationContainer
             ref={navigationRef}
             theme={navTheme}
@@ -102,6 +102,6 @@ export default Sentry.wrap(function App() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.ink,
+    backgroundColor: '#f2f8ec',
   },
 });

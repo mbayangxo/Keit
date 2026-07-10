@@ -35,9 +35,9 @@ export default function ReceiptCard({ rows, style }) {
 }
 
 const styles = StyleSheet.create({
-  card: { width: '100%', backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA10, borderRadius: radius.xxl, padding: spacing.xxl, gap: spacing.md },
+  card: { width: '100%', backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', borderRadius: radius.xxl, padding: spacing.xxl, gap: spacing.md },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
-  label: { fontSize: 11, color: colors.whiteA30 },
-  value: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
-  valueSmall: { fontSize: 9, color: colors.whiteA30 },
+  label: { fontSize: 11, color: 'rgba(5,8,5,0.5)' },
+  value: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.ink },
+  valueSmall: { fontSize: 9, color: 'rgba(5,8,5,0.5)' },
 });

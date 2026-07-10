@@ -3,6 +3,7 @@ import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import PressScale from '../components/PressScale';
+import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import StepTransition from '../components/StepTransition';
 import ScreenHeader from '../components/ScreenHeader';
@@ -72,7 +73,7 @@ function RequestStep({ amount, setAmount, reason, setReason, handle, setHandle, 
           <TextInput
             style={styles.handleField}
             placeholder="@handle"
-            placeholderTextColor={colors.whiteA30}
+            placeholderTextColor={'rgba(5,8,5,0.45)'}
             autoCapitalize="none"
             value={handle}
             onChangeText={setHandle}
@@ -84,7 +85,7 @@ function RequestStep({ amount, setAmount, reason, setReason, handle, setHandle, 
           <TextInput
             style={styles.reasonField}
             placeholder="Pour le taxi, pour manger..."
-            placeholderTextColor={colors.whiteA30}
+            placeholderTextColor={'rgba(5,8,5,0.45)'}
             value={reason}
             onChangeText={setReason}
           />
@@ -255,6 +256,7 @@ export default function ReceiveScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.modeRow}>
           <PressScale scaleTo={0.96} onPress={() => { setMode('request'); setStep('request'); }} style={[styles.modePill, mode === 'request' && styles.modePillOn]}>
@@ -293,46 +295,46 @@ export default function ReceiveScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
   hero: { paddingHorizontal: spacing.huge },
   topRow: { paddingTop: spacing.md },
   amountHero: { alignItems: 'center', paddingVertical: spacing.giant },
-  ahLbl: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.whiteA35, textTransform: 'uppercase', marginBottom: spacing.md },
+  ahLbl: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginBottom: spacing.md },
   ahRow: { flexDirection: 'row', alignItems: 'center' },
-  ahNum: { fontFamily: fontFamily.displayBlack, fontSize: 44, letterSpacing: -2, color: colors.flagGold },
-  ahCurr: { fontSize: 18, color: colors.whiteA40 },
+  ahNum: { fontFamily: fontFamily.displayBlack, fontSize: 44, letterSpacing: -2, color: colors.goldDark },
+  ahCurr: { fontSize: 18, color: 'rgba(5,8,5,0.5)' },
   ahCursor: { width: 2, height: 36, backgroundColor: colors.flagGold, marginLeft: 4 },
   hiddenInput: { position: 'absolute', opacity: 0, height: 0, width: 0 },
   quickRow: { marginTop: spacing.xxl },
   section: { paddingHorizontal: spacing.huge, marginBottom: spacing.xxl },
-  lbl: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.md },
-  handleField: { height: 48, borderRadius: radius.lg, backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA12, paddingHorizontal: spacing.xl, fontSize: 14, color: colors.white },
-  reasonField: { height: 48, borderRadius: radius.lg, backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA12, paddingHorizontal: spacing.xl, fontSize: 13, color: colors.white },
-  reasonHint: { ...type.bodySmall, color: colors.whiteA30, marginTop: spacing.sm },
+  lbl: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginBottom: spacing.md },
+  handleField: { height: 48, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', paddingHorizontal: spacing.xl, fontSize: 14, color: colors.ink },
+  reasonField: { height: 48, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', paddingHorizontal: spacing.xl, fontSize: 13, color: colors.ink },
+  reasonHint: { ...type.bodySmall, color: 'rgba(5,8,5,0.45)', marginTop: spacing.sm },
   footer: { padding: spacing.huge, paddingBottom: spacing.xxl },
   sentRoot: { padding: spacing.huge, alignItems: 'center', flexGrow: 1 },
   ssRing: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.goldA10, borderWidth: 2, borderColor: 'rgba(250,216,54,0.3)', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xl },
-  ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: colors.white, marginBottom: spacing.sm, textAlign: 'center' },
-  ssSub: { fontSize: 12, color: colors.whiteA40, textAlign: 'center', lineHeight: 18, marginBottom: spacing.giant },
-  previewCard: { width: '100%', backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA10, borderRadius: radius.xxl, padding: spacing.xxl },
-  previewLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.lg },
+  ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: colors.ink, marginBottom: spacing.sm, textAlign: 'center' },
+  ssSub: { fontSize: 12, color: 'rgba(5,8,5,0.5)', textAlign: 'center', lineHeight: 18, marginBottom: spacing.giant },
+  previewCard: { width: '100%', backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.09)', borderRadius: radius.xxl, padding: spacing.xxl },
+  previewLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginBottom: spacing.lg },
   previewNotif: { flexDirection: 'row', gap: spacing.lg, marginBottom: spacing.lg },
-  previewAva: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
-  previewText: { fontSize: 12, color: colors.whiteA70, lineHeight: 18 },
-  previewReason: { fontSize: 11, color: colors.whiteA40, marginTop: 4 },
+  previewAva: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
+  previewText: { fontSize: 12, color: 'rgba(5,8,5,0.7)', lineHeight: 18 },
+  previewReason: { fontSize: 11, color: 'rgba(5,8,5,0.5)', marginTop: 4 },
   previewPayBtn: { backgroundColor: colors.green, borderRadius: radius.lg, paddingVertical: spacing.lg, alignItems: 'center' },
   previewPayText: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
   modeRow: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.huge, paddingTop: spacing.md },
-  modePill: { flex: 1, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA06, alignItems: 'center', justifyContent: 'center' },
+  modePill: { flex: 1, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
   modePillOn: { backgroundColor: colors.goldA15 },
-  modeText: { fontSize: 11, fontWeight: '700', color: colors.whiteA40 },
-  modeTextOn: { color: colors.flagGold },
-  inboxCard: { backgroundColor: colors.whiteA04, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.whiteA08, padding: spacing.lg, marginBottom: spacing.md },
-  inboxTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white },
-  inboxNote: { fontSize: 11, color: colors.whiteA40, marginTop: spacing.xs },
+  modeText: { fontSize: 11, fontWeight: '700', color: 'rgba(5,8,5,0.5)' },
+  modeTextOn: { color: colors.goldDark },
+  inboxCard: { backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: radius.lg, borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', padding: spacing.lg, marginBottom: spacing.md },
+  inboxTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
+  inboxNote: { fontSize: 11, color: 'rgba(5,8,5,0.5)', marginTop: spacing.xs },
   inboxActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
-  denyBtn: { flex: 1, paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.whiteA06, alignItems: 'center' },
-  denyText: { fontSize: 12, fontWeight: '700', color: colors.whiteA50 },
+  denyBtn: { flex: 1, paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center' },
+  denyText: { fontSize: 12, fontWeight: '700', color: 'rgba(5,8,5,0.55)' },
   acceptBtn: { flex: 1, paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.greenA12, alignItems: 'center' },
-  acceptText: { fontSize: 12, fontWeight: '700', color: colors.green },
+  acceptText: { fontSize: 12, fontWeight: '700', color: colors.greenDark },
 });

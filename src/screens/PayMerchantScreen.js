@@ -3,6 +3,7 @@ import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import PressScale from '../components/PressScale';
+import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import WaxPattern from '../components/WaxPattern';
 import StepTransition from '../components/StepTransition';
@@ -70,13 +71,13 @@ function ScanStep({ merchant, merchants, onSelectMerchant, amount, setAmount, on
     <View style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <LinearGradient
-          colors={['rgba(26,240,96,0.18)', 'rgba(250,216,54,0.12)', 'rgba(232,25,44,0.1)']}
+          colors={['rgba(26,240,96,0.18)', 'rgba(250,216,54,0.12)', 'rgba(232,92,26,0.1)']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.payHero}
         >
-          <WaxPattern color="rgba(255,255,255,0.06)" size={18} animated={false} />
-          <ScreenHeader onBack={onBack} title="Payer un marchand" backBg="rgba(0,0,0,0.3)" titleStyle={styles.payHeroTitle} style={styles.payHeroTop} />
+          <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
+          <ScreenHeader onBack={onBack} title="Payer un marchand" titleStyle={styles.payHeroTitle} style={styles.payHeroTop} />
 
           <Animated.View style={[styles.merchantCard, entrance]}>
             <View style={styles.merchantIcon}>
@@ -166,7 +167,7 @@ function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting })
     <View style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.confirmHero}>
-          <WaxPattern color="rgba(255,255,255,0.06)" size={18} animated={false} />
+          <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
           <Animated.View style={[{ alignItems: 'center' }, entrance]}>
             <View style={styles.confirmAva}>
               <Text style={{ fontSize: 28 }}>{merchant.emoji}</Text>
@@ -189,11 +190,11 @@ function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting })
           </View>
           <View style={styles.confirmRow}>
             <Text style={styles.confirmRowLabel}>Montant</Text>
-            <Text style={[styles.confirmRowVal, { color: colors.green }]}>{formatAmount(amount)} F CFA</Text>
+            <Text style={[styles.confirmRowVal, { color: colors.greenDark }]}>{formatAmount(amount)} F CFA</Text>
           </View>
           <View style={styles.confirmRow}>
             <Text style={styles.confirmRowLabel}>Frais</Text>
-            <Text style={[styles.confirmRowVal, { color: colors.green }]}>0 F ✦</Text>
+            <Text style={[styles.confirmRowVal, { color: colors.greenDark }]}>0 F ✦</Text>
           </View>
           <View style={[styles.confirmRow, { borderBottomWidth: 0 }]}>
             <Text style={styles.confirmRowLabel}>Ton solde après</Text>
@@ -227,9 +228,9 @@ function SuccessStep({ merchant, amount, oldBalance, newBalance, reference, onDo
 
   return (
     <View style={styles.successRoot}>
-      <WaxPattern color="rgba(255,255,255,0.03)" size={18} animated={false} />
+      <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
       <Animated.View style={[styles.ssRing, ring]}>
-        <Text style={{ fontSize: 38, color: colors.green }}>{undone ? '↩' : '✓'}</Text>
+        <Text style={{ fontSize: 38, color: colors.greenDark }}>{undone ? '↩' : '✓'}</Text>
       </Animated.View>
       <Animated.Text style={[styles.ssTitle, title]}>{undone ? 'Annulé' : 'Payé !'}</Animated.Text>
       <Animated.Text style={[styles.ssSub, sub]}>
@@ -243,8 +244,8 @@ function SuccessStep({ merchant, amount, oldBalance, newBalance, reference, onDo
           style={{ marginBottom: spacing.lg }}
           rows={[
             { key: 'merchant', label: 'Marchand', value: merchant.name },
-            { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.green },
-            { key: 'fee', label: 'Frais', value: '0 F ✦', color: colors.green },
+            { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.greenDark },
+            { key: 'fee', label: 'Frais', value: '0 F ✦', color: colors.greenDark },
             { key: 'balance', label: 'Nouveau solde', value: `${formatAmount(balanceCount)} F` },
             { key: 'ref', label: 'Référence', value: reference, small: true },
           ]}
@@ -264,7 +265,7 @@ function SuccessStep({ merchant, amount, oldBalance, newBalance, reference, onDo
         <Animated.View style={[styles.wakhnaBonus, bonus]}>
           <Text style={{ fontSize: 16 }}>✦</Text>
           <Text style={styles.wakhnaBonusText}>
-            <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.green }}>+5 points Wakhna</Text> pour ce paiement marchand
+            <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.greenDark }}>+5 points Wakhna</Text> pour ce paiement marchand
           </Text>
         </Animated.View>
       )}
@@ -356,6 +357,7 @@ export default function PayMerchantScreen({ navigation, route }) {
 
   return (
     <View style={styles.root}>
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'scan' && (
           <StepTransition>
@@ -397,22 +399,22 @@ export default function PayMerchantScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
 
   // Scan step
   payHero: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.xl, position: 'relative', overflow: 'hidden' },
   payHeroTop: { gap: spacing.md, marginBottom: spacing.lg },
-  payHeroTitle: { fontFamily: fontFamily.displayBold, fontSize: 13, color: colors.white },
-  merchantCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: colors.whiteA12, borderRadius: radius.xl, padding: spacing.lg },
-  merchantIcon: { width: 48, height: 48, borderRadius: radius.lg, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
-  merchantName: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white, marginBottom: 2 },
-  merchantArr: { fontSize: 10, color: colors.whiteA40 },
+  payHeroTitle: { fontFamily: fontFamily.displayBold, fontSize: 13, color: colors.ink },
+  merchantCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', borderRadius: radius.xl, padding: spacing.lg },
+  merchantIcon: { width: 48, height: 48, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
+  merchantName: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink, marginBottom: 2 },
+  merchantArr: { fontSize: 10, color: 'rgba(5,8,5,0.5)' },
   verifiedPill: { backgroundColor: colors.greenA15, borderWidth: 1, borderColor: colors.greenA30, borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 3 },
-  verifiedPillText: { fontSize: 8, fontWeight: '700', color: colors.green },
-  merchantChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.round, backgroundColor: colors.whiteA08, marginRight: spacing.sm },
+  verifiedPillText: { fontSize: 8, fontWeight: '700', color: colors.greenDark },
+  merchantChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.round, backgroundColor: 'rgba(255,255,255,0.75)', marginRight: spacing.sm },
   merchantChipOn: { backgroundColor: colors.greenA15, borderColor: colors.greenA30 },
-  merchantChipText: { fontSize: 10, color: colors.whiteA50 },
-  merchantChipTextOn: { color: colors.green, fontWeight: '700' },
+  merchantChipText: { fontSize: 10, color: 'rgba(5,8,5,0.55)' },
+  merchantChipTextOn: { color: colors.greenDark, fontWeight: '700' },
 
   scannerArea: { marginHorizontal: spacing.xl, marginTop: spacing.lg, borderRadius: radius.xxl, overflow: 'hidden', backgroundColor: '#111', height: 220, alignItems: 'center', justifyContent: 'center' },
   scannerBackdrop: { position: 'absolute', fontSize: 140, opacity: 0.05 },
@@ -421,22 +423,22 @@ const styles = StyleSheet.create({
   cornerTL: { top: -2, left: -2, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 3 },
   cornerBR: { bottom: -2, right: -2, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 3 },
   scanLine: { position: 'absolute', left: 0, right: 0, height: 2, backgroundColor: colors.green, shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 8, elevation: 4 },
-  scannerLabel: { position: 'absolute', bottom: 12, fontSize: 10, color: colors.whiteA55 },
+  scannerLabel: { position: 'absolute', bottom: 12, fontSize: 10, color: 'rgba(255,255,255,0.75)' },
 
   amountSection: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.md },
 
   historySection: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, paddingBottom: spacing.xxl },
-  historyLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.sm },
-  historyEmpty: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  historyEmptyText: { flex: 1, fontSize: 11, color: colors.whiteA35 },
-  historyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  historyIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.orangeA08, alignItems: 'center', justifyContent: 'center' },
-  historySub: { flex: 1, fontSize: 11, color: colors.whiteA35 },
-  historyAmount: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
-  amountSectionLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: colors.whiteA30, textTransform: 'uppercase', marginBottom: spacing.sm },
-  amountDisplay: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA12, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, marginBottom: spacing.md },
-  amountNum: { fontFamily: fontFamily.displayBlack, fontSize: 34, fontWeight: '900', letterSpacing: -1.5, color: colors.white, flex: 1 },
-  amountCurr: { fontSize: 13, color: colors.whiteA30 },
+  historyLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginBottom: spacing.sm },
+  historyEmpty: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.07)', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  historyEmptyText: { flex: 1, fontSize: 11, color: 'rgba(5,8,5,0.45)' },
+  historyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.07)', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  historyIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.terracottaA08, alignItems: 'center', justifyContent: 'center' },
+  historySub: { flex: 1, fontSize: 11, color: 'rgba(5,8,5,0.45)' },
+  historyAmount: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.ink },
+  amountSectionLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginBottom: spacing.sm },
+  amountDisplay: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, marginBottom: spacing.md },
+  amountNum: { fontFamily: fontFamily.displayBlack, fontSize: 34, fontWeight: '900', letterSpacing: -1.5, color: colors.ink, flex: 1 },
+  amountCurr: { fontSize: 13, color: 'rgba(5,8,5,0.45)' },
   keypadWrap: { marginTop: spacing.lg },
   quickRow: { gap: spacing.sm, flexWrap: 'wrap' },
 
@@ -444,33 +446,33 @@ const styles = StyleSheet.create({
 
   // Confirm step
   confirmHero: { paddingHorizontal: spacing.giant, paddingTop: spacing.xxl, paddingBottom: spacing.xl, backgroundColor: colors.greenA08, borderBottomWidth: 1, borderBottomColor: colors.greenA15, position: 'relative', overflow: 'hidden' },
-  confirmAva: { width: 64, height: 64, borderRadius: radius.xxl, backgroundColor: colors.whiteA08, borderWidth: 2, borderColor: colors.greenA25, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
-  confirmMerchantName: { fontFamily: fontFamily.displayBlack, fontSize: 14, fontWeight: '900', color: colors.white, textAlign: 'center' },
-  confirmMerchantArr: { fontSize: 11, color: colors.whiteA35, marginTop: 2 },
-  confirmAmount: { fontFamily: fontFamily.displayBlack, fontSize: 48, fontWeight: '900', letterSpacing: -2.5, color: colors.green, lineHeight: 52, marginTop: spacing.lg },
+  confirmAva: { width: 64, height: 64, borderRadius: radius.xxl, backgroundColor: 'rgba(255,255,255,0.75)', borderWidth: 2, borderColor: colors.greenA25, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
+  confirmMerchantName: { fontFamily: fontFamily.displayBlack, fontSize: 14, fontWeight: '900', color: colors.ink, textAlign: 'center' },
+  confirmMerchantArr: { fontSize: 11, color: 'rgba(5,8,5,0.45)', marginTop: 2 },
+  confirmAmount: { fontFamily: fontFamily.displayBlack, fontSize: 48, fontWeight: '900', letterSpacing: -2.5, color: colors.greenDark, lineHeight: 52, marginTop: spacing.lg },
   confirmCurr: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(26,240,96,0.5)' },
   freePill: { backgroundColor: colors.greenA10, borderWidth: 1, borderColor: colors.greenA20, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs, marginTop: spacing.md },
-  freePillText: { fontSize: 10, fontWeight: '700', color: colors.green },
+  freePillText: { fontSize: 10, fontWeight: '700', color: colors.greenDark },
 
   confirmBody: { paddingHorizontal: spacing.giant, paddingVertical: spacing.xl, gap: 0 },
-  confirmRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.whiteA06 },
-  confirmRowLabel: { fontSize: 11, color: colors.whiteA35 },
-  confirmRowVal: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
-  confirmRowBal: { fontSize: 11, color: colors.whiteA30 },
+  confirmRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: 'rgba(5,8,5,0.07)' },
+  confirmRowLabel: { fontSize: 11, color: 'rgba(5,8,5,0.45)' },
+  confirmRowVal: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.ink },
+  confirmRowBal: { fontSize: 11, color: 'rgba(5,8,5,0.45)' },
 
   confirmActions: { paddingHorizontal: spacing.giant, paddingTop: spacing.md, paddingBottom: spacing.xxl, gap: spacing.sm },
-  warnBox: { flexDirection: 'row', gap: spacing.sm, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA08, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.xs },
-  warnText: { flex: 1, fontSize: 10, color: colors.whiteA30, lineHeight: 15 },
-  cancelBtn: { height: 42, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
-  cancelBtnText: { fontSize: 12, color: colors.whiteA40 },
+  warnBox: { flexDirection: 'row', gap: spacing.sm, backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.xs },
+  warnText: { flex: 1, fontSize: 10, color: 'rgba(5,8,5,0.45)', lineHeight: 15 },
+  cancelBtn: { height: 42, borderRadius: radius.lg, borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', alignItems: 'center', justifyContent: 'center' },
+  cancelBtnText: { fontSize: 12, color: 'rgba(5,8,5,0.5)' },
 
   // Success step
   successRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.giant },
   ssRing: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.greenA10, borderWidth: 3, borderColor: colors.green, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xxl, shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 50, elevation: 8 },
-  ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 22, fontWeight: '900', letterSpacing: -0.8, color: colors.white, marginBottom: spacing.sm, textAlign: 'center' },
-  ssSub: { fontSize: 12, color: colors.whiteA40, marginBottom: spacing.xxl, lineHeight: 19.2, textAlign: 'center' },
+  ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 22, fontWeight: '900', letterSpacing: -0.8, color: colors.ink, marginBottom: spacing.sm, textAlign: 'center' },
+  ssSub: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginBottom: spacing.xxl, lineHeight: 19.2, textAlign: 'center' },
   wakhnaBonus: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.greenA06, borderWidth: 1, borderColor: 'rgba(26,240,96,0.18)', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, marginBottom: spacing.lg },
-  wakhnaBonusText: { flex: 1, fontSize: 11, color: colors.whiteA40 },
-  shareBtn: { width: '100%', height: 44, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
-  shareBtnText: { fontSize: 12, fontWeight: '600', color: colors.whiteA55 },
+  wakhnaBonusText: { flex: 1, fontSize: 11, color: 'rgba(5,8,5,0.5)' },
+  shareBtn: { width: '100%', height: 44, borderRadius: radius.lg, borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+  shareBtnText: { fontSize: 12, fontWeight: '600', color: 'rgba(5,8,5,0.6)' },
 });

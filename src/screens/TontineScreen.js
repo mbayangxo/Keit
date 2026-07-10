@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import PressScale from '../components/PressScale';
+import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import WaxPattern from '../components/WaxPattern';
 import StepTransition from '../components/StepTransition';
@@ -76,13 +77,13 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
           end={{ x: 0.8, y: 1 }}
           style={styles.hero}
         >
-          <WaxPattern color="rgba(255,255,255,0.06)" size={18} animated={false} />
+          <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
           <ScreenHeader onBack={onBack} style={styles.topRow} />
           <Animated.View style={heroEntrance}>
             <View style={styles.flagStripe}>
               <View style={[styles.flagBar, { backgroundColor: colors.green }]} />
               <View style={[styles.flagBar, { backgroundColor: colors.flagGold }]} />
-              <View style={[styles.flagBar, { backgroundColor: colors.flagRed }]} />
+              <View style={[styles.flagBar, { backgroundColor: colors.terracotta }]} />
             </View>
             <Text style={styles.eyebrow}>TONTINE DIGITALE</Text>
             <Text style={styles.title}>Mes groupes</Text>
@@ -94,7 +95,7 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
                 <Text style={styles.statLabel}>Tontines actives</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={[styles.statNum, { color: colors.flagRed, fontSize: 13 }]}>Ce mois</Text>
+                <Text style={[styles.statNum, { color: colors.terracotta, fontSize: 13 }]}>Ce mois</Text>
                 <Text style={styles.statLabel}>{formatAmount(receivedThisMonth)} F reçu</Text>
               </View>
               <View style={styles.statBox}>
@@ -113,7 +114,7 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
 
         <View style={styles.groupsList}>
           {!loading && groups.length === 0 && (
-            <Text style={{ textAlign: 'center', color: colors.whiteA40, fontSize: 12, padding: spacing.xxl }}>
+            <Text style={{ textAlign: 'center', color: 'rgba(5,8,5,0.5)', fontSize: 12, padding: spacing.xxl }}>
               Aucune tontine — crée ton premier groupe ci-dessous.
             </Text>
           )}
@@ -123,15 +124,15 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
               item={{
                 key: g.id,
                 icon: '🏆',
-                iconBg: g.isMyTurn ? 'rgba(232,25,44,0.12)' : 'rgba(26,240,96,0.08)',
+                iconBg: g.isMyTurn ? 'rgba(232,92,26,0.12)' : 'rgba(26,240,96,0.08)',
                 name: g.name,
                 members: g.memberCount,
                 perMonth: g.amountPerMember,
                 total: g.potBalance || g.expectedPot,
                 totalLabel: g.potBalance > 0 ? 'F dans le pot' : 'F attendus',
-                totalColor: g.isMyTurn ? colors.flagRed : colors.green,
+                totalColor: g.isMyTurn ? colors.terracotta : colors.green,
                 progress: g.expectedPot ? Math.round((g.potBalance / g.expectedPot) * 100) : 0,
-                progressColor: g.isMyTurn ? colors.flagRed : colors.green,
+                progressColor: g.isMyTurn ? colors.terracotta : colors.green,
                 releasing: g.isMyTurn,
                 raw: g,
               }}
@@ -207,7 +208,7 @@ function CreateStep({ onBack, onCreate, creating }) {
             value={name}
             onChangeText={setName}
             style={[styles.fieldInput, name.length > 0 && styles.fieldInputFilled]}
-            placeholderTextColor={colors.whiteA30}
+            placeholderTextColor={'rgba(5,8,5,0.45)'}
           />
         </View>
 
@@ -238,7 +239,7 @@ function CreateStep({ onBack, onCreate, creating }) {
             value={memberHandles}
             onChangeText={setMemberHandles}
             placeholder="@fatou @ibou"
-            placeholderTextColor={colors.whiteA30}
+            placeholderTextColor={'rgba(5,8,5,0.45)'}
             autoCapitalize="none"
             style={[styles.fieldInput, memberHandles.length > 0 && styles.fieldInputFilled]}
           />
@@ -247,7 +248,7 @@ function CreateStep({ onBack, onCreate, creating }) {
         <View style={styles.previewCard}>
           <View style={styles.previewRow}>
             <Text style={styles.previewLabel}>Pot par cycle</Text>
-            <Text style={[styles.previewValue, { color: colors.green }]}>
+            <Text style={[styles.previewValue, { color: colors.greenDark }]}>
               {formatAmount((amountMap[amountChip] ?? 25000) * Math.max(1, memberHandles.split(/\s+/).filter(Boolean).length + 1))} F
             </Text>
           </View>
@@ -258,7 +259,7 @@ function CreateStep({ onBack, onCreate, creating }) {
           <View style={styles.previewDivider} />
           <View style={styles.previewRow}>
             <Text style={styles.previewLabel}>Collecte auto</Text>
-            <Text style={[styles.previewValue, { color: colors.green }]}>✓ Activée</Text>
+            <Text style={[styles.previewValue, { color: colors.greenDark }]}>✓ Activée</Text>
           </View>
         </View>
 
@@ -277,7 +278,7 @@ function ReleaseStep({ group, onBack, onReceive, receiving }) {
     <View style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.releaseHero}>
-          <WaxPattern color="rgba(255,255,255,0.06)" size={18} animated={false} />
+          <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
           <ScreenHeader onBack={onBack} style={styles.topRow} />
           <Animated.View style={[{ alignItems: 'center' }, heroEntrance]}>
             <View style={styles.releaseBadgeBig}>
@@ -310,7 +311,7 @@ function ReleaseStep({ group, onBack, onReceive, receiving }) {
                   style={[
                     styles.potOrderText,
                     m.rotationOrder === group.rotationIndex && { color: colors.ink },
-                    m.hasReceivedPayout && { color: colors.green },
+                    m.hasReceivedPayout && { color: colors.greenDark },
                   ]}
                 >
                   {m.hasReceivedPayout ? '✓' : m.rotationOrder + 1}
@@ -404,6 +405,7 @@ export default function TontineScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'home' && (
           <StepTransition>
@@ -441,7 +443,7 @@ export default function TontineScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
 
   topRow: { paddingHorizontal: spacing.huge, paddingTop: spacing.xl },
 
@@ -449,96 +451,96 @@ const styles = StyleSheet.create({
   hero: { paddingHorizontal: spacing.huge, paddingBottom: spacing.xxl, position: 'relative', overflow: 'hidden', borderBottomWidth: 1, borderBottomColor: colors.greenA15 },
   flagStripe: { flexDirection: 'row', height: 2, borderRadius: 1, overflow: 'hidden', width: 48, marginTop: spacing.xl, marginBottom: spacing.lg },
   flagBar: { flex: 1 },
-  eyebrow: { ...type.eyebrow, color: colors.green, marginBottom: spacing.xs },
-  title: { fontFamily: fontFamily.displayBlack, fontSize: 22, letterSpacing: -0.8, color: colors.white, marginBottom: 2 },
-  sub: { fontSize: 12, color: colors.whiteA40 },
+  eyebrow: { ...type.eyebrow, color: colors.greenDark, marginBottom: spacing.xs },
+  title: { fontFamily: fontFamily.displayBlack, fontSize: 22, letterSpacing: -0.8, color: colors.ink, marginBottom: 2 },
+  sub: { fontSize: 12, color: 'rgba(5,8,5,0.5)' },
   statsRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl },
-  statBox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: colors.greenA15, borderRadius: radius.lg, padding: spacing.md, alignItems: 'center' },
-  statNum: { fontFamily: fontFamily.displayBlack, fontSize: 18, fontWeight: '900', color: colors.green, letterSpacing: -0.5 },
-  statLabel: { fontSize: 10, color: colors.whiteA40, marginTop: 2, textAlign: 'center' },
+  statBox: { flex: 1, backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', borderRadius: radius.lg, padding: spacing.md, alignItems: 'center' },
+  statNum: { fontFamily: fontFamily.displayBlack, fontSize: 18, fontWeight: '900', color: colors.greenDark, letterSpacing: -0.5 },
+  statLabel: { fontSize: 10, color: 'rgba(5,8,5,0.5)', marginTop: 2, textAlign: 'center' },
 
   groupsList: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.md, gap: spacing.md },
 
   howItWorks: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.xxl },
-  howLabel: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.md },
-  howRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  howLabel: { ...type.eyebrow, color: 'rgba(5,8,5,0.45)', marginBottom: spacing.md },
+  howRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.07)', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   howIcon: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.greenA08, alignItems: 'center', justifyContent: 'center' },
-  howText: { flex: 1, fontSize: 11, color: colors.whiteA40, lineHeight: 16 },
-  groupItem: { borderRadius: radius.xl, overflow: 'hidden', borderWidth: 1, borderColor: colors.whiteA08 },
-  groupItemReleasing: { borderColor: 'rgba(232,25,44,0.3)' },
+  howText: { flex: 1, fontSize: 11, color: 'rgba(5,8,5,0.5)', lineHeight: 16 },
+  groupItem: { borderRadius: radius.xl, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)' },
+  groupItemReleasing: { borderColor: 'rgba(232,92,26,0.3)' },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, backgroundColor: 'rgba(255,255,255,0.03)' },
-  groupHeaderReleasing: { backgroundColor: 'rgba(232,25,44,0.1)' },
+  groupHeaderReleasing: { backgroundColor: 'rgba(232,92,26,0.1)' },
   groupIcon: { width: 40, height: 40, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
-  groupName: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white, marginBottom: 2 },
+  groupName: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink, marginBottom: 2 },
   groupMetaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.xs },
-  groupMeta: { fontSize: 10, color: colors.whiteA35 },
-  releaseBadge: { backgroundColor: colors.flagRed, borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 2 },
-  releaseBadgeText: { fontSize: 8, fontWeight: '700', letterSpacing: 0.5, color: colors.white, textTransform: 'uppercase' },
+  groupMeta: { fontSize: 10, color: 'rgba(5,8,5,0.45)' },
+  releaseBadge: { backgroundColor: colors.terracotta, borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 2 },
+  releaseBadgeText: { fontSize: 8, fontWeight: '700', letterSpacing: 0.5, color: colors.ink, textTransform: 'uppercase' },
   groupAmountBox: { alignItems: 'flex-end' },
   groupAmount: { fontFamily: fontFamily.displayBlack, fontSize: 14, fontWeight: '900' },
-  groupAmountLabel: { fontSize: 10, color: colors.whiteA40 },
-  progressTrack: { height: 3, backgroundColor: colors.whiteA08 },
+  groupAmountLabel: { fontSize: 10, color: 'rgba(5,8,5,0.5)' },
+  progressTrack: { height: 3, backgroundColor: 'rgba(255,255,255,0.75)' },
 
   footer: { paddingHorizontal: spacing.huge, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   createBtn: { marginHorizontal: 0, height: 48, borderRadius: radius.xl, backgroundColor: colors.greenA08, borderWidth: 1.5, borderColor: colors.greenA20, alignItems: 'center', justifyContent: 'center' },
-  createBtnText: { fontFamily: fontFamily.displayBlack, fontSize: 10, fontWeight: '900', letterSpacing: 0.5, color: colors.green },
+  createBtnText: { fontFamily: fontFamily.displayBlack, fontSize: 10, fontWeight: '900', letterSpacing: 0.5, color: colors.greenDark },
 
   // Create
   createScroll: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.giant, gap: 0 },
   createHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, marginBottom: spacing.xxl },
-  createTitle: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.white },
+  createTitle: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.ink },
   fieldGroup: { marginBottom: spacing.lg },
-  fieldLabel: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.sm },
-  fieldInput: { width: '100%', height: 50, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1.5, borderColor: colors.whiteA12, paddingHorizontal: spacing.xl, fontFamily: fontFamily.bodyRegular, fontSize: 14, color: colors.white },
+  fieldLabel: { ...type.eyebrow, color: 'rgba(5,8,5,0.45)', marginBottom: spacing.sm },
+  fieldInput: { width: '100%', height: 50, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.75)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)', paddingHorizontal: spacing.xl, fontFamily: fontFamily.bodyRegular, fontSize: 14, color: colors.ink },
   fieldInputFilled: { borderColor: colors.greenA25 },
   chipsRow: { gap: spacing.sm, flexWrap: 'wrap' },
   freqRow: { flexDirection: 'row', gap: spacing.sm },
-  freqOpt: { flex: 1, height: 44, borderRadius: radius.lg, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, alignItems: 'center', justifyContent: 'center' },
+  freqOpt: { flex: 1, height: 44, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.09)', alignItems: 'center', justifyContent: 'center' },
   freqOptOn: { backgroundColor: 'rgba(250,216,54,0.1)', borderColor: 'rgba(250,216,54,0.3)' },
-  freqText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.white },
-  freqTextOn: { color: colors.flagGold },
+  freqText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.ink },
+  freqTextOn: { color: colors.goldDark },
   memberList: { gap: spacing.xs, marginBottom: spacing.sm },
-  memberItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  memberItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   memberAva: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  memberName: { flex: 1, fontFamily: fontFamily.bodyMedium, fontSize: 12, color: colors.white },
+  memberName: { flex: 1, fontFamily: fontFamily.bodyMedium, fontSize: 12, color: colors.ink },
   memberOrder: { backgroundColor: colors.greenA10, borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 2 },
-  memberOrderText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.green },
-  addMember: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1.5, borderColor: colors.whiteA12, borderStyle: 'dashed', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  addMemberIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
-  addMemberText: { fontSize: 12, color: colors.whiteA35 },
+  memberOrderText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.greenDark },
+  addMember: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)', borderStyle: 'dashed', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  addMemberIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
+  addMemberText: { fontSize: 12, color: 'rgba(5,8,5,0.45)' },
   previewCard: { backgroundColor: colors.greenA08, borderWidth: 1, borderColor: colors.greenA20, borderRadius: radius.xl, padding: spacing.lg, marginBottom: spacing.lg },
   previewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
-  previewLabel: { fontSize: 10, color: colors.whiteA30 },
-  previewValue: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
-  previewDivider: { height: 1, backgroundColor: colors.whiteA08, marginVertical: spacing.sm },
+  previewLabel: { fontSize: 10, color: 'rgba(5,8,5,0.45)' },
+  previewValue: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.ink },
+  previewDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.75)', marginVertical: spacing.sm },
 
   // Release
-  releaseHero: { paddingBottom: spacing.xxl, position: 'relative', overflow: 'hidden', backgroundColor: 'rgba(232,25,44,0.1)', borderBottomWidth: 1, borderBottomColor: 'rgba(232,25,44,0.2)' },
-  releaseBadgeBig: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.flagRed, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, marginTop: spacing.xxl, marginBottom: spacing.xl },
+  releaseHero: { paddingBottom: spacing.xxl, position: 'relative', overflow: 'hidden', backgroundColor: 'rgba(232,92,26,0.1)', borderBottomWidth: 1, borderBottomColor: 'rgba(232,92,26,0.2)' },
+  releaseBadgeBig: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.terracotta, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, marginTop: spacing.xxl, marginBottom: spacing.xl },
   releaseDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.white },
-  releaseBadgeBigText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5, color: colors.white, textTransform: 'uppercase' },
-  releaseName: { fontFamily: fontFamily.displayBlack, fontSize: 14, fontWeight: '900', color: colors.white, marginBottom: spacing.md },
-  releaseAmount: { fontFamily: fontFamily.displayBlack, fontSize: 44, fontWeight: '900', letterSpacing: -2, color: colors.flagRed, lineHeight: 44 },
-  releaseCurr: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(232,25,44,0.5)' },
-  releaseRecipient: { fontSize: 12, color: colors.whiteA40, marginTop: spacing.md },
-  releaseRecipientBold: { fontFamily: fontFamily.bodyBold, color: colors.white },
+  releaseBadgeBigText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5, color: colors.ink, textTransform: 'uppercase' },
+  releaseName: { fontFamily: fontFamily.displayBlack, fontSize: 14, fontWeight: '900', color: colors.ink, marginBottom: spacing.md },
+  releaseAmount: { fontFamily: fontFamily.displayBlack, fontSize: 44, fontWeight: '900', letterSpacing: -2, color: colors.terracotta, lineHeight: 44 },
+  releaseCurr: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(232,92,26,0.5)' },
+  releaseRecipient: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginTop: spacing.md },
+  releaseRecipientBold: { fontFamily: fontFamily.bodyBold, color: colors.ink },
 
   potMembers: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.sm },
-  potMembersLabel: { ...type.eyebrow, color: colors.whiteA25, marginBottom: spacing.xs },
-  potMemberItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  potMembersLabel: { ...type.eyebrow, color: 'rgba(5,8,5,0.4)', marginBottom: spacing.xs },
+  potMemberItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.07)', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   potMemberCurrent: { backgroundColor: colors.greenA08 /* matches .pm-item.current */, borderColor: colors.greenA20 },
-  potOrder: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
+  potOrder: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
   potOrderNow: { backgroundColor: colors.green },
   potOrderDone: { backgroundColor: colors.greenA15 },
-  potOrderText: { fontSize: 10, fontWeight: '700', color: colors.whiteA30 },
-  potMemberName: { flex: 1, fontFamily: fontFamily.bodyMedium, fontSize: 12, color: colors.white },
+  potOrderText: { fontSize: 10, fontWeight: '700', color: 'rgba(5,8,5,0.45)' },
+  potMemberName: { flex: 1, fontFamily: fontFamily.bodyMedium, fontSize: 12, color: colors.ink },
   potStatus: { borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   potStatusNow: { backgroundColor: colors.green },
   potStatusDone: { backgroundColor: colors.greenA10 },
-  potStatusWait: { backgroundColor: colors.whiteA06 },
+  potStatusWait: { backgroundColor: 'rgba(255,255,255,0.7)' },
   potStatusText: { fontSize: 9, fontWeight: '700' },
 
-  receiveBtn: { height: 50, borderRadius: radius.xl, backgroundColor: colors.flagRed, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
-  receiveBtnText: { fontFamily: fontFamily.displayBlack, fontSize: 12, fontWeight: '900', color: colors.white },
-  releaseFootnote: { fontSize: 11, color: colors.whiteA30, textAlign: 'center' },
+  receiveBtn: { height: 50, borderRadius: radius.xl, backgroundColor: colors.terracotta, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+  receiveBtnText: { fontFamily: fontFamily.displayBlack, fontSize: 12, fontWeight: '900', color: colors.ink },
+  releaseFootnote: { fontSize: 11, color: 'rgba(5,8,5,0.45)', textAlign: 'center' },
 });

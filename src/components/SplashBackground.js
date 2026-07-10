@@ -58,17 +58,17 @@ export default function SplashBackground() {
       <Rect width="100" height="100" fill="url(#warm4)" />
 
       {/* Wax print diamonds */}
-      <Polygon points="8,4 15,10 8,16 1,10" fill="#f7b731" opacity={0.09} />
-      <Polygon points="25,2 32,8 25,14 18,8" fill="#ff6422" opacity={0.09} />
+      <Polygon points="8,4 15,10 8,16 1,10" fill="#fad836" opacity={0.09} />
+      <Polygon points="25,2 32,8 25,14 18,8" fill="#e85c1a" opacity={0.09} />
       <Polygon points="42,5 49,11 42,17 35,11" fill="#1af060" opacity={0.09} />
-      <Polygon points="70,3 77,9 70,15 63,9" fill="#f7b731" opacity={0.09} />
-      <Polygon points="88,6 95,12 88,18 81,12" fill="#ff6422" opacity={0.09} />
-      <Polygon points="12,36 19,42 12,48 5,42" fill="#ff6422" opacity={0.08} />
+      <Polygon points="70,3 77,9 70,15 63,9" fill="#fad836" opacity={0.09} />
+      <Polygon points="88,6 95,12 88,18 81,12" fill="#e85c1a" opacity={0.09} />
+      <Polygon points="12,36 19,42 12,48 5,42" fill="#e85c1a" opacity={0.08} />
       <Polygon points="83,32 90,38 83,44 76,38" fill="#1af060" opacity={0.08} />
-      <Polygon points="50,26 57,32 50,38 43,32" fill="#f7b731" opacity={0.08} />
+      <Polygon points="50,26 57,32 50,38 43,32" fill="#fad836" opacity={0.08} />
       <Polygon points="6,80 13,86 6,92 -1,86" fill="#1af060" opacity={0.08} />
-      <Polygon points="29,84 36,90 29,96 22,90" fill="#ff6422" opacity={0.08} />
-      <Polygon points="67,82 74,88 67,94 60,88" fill="#f7b731" opacity={0.08} />
+      <Polygon points="29,84 36,90 29,96 22,90" fill="#e85c1a" opacity={0.08} />
+      <Polygon points="67,82 74,88 67,94 60,88" fill="#fad836" opacity={0.08} />
       <Polygon points="92,78 99,84 92,90 85,84" fill="#1af060" opacity={0.08} />
 
       <Rect width="100" height="100" fill="url(#vignette)" />

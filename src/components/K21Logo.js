@@ -12,7 +12,7 @@ export default function K21Logo({ size = 96 }) {
     <View style={styles.wrap}>
       <Text style={[styles.k, { fontSize: kSize, letterSpacing: -kSize * 0.05, lineHeight: kSize * 0.95 }]}>K</Text>
       <LinearGradient
-        colors={['#1af060', '#f7b731', '#ff6422']}
+        colors={['#1af060', '#fad836', '#e85c1a']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={[styles.line, { width: lineWidth, height: Math.max(2, size * 0.03) }]}
@@ -30,6 +30,6 @@ const styles = StyleSheet.create({
   k: { fontFamily: fontFamily.displayBlack, color: '#1af060' },
   line: { borderRadius: 3, marginVertical: 6 },
   numsRow: { flexDirection: 'row', gap: 2 },
-  num2: { fontFamily: fontFamily.displayBlack, color: '#f7b731' },
-  num1: { fontFamily: fontFamily.displayBlack, color: '#ff6422' },
+  num2: { fontFamily: fontFamily.displayBlack, color: '#fad836' },
+  num1: { fontFamily: fontFamily.displayBlack, color: '#e85c1a' },
 });

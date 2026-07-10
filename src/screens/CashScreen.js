@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
+import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import StepTransition from '../components/StepTransition';
 import Keypad from '../components/Keypad';
@@ -105,7 +106,7 @@ function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onB
               : (
                 <>
                   Frais agent estimés :{' '}
-                  <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.white }}>{formatAmount(agentFee(amount))} F</Text>
+                  <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.ink }}>{formatAmount(agentFee(amount))} F</Text>
                 </>
               )}
           </Text>
@@ -220,7 +221,7 @@ function SuccessStep({ mode, amount, agent, oldBalance, newBalance, onDone }) {
   return (
     <View style={styles.successRoot}>
       <Animated.View style={[styles.ssRing, ring]}>
-        <Text style={{ fontSize: 38, color: colors.green }}>✓</Text>
+        <Text style={{ fontSize: 38, color: colors.greenDark }}>✓</Text>
       </Animated.View>
       <Animated.Text style={[styles.ssTitle, title]}>{mode === 'in' ? 'Dépôt reçu !' : 'Retrait confirmé !'}</Animated.Text>
       <Animated.Text style={[styles.ssSub, sub]}>
@@ -232,7 +233,7 @@ function SuccessStep({ mode, amount, agent, oldBalance, newBalance, onDone }) {
           style={{ marginBottom: spacing.giant }}
           rows={[
             { key: 'agent', label: agent?.name ? 'Agent' : 'Source', value: agentName },
-            { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.green },
+            { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.greenDark },
             ...(agent ? [{ key: 'fee', label: 'Frais agent', value: `${formatAmount(fee)} F` }] : []),
             { key: 'balance', label: 'Nouveau solde', value: `${formatAmount(balanceCount)} F` },
           ]}
@@ -301,6 +302,7 @@ export default function CashScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'amount' && (
           <StepTransition>
@@ -346,54 +348,54 @@ export default function CashScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
 
   header: { paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.xl },
   headerRow: { marginBottom: spacing.sm },
-  title: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: colors.white, letterSpacing: -0.5 },
-  subtitle: { fontSize: 12, color: colors.whiteA40, marginTop: spacing.xs },
+  title: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: colors.ink, letterSpacing: -0.5 },
+  subtitle: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginTop: spacing.xs },
 
-  modeToggle: { flexDirection: 'row', backgroundColor: colors.whiteA06, borderWidth: 1, borderColor: colors.whiteA12, borderRadius: radius.lg, padding: 3, gap: 3 },
+  modeToggle: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', borderRadius: radius.lg, padding: 3, gap: 3 },
   modeBtn: { flex: 1, height: 38, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   modeBtnOn: { backgroundColor: colors.green },
-  modeBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.whiteA55 },
+  modeBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: 'rgba(5,8,5,0.6)' },
   modeBtnTextOn: { color: colors.ink },
 
   amountHero: { alignItems: 'center', paddingHorizontal: spacing.giant, paddingTop: spacing.xl, paddingBottom: spacing.xl },
   amountLbl: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: 'rgba(26,240,96,0.6)', textTransform: 'uppercase', marginBottom: spacing.lg },
-  amountNum: { fontFamily: fontFamily.displayBlack, fontSize: 48, letterSpacing: -3, lineHeight: 48, color: colors.green },
+  amountNum: { fontFamily: fontFamily.displayBlack, fontSize: 48, letterSpacing: -3, lineHeight: 48, color: colors.greenDark },
   amountCurr: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(26,240,96,0.4)' },
 
   quickRow: { justifyContent: 'center', marginTop: spacing.xl },
-  balanceNote: { marginTop: spacing.xl, fontSize: 11, color: colors.whiteA35 },
+  balanceNote: { marginTop: spacing.xl, fontSize: 11, color: 'rgba(5,8,5,0.45)' },
   keypadWrap: { width: '100%', marginTop: spacing.xxl },
 
-  feeNote: { marginHorizontal: spacing.huge, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg },
-  feeNoteText: { fontSize: 11, color: colors.whiteA40 },
+  feeNote: { marginHorizontal: spacing.huge, backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.07)', borderRadius: radius.lg, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg },
+  feeNoteText: { fontSize: 11, color: 'rgba(5,8,5,0.5)' },
 
   footer: { paddingHorizontal: spacing.huge, paddingVertical: spacing.xxl },
 
-  agentRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginHorizontal: spacing.huge, marginBottom: spacing.sm, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, borderRadius: radius.lg, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06 },
+  agentRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginHorizontal: spacing.huge, marginBottom: spacing.sm, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.07)' },
   agentRowClosed: { opacity: 0.5 },
-  agentAva: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.whiteA06, alignItems: 'center', justifyContent: 'center' },
-  agentName: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white },
-  agentMeta: { fontSize: 10, color: colors.whiteA35, marginTop: 1 },
+  agentAva: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
+  agentName: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
+  agentMeta: { fontSize: 10, color: 'rgba(5,8,5,0.45)', marginTop: 1 },
   agentStatusOpen: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   agentDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green },
-  agentStatusText: { fontSize: 10, fontWeight: '700', color: colors.green },
-  agentStatusClosedText: { fontSize: 10, fontWeight: '700', color: colors.whiteA30 },
+  agentStatusText: { fontSize: 10, fontWeight: '700', color: colors.greenDark },
+  agentStatusClosedText: { fontSize: 10, fontWeight: '700', color: 'rgba(5,8,5,0.45)' },
 
-  codeEyebrow: { ...type.eyebrow, color: colors.green, marginBottom: spacing.xxl },
-  codeCard: { width: '100%', backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.greenA25, borderRadius: radius.xxl, paddingVertical: spacing.giant, alignItems: 'center', marginBottom: spacing.xxl },
-  codeDigits: { fontFamily: fontFamily.displayBlack, fontSize: 40, letterSpacing: 6, color: colors.green },
-  codeDivider: { width: '60%', height: 1, backgroundColor: colors.whiteA10, marginVertical: spacing.xl },
-  codeAgent: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white },
-  codeAmount: { fontSize: 12, color: colors.whiteA40, marginTop: 2 },
-  codeHint: { fontSize: 12, color: colors.whiteA55, textAlign: 'center', lineHeight: 18, marginBottom: spacing.md },
-  codeExpiry: { fontSize: 10, color: colors.whiteA30, textAlign: 'center' },
+  codeEyebrow: { ...type.eyebrow, color: colors.greenDark, marginBottom: spacing.xxl },
+  codeCard: { width: '100%', backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1.5, borderColor: colors.greenA25, borderRadius: radius.xxl, paddingVertical: spacing.giant, alignItems: 'center', marginBottom: spacing.xxl },
+  codeDigits: { fontFamily: fontFamily.displayBlack, fontSize: 40, letterSpacing: 6, color: colors.greenDark },
+  codeDivider: { width: '60%', height: 1, backgroundColor: 'rgba(255,255,255,0.8)', marginVertical: spacing.xl },
+  codeAgent: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
+  codeAmount: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginTop: 2 },
+  codeHint: { fontSize: 12, color: 'rgba(5,8,5,0.6)', textAlign: 'center', lineHeight: 18, marginBottom: spacing.md },
+  codeExpiry: { fontSize: 10, color: 'rgba(5,8,5,0.45)', textAlign: 'center' },
 
   successRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl + 14 },
   ssRing: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.greenA08, borderWidth: 3, borderColor: colors.green, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xxxl, shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 50, elevation: 8 },
-  ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 24, letterSpacing: -0.8, color: colors.white, marginBottom: spacing.md, textAlign: 'center' },
-  ssSub: { fontSize: 12, color: colors.whiteA40, marginBottom: spacing.giant + 2, lineHeight: 20.4, textAlign: 'center' },
+  ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 24, letterSpacing: -0.8, color: colors.ink, marginBottom: spacing.md, textAlign: 'center' },
+  ssSub: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginBottom: spacing.giant + 2, lineHeight: 20.4, textAlign: 'center' },
 });

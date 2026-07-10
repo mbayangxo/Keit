@@ -12,7 +12,7 @@ export default function AmountChips({
   onChange,
   accentBg = colors.greenA10,
   accentBorder = colors.greenA30,
-  accentText = colors.green,
+  accentText = colors.greenDark,
   style,
 }) {
   return (
@@ -38,6 +38,6 @@ export default function AmountChips({
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' },
-  chip: { height: 34, paddingHorizontal: spacing.xxl, borderRadius: radius.round, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, alignItems: 'center', justifyContent: 'center' },
-  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.white },
+  chip: { height: 34, paddingHorizontal: spacing.xxl, borderRadius: radius.round, backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)', alignItems: 'center', justifyContent: 'center' },
+  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.ink },
 });

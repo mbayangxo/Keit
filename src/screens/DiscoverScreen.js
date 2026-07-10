@@ -485,7 +485,7 @@ function CultureTab() {
           title={item.title}
           meta={item.meta}
           tag={item.tag}
-          tagColor={item.tag === 'Sport' ? colors.green : colors.orange}
+          tagColor={item.tag === 'Sport' ? colors.green : colors.terracotta}
           delay={i * 60}
         />
       ))}
@@ -603,7 +603,7 @@ export default function DiscoverScreen({ navigation, route }) {
             <TextInput
               style={styles.searchInput}
               placeholder="Chercher..."
-              placeholderTextColor={colors.whiteA30}
+              placeholderTextColor={'rgba(5,8,5,0.4)'}
               value={query}
               onChangeText={setQuery}
             />
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
   pillsRow: { gap: 7, paddingBottom: spacing.xl },
 
   pill: { height: 32, paddingHorizontal: spacing.xxl, borderRadius: radius.round, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
-  pillOn: { backgroundColor: colors.orange },
+  pillOn: { backgroundColor: colors.terracotta },
   pillText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: 'rgba(5,8,5,0.55)' },
   pillTextOn: { color: colors.ink },
 
@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
   dgItemWide: { width: '100%', aspectRatio: 2 },
   dgBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, fontSize: 44, textAlign: 'center', textAlignVertical: 'center' },
   dgOverlay: { position: 'absolute', inset: 0, backgroundColor: 'transparent' },
-  dgLiveDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.flagRed, borderWidth: 2, borderColor: 'rgba(0,0,0,0.3)' },
+  dgLiveDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.terracotta, borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)' },
   dgBody: { padding: 9 },
   dgCat: { fontSize: 7, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2, opacity: 0.9 },
   dgTitle: { fontSize: 11, fontWeight: '700', color: colors.ink, lineHeight: 14 },
@@ -655,18 +655,18 @@ const styles = StyleSheet.create({
 
   flashLabelRow: { paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.lg, marginBottom: spacing.md },
   flTitle: { fontSize: 8, fontWeight: '700', letterSpacing: 1.5, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase' },
-  flTimer: { backgroundColor: colors.redA06, borderWidth: 1, borderColor: 'rgba(232,25,44,0.3)', borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3 },
-  flTimerText: { fontSize: 9, fontWeight: '700', color: colors.flagRed },
+  flTimer: { backgroundColor: colors.terracottaA10, borderWidth: 1, borderColor: 'rgba(232,92,26,0.3)', borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3 },
+  flTimerText: { fontSize: 9, fontWeight: '700', color: colors.terracotta },
   flashCarousel: { gap: 9, paddingHorizontal: 15, paddingBottom: spacing.xl },
   flashCard: { width: 130, borderRadius: radius.xxxl - 3, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.09)' },
   fcImg: { height: 72, alignItems: 'center', justifyContent: 'center' },
-  fcDiscount: { position: 'absolute', top: 6, left: 6, backgroundColor: colors.flagRed, borderRadius: 7, paddingHorizontal: spacing.md, paddingVertical: 2 },
+  fcDiscount: { position: 'absolute', top: 6, left: 6, backgroundColor: colors.terracotta, borderRadius: 7, paddingHorizontal: spacing.md, paddingVertical: 2 },
   fcDiscountText: { fontFamily: fontFamily.displayBlack, fontSize: 9, color: colors.ink },
   fcBody: { padding: 9 },
   fcName: { fontSize: 10, fontWeight: '700', color: colors.ink, marginBottom: 2 },
   fcNew: { fontSize: 11, fontWeight: '700', color: colors.greenDark },
   fcOld: { fontSize: 9, color: 'rgba(5,8,5,0.45)', textDecorationLine: 'line-through' },
-  fcTime: { fontSize: 8, color: colors.flagRed, marginTop: 3, fontWeight: '600' },
+  fcTime: { fontSize: 8, color: colors.terracotta, marginTop: 3, fontWeight: '600' },
 
   restSection: { paddingHorizontal: 15, paddingTop: spacing.lg },
   restLabel: { fontSize: 8, fontWeight: '700', letterSpacing: 1.5, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginBottom: spacing.lg },
@@ -678,12 +678,12 @@ const styles = StyleSheet.create({
   rgMeta: { fontSize: 9, color: 'rgba(5,8,5,0.5)' },
   rgRating: { color: colors.goldDark, fontSize: 9, fontWeight: '700', marginTop: 2 },
 
-  ehcCard: { marginHorizontal: 14, marginTop: spacing.lg, marginBottom: spacing.lg, borderRadius: radius.xxxl + 2, overflow: 'hidden', height: 140, position: 'relative', backgroundColor: '#0a1a0c' },
+  ehcCard: { marginHorizontal: 14, marginTop: spacing.lg, marginBottom: spacing.lg, borderRadius: radius.xxxl + 2, overflow: 'hidden', height: 140, position: 'relative', backgroundColor: 'rgba(255,255,255,0.85)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)' },
   ehcBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, fontSize: 72, textAlign: 'center', textAlignVertical: 'center' },
-  ehcOverlay: { position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)' },
-  ehcLive: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.flagRed, borderRadius: radius.round, paddingHorizontal: spacing.md, paddingVertical: 3 },
+  ehcOverlay: { position: 'absolute', inset: 0, backgroundColor: 'rgba(249,253,244,0.78)' },
+  ehcLive: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.terracotta, borderRadius: radius.round, paddingHorizontal: spacing.md, paddingVertical: 3 },
   ldDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.white },
-  ehcLiveText: { fontSize: 8, fontWeight: '700', color: colors.ink },
+  ehcLiveText: { fontSize: 8, fontWeight: '700', color: colors.white },
   ehcBody: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.xl },
   ehcCat: { fontSize: 7, fontWeight: '700', color: colors.greenDark, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
   ehcTitle: { fontSize: 13, fontWeight: '700', color: colors.ink, lineHeight: 17, marginBottom: 4 },

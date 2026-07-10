@@ -23,8 +23,8 @@ export default function ScreenHeader({ onBack, title, eyebrow, style, titleStyle
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
-  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1, borderColor: colors.whiteA12, alignItems: 'center', justifyContent: 'center' },
-  backIcon: { fontSize: 14, color: colors.white },
-  eyebrow: { ...type.eyebrow, color: colors.green, marginBottom: 2 },
-  title: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.white },
+  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', alignItems: 'center', justifyContent: 'center' },
+  backIcon: { fontSize: 14, color: colors.ink },
+  eyebrow: { ...type.eyebrow, color: colors.greenDark, marginBottom: 2 },
+  title: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.ink },
 });

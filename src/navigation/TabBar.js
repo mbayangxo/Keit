@@ -9,7 +9,7 @@ const TAB_ICONS = {
   HomeTab: '🏠',
   MbooloTab: '💬',
   ExplorerTab: '🔍',
-  MoiTab: '👤',
+  MoiTab: '😊',
 };
 
 const TAB_LABELS = {
