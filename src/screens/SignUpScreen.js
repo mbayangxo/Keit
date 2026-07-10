@@ -243,7 +243,7 @@ function ProfileStep({ name, setName, handle, setHandle, avatarUrl, setAvatarUrl
           {avatarUrl ? (
             <ProfileAvatar photoUrl={avatarUrl} size={76} style={{ borderWidth: 0, backgroundColor: 'transparent' }} />
           ) : (
-            <Text style={{ fontSize: 32 }}>👤</Text>
+            <Text style={{ fontSize: 32 }}>🧑🏾</Text>
           )}
           <View style={styles.avatarAdd}>
             <Text style={{ fontSize: 12, fontWeight: '900', color: ob.ink }}>+</Text>

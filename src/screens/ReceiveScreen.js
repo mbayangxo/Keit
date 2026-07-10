@@ -157,7 +157,7 @@ function SentStep({ amount, reason, handle, name, onDone }) {
         <Text style={styles.previewLabel}>Aperçu — ce que la personne voit</Text>
         <View style={styles.previewNotif}>
           <View style={styles.previewAva}>
-            <Text style={{ fontSize: 18 }}>👤</Text>
+            <Text style={{ fontSize: 18 }}>🧑🏾</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.previewText}>

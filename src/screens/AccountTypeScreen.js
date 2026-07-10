@@ -34,7 +34,7 @@ export default function AccountTypeScreen({ onSelect }) {
   const options = [
     {
       key: 'personal',
-      icon: '👤',
+      icon: '🧑🏾',
       title: t(langCode, 'accountPersonalTitle'),
       sub: t(langCode, 'accountPersonalSub'),
       idLabel: t(langCode, 'accountPersonalId'),

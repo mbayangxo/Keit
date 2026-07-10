@@ -19,7 +19,7 @@ function FriendRow({ friend, onSend, onMbolo }) {
   return (
     <PressScale scaleTo={0.98} onPress={onSend} style={styles.row}>
       <View style={styles.ava}>
-        <Text style={{ fontSize: 22 }}>{friend.avatarEmoji ?? '👤'}</Text>
+        <Text style={{ fontSize: 22 }}>{friend.avatarEmoji ?? '🧑🏾'}</Text>
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.rowName}>{friend.name}</Text>

@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '../components/ScreenHeader';
 import GlowButton from '../components/GlowButton';
+import ScreenBackground from '../components/ScreenBackground';
 import K21QrCode from '../components/K21QrCode';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
@@ -53,6 +54,7 @@ export default function StudentPassScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
+      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll}>
           <ScreenHeader onBack={() => navigation.goBack()} title="K21 Pass Étudiant" style={styles.header} />
@@ -108,7 +110,7 @@ export default function StudentPassScreen({ navigation }) {
               <TextInput
                 style={styles.input}
                 placeholder="Ex: UCAD, ESP, Lycée Blaise Diagne…"
-                placeholderTextColor={colors.whiteA30}
+                placeholderTextColor={'rgba(5,8,5,0.4)'}
                 value={schoolName}
                 onChangeText={setSchoolName}
                 editable={!loading}
@@ -133,10 +135,10 @@ export default function StudentPassScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
   scroll: { paddingHorizontal: spacing.xxxl, paddingBottom: spacing.giant },
   header: { marginBottom: spacing.lg },
-  lead: { fontSize: 12, color: colors.whiteA45, lineHeight: 18, marginBottom: spacing.xxl },
+  lead: { fontSize: 12, color: 'rgba(5,8,5,0.5)', lineHeight: 18, marginBottom: spacing.xxl },
   activeCard: {
     backgroundColor: 'rgba(26,240,96,0.1)',
     borderWidth: 1.5,
@@ -153,35 +155,35 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
   },
   activeTitle: { fontFamily: fontFamily.displayBlack, fontSize: 14, color: colors.green },
-  activeSub: { fontSize: 10, color: colors.whiteA40, marginTop: 2 },
+  activeSub: { fontSize: 10, color: 'rgba(5,8,5,0.5)', marginTop: 2 },
   badge: { backgroundColor: colors.green, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3 },
   badgeText: { fontSize: 8, fontWeight: '900', color: colors.ink },
-  qrBlock: { alignItems: 'center', padding: spacing.xl, gap: spacing.md, backgroundColor: 'rgba(0,0,0,0.25)' },
-  qrLabel: { fontSize: 11, color: colors.whiteA50, textAlign: 'center' },
-  qrUrl: { fontSize: 9, color: colors.whiteA30, textAlign: 'center' },
+  qrBlock: { alignItems: 'center', padding: spacing.xl, gap: spacing.md, backgroundColor: 'rgba(255,255,255,0.72)' },
+  qrLabel: { fontSize: 11, color: 'rgba(5,8,5,0.55)', textAlign: 'center' },
+  qrUrl: { fontSize: 9, color: 'rgba(5,8,5,0.4)', textAlign: 'center' },
   notice: {
-    backgroundColor: colors.whiteA04,
+    backgroundColor: 'rgba(255,255,255,0.6)',
     borderWidth: 1,
-    borderColor: colors.whiteA08,
+    borderColor: 'rgba(5,8,5,0.08)',
     borderRadius: radius.lg,
     padding: spacing.xl,
     marginBottom: spacing.xxl,
   },
-  noticeWarn: { borderColor: 'rgba(232,25,44,0.25)', backgroundColor: 'rgba(232,25,44,0.08)' },
-  noticeTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white, marginBottom: spacing.xs },
-  noticeText: { fontSize: 11, color: colors.whiteA45, lineHeight: 16 },
+  noticeWarn: { borderColor: 'rgba(232,92,26,0.25)', backgroundColor: 'rgba(232,92,26,0.08)' },
+  noticeTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink, marginBottom: spacing.xs },
+  noticeText: { fontSize: 11, color: 'rgba(5,8,5,0.5)', lineHeight: 16 },
   form: { gap: spacing.md },
-  label: { fontSize: 10, fontWeight: '700', letterSpacing: 1, color: colors.whiteA35, textTransform: 'uppercase' },
+  label: { fontSize: 10, fontWeight: '700', letterSpacing: 1, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase' },
   input: {
-    backgroundColor: colors.whiteA06,
+    backgroundColor: 'rgba(255,255,255,0.7)',
     borderWidth: 1,
-    borderColor: colors.whiteA10,
+    borderColor: 'rgba(5,8,5,0.1)',
     borderRadius: radius.lg,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.lg,
     fontSize: 14,
-    color: colors.white,
+    color: colors.ink,
     marginBottom: spacing.sm,
   },
-  hint: { fontSize: 10, color: colors.whiteA35, lineHeight: 15, marginTop: spacing.sm },
+  hint: { fontSize: 10, color: 'rgba(5,8,5,0.45)', lineHeight: 15, marginTop: spacing.sm },
 });

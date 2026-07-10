@@ -181,7 +181,7 @@ export default function EditProfileScreen({ navigation }) {
                   <TextInput
                     style={styles.input}
                     placeholder="77 000 00 00"
-                    placeholderTextColor={colors.whiteA30}
+                    placeholderTextColor={'rgba(5,8,5,0.4)'}
                     keyboardType="number-pad"
                     value={newPhone}
                     onChangeText={(v) => setNewPhone(v.replace(/[^0-9]/g, ''))}
@@ -206,7 +206,7 @@ export default function EditProfileScreen({ navigation }) {
                 <TextInput
                   style={styles.input}
                   placeholder="000000"
-                  placeholderTextColor={colors.whiteA30}
+                  placeholderTextColor={'rgba(5,8,5,0.4)'}
                   keyboardType="number-pad"
                   value={otp}
                   onChangeText={(v) => setOtp(v.replace(/[^0-9]/g, '').slice(0, 6))}
@@ -226,7 +226,7 @@ export default function EditProfileScreen({ navigation }) {
             <TextInput
               style={styles.input}
               placeholder="ton@email.com"
-              placeholderTextColor={colors.whiteA30}
+              placeholderTextColor={'rgba(5,8,5,0.4)'}
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}

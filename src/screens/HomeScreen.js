@@ -27,7 +27,7 @@ const PRIMARY_ACTIONS = [
 ];
 
 const SECONDARY_ACTIONS = [
-  { icon: '🏧', label: 'Cash', gradient: ['#c8f0ff', '#5eb8e8'], glow: '#5eb8e8', route: 'Cash' },
+  { icon: '🏧', label: 'Cash', gradient: ['#baf7d0', '#22d968'], glow: colors.green, route: 'Cash' },
   { icon: '🏦', label: 'Tontine', gradient: ['#fdf3cd', '#eeda96'], glow: colors.flagGold, route: 'Tontine' },
   { icon: '🍖', label: 'Ñu Lekk', gradient: ['#ffd4c4', '#e85c1a'], glow: colors.terracotta, route: 'NuLekk' },
   { icon: '🛵', label: 'Mouvement', gradient: ['#d4f5e2', '#1a9e52'], glow: colors.green, route: 'Movement' },
@@ -96,8 +96,8 @@ function mbooloThreadPreview(thread, userId) {
   const name = thread.name?.trim() || others.map((u) => u.name).join(', ') || 'Conversation';
   const preview =
     last?.kind === 'image' ? '📷 Photo' : last?.kind === 'voice' ? '🎤 Message vocal' : last?.body ?? 'Dis bonjour 👋';
-  const avatars = others.slice(0, 3).map((u) => u.avatarEmoji ?? '👤');
-  while (avatars.length < Math.min(3, (thread.members?.length ?? 1) - 1)) avatars.push('👤');
+  const avatars = others.slice(0, 3).map((u) => u.avatarEmoji ?? '🧑🏾');
+  while (avatars.length < Math.min(3, (thread.members?.length ?? 1) - 1)) avatars.push('🧑🏾');
   return { name, preview, avatars, memberCount: thread.members?.length ?? 0 };
 }
 

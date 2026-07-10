@@ -53,7 +53,7 @@ function MessageBubble({ message, isMe, onPlayVoice }) {
       <View style={[styles.msg, isMe ? styles.msgMe : styles.msgThem, styles.msgStickerWrap, !isMe && styles.msgStickerThem]}>
         {!isMe ? (
           <View style={styles.msgAva}>
-            <Text style={{ fontSize: 14 }}>{sender?.avatarEmoji ?? '👤'}</Text>
+            <Text style={{ fontSize: 14 }}>{sender?.avatarEmoji ?? '🧑🏾'}</Text>
           </View>
         ) : null}
         <View style={styles.stickerBubble}>{renderBody()}</View>
@@ -90,7 +90,7 @@ function MessageBubble({ message, isMe, onPlayVoice }) {
   return (
     <View style={[styles.msg, styles.msgThem]}>
       <View style={styles.msgAva}>
-        <Text style={{ fontSize: 14 }}>{sender?.avatarEmoji ?? '👤'}</Text>
+        <Text style={{ fontSize: 14 }}>{sender?.avatarEmoji ?? '🧑🏾'}</Text>
       </View>
       <View style={[styles.bubbleThem, isMoneyCard && styles.moneyBubbleThem, (isPhoto || isGif) && styles.mediaBubbleThem]}>
         {bubbleContent}
@@ -507,14 +507,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(232,25,44,0.08)',
+    backgroundColor: 'rgba(232,92,26,0.08)',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(232,25,44,0.2)',
+    borderTopColor: 'rgba(232,92,26,0.2)',
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
   },
-  recordingText: { fontFamily: fontFamily.bodySemiBold, fontSize: 12, color: colors.flagRed },
-  recordingStop: { backgroundColor: colors.flagRed, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 6 },
+  recordingText: { fontFamily: fontFamily.bodySemiBold, fontSize: 12, color: colors.terracotta },
+  recordingStop: { backgroundColor: colors.terracotta, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 6 },
   recordingStopText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: '#fff' },
   inputRow: { backgroundColor: '#fff', borderTopWidth: 2, borderTopColor: 'rgba(232,92,26,0.1)', paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   ciAttach: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.mboolo.terraPale, borderWidth: 1.5, borderColor: colors.mboolo.border, alignItems: 'center', justifyContent: 'center' },

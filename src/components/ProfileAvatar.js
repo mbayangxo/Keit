@@ -2,7 +2,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { colors, fontFamily } from '../theme';
 
 export default function ProfileAvatar({
-  emoji = '👤',
+  emoji,
   photoUrl,
   size = 68,
   style,
@@ -29,26 +29,34 @@ export default function ProfileAvatar({
 
   return (
     <View style={[styles.fallback, { width: size, height: size, borderRadius: radius }, style]}>
-      <Text style={[{ fontSize: size * 0.44 }, textStyle]}>{emoji}</Text>
+      {emoji && emoji !== '👤' ? (
+        <Text style={[{ fontSize: size * 0.44 }, textStyle]}>{emoji}</Text>
+      ) : (
+        <Text style={[styles.at, { fontSize: size * 0.34 }, textStyle]}>@</Text>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   photo: {
-    backgroundColor: colors.whiteA08,
+    backgroundColor: 'rgba(255,255,255,0.75)',
     borderWidth: 3,
-    borderColor: 'rgba(232,25,44,0.4)',
+    borderColor: 'rgba(232,92,26,0.4)',
   },
   fallback: {
-    backgroundColor: colors.whiteA08,
+    backgroundColor: 'rgba(255,255,255,0.75)',
     borderWidth: 3,
-    borderColor: 'rgba(232,25,44,0.4)',
+    borderColor: 'rgba(232,92,26,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   initial: {
     fontFamily: fontFamily.displayBlack,
     color: colors.ink,
+  },
+  at: {
+    fontFamily: fontFamily.displayBlack,
+    color: colors.greenDark,
   },
 });

@@ -166,9 +166,9 @@ export default function MoiScreen({ navigation }) {
   const stats = useMemo(
     () => [
       { key: 'ngor', value: String(ngorScore), label: 'Ngor', color: colors.green },
-      { key: 'mboolo', value: String(summary.stats.mboolo), label: 'Mboolo', color: colors.white },
+      { key: 'mboolo', value: String(summary.stats.mboolo), label: 'Mboolo', color: colors.ink },
       { key: 'events', value: String(summary.stats.events), label: 'Événements', color: colors.flagGold },
-      { key: 'pass', value: passStatLabel, label: 'Pass UCAD', color: colors.flagRed },
+      { key: 'pass', value: passStatLabel, label: 'Pass UCAD', color: colors.terracotta },
     ],
     [summary.stats, ngorScore, passStatLabel],
   );
@@ -308,7 +308,7 @@ export default function MoiScreen({ navigation }) {
             <View style={styles.flagStripe}>
               <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
               <View style={[styles.flagSeg, { backgroundColor: colors.flagGold }]} />
-              <View style={[styles.flagSeg, { backgroundColor: colors.flagRed }]} />
+              <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
             </View>
           </LinearGradient>
 
