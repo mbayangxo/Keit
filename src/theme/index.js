@@ -5,19 +5,18 @@
 
 export const colors = {
   // ── Core (brief §03 — locked forever) ──
-  ink: '#050805',        // app background, near-black — NEVER white on payment/Rect screens
+  ink: '#050805',        // text + accent objects only — backgrounds are always bright
   green: '#1af060',      // --G — primary accent
   greenDark: '#0fbc48',  // --Gd
-  gold: '#f7b731',       // --Y — secondary
+  gold: '#fad836',       // --Y — locked gold (same as flagGold — single source)
   goldDark: '#e8920a',   // --Yd
-  orange: '#ff6422',     // --O — tertiary
-  rectRed: '#e0364a',    // --R — Rect products ONLY, never used elsewhere
+  orange: '#e85c1a',     // --O — locked: terracotta is the ONLY orange
 
   // ── General UI accent red / gold (Senegal flag derivatives used across
   //    prototypes for notifications, live dots, trending, flag stripes) ──
   flagGreen: '#1af060',  // --SG / .fg (same value as green — single source)
   flagGold: '#fad836',   // --SY — badges, poll leading state, chart #2
-  flagRed: '#e8192c',    // --SR — notif dot, live indicators, trending #1
+  flagRed: '#e85c1a',    // LOCKED: red is banned — resolves to terracotta
 
   // ── Terracotta (Mboolo brand color inside the dark app shell) ──
   terracotta: '#e85c1a',
@@ -62,11 +61,11 @@ export const colors = {
   goldA10: 'rgba(250,216,54,0.10)',
   goldA20: 'rgba(250,216,54,0.20)',
 
-  // Orange-tint overlays (rgba(255,100,34, x))
-  orangeA08: 'rgba(255,100,34,0.08)',
-  orangeA09: 'rgba(255,100,34,0.09)',
-  orangeA10: 'rgba(255,100,34,0.10)',
-  orangeA20: 'rgba(255,100,34,0.20)',
+  // Orange-tint overlays — terracotta family (single orange)
+  orangeA08: 'rgba(232,92,26,0.08)',
+  orangeA09: 'rgba(232,92,26,0.09)',
+  orangeA10: 'rgba(232,92,26,0.10)',
+  orangeA20: 'rgba(232,92,26,0.20)',
 
   // Terracotta-tint overlays (rgba(232,92,26, x)) — Mboolo pulse card etc.
   terracottaA08: 'rgba(232,92,26,0.08)',
@@ -76,9 +75,9 @@ export const colors = {
   terracottaA25: 'rgba(232,92,26,0.25)',
   terracottaA45: 'rgba(232,92,26,0.45)',
 
-  // Red-tint overlays (rgba(232,25,44, x))
-  redA06: 'rgba(232,25,44,0.06)',
-  redA08: 'rgba(232,25,44,0.08)',
+  // Red-tint overlays — LOCKED to terracotta (red is banned)
+  redA06: 'rgba(232,92,26,0.06)',
+  redA08: 'rgba(232,92,26,0.08)',
 
   // ── Unified app canvas — one bright background for every screen ──
   appCanvas: {
@@ -92,8 +91,8 @@ export const colors = {
     textMuted: 'rgba(5,8,5,0.55)',
     textFaint: 'rgba(5,8,5,0.4)',
     greenGlow: 'rgba(26,240,96,0.16)',
-    goldGlow: 'rgba(247,183,49,0.18)',
-    orangeGlow: 'rgba(255,100,34,0.14)',
+    goldGlow: 'rgba(250,216,54,0.18)',
+    orangeGlow: 'rgba(232,92,26,0.14)',
   },
 
   // ── Onboarding / auth flow — same warm bright family as main app ──
@@ -103,35 +102,35 @@ export const colors = {
     surface: '#FFFFFF',
     ink: '#050805',
     green: '#1af060',
-    gold: '#f7b731',
-    orange: '#ff6422',
+    gold: '#fad836',
+    orange: '#e85c1a',
     muted: 'rgba(5,8,5,0.55)',
     faint: 'rgba(5,8,5,0.35)',
     border: 'rgba(5,8,5,0.12)',
     greenSoft: 'rgba(26,240,96,0.16)',
-    orangeSoft: 'rgba(255,100,34,0.14)',
-    goldSoft: 'rgba(247,183,49,0.16)',
+    orangeSoft: 'rgba(232,92,26,0.14)',
+    goldSoft: 'rgba(250,216,54,0.16)',
     greenBorder: 'rgba(26,240,96,0.35)',
-    orangeBorder: 'rgba(255,100,34,0.35)',
-    goldBorder: 'rgba(247,183,49,0.35)',
+    orangeBorder: 'rgba(232,92,26,0.35)',
+    goldBorder: 'rgba(250,216,54,0.35)',
   },
 
   // ── Mboolo — same canvas as the rest of K21 (no separate warm-white world) ──
   mboolo: {
     bg: '#f2f8ec',
     bg2: '#edf6e4',
-    terra: '#ff6422',
+    terra: '#e85c1a',
     terraDark: '#e85c1a',
     terraLight: '#ff8c52',
-    terraPale: 'rgba(255,100,34,0.12)',
-    mango: '#f7b731',
+    terraPale: 'rgba(232,92,26,0.12)',
+    mango: '#fad836',
     mangoDark: '#e8920a',
-    mangoPale: 'rgba(247,183,49,0.14)',
+    mangoPale: 'rgba(250,216,54,0.14)',
     green: '#1af060',
     greenDark: '#0fbc48',
     greenPale: 'rgba(26,240,96,0.14)',
-    red: '#e8192c',
-    redPale: 'rgba(232,25,44,0.1)',
+    red: '#e85c1a',
+    redPale: 'rgba(232,92,26,0.1)',
     ink: '#050805',
     ink2: 'rgba(5,8,5,0.65)',
     ink3: 'rgba(5,8,5,0.45)',

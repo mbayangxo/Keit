@@ -162,7 +162,7 @@ export default function EditProfileScreen({ navigation }) {
             <Text style={styles.fieldLabel}>Nom</Text>
             <Text style={styles.fieldValue}>{profile.name || '—'}</Text>
             <Text style={styles.fieldLabel}>@handle</Text>
-            <Text style={styles.fieldValue}>@{profile.handle || '—'}</Text>
+            <Text style={styles.fieldValue}>@{String(profile.handle ?? '').replace(/^@+/, '') || '—'}</Text>
           </View>
 
           <Text style={styles.sectionLabel}>Téléphone</Text>

@@ -165,10 +165,10 @@ export default function MoiScreen({ navigation }) {
 
   const stats = useMemo(
     () => [
-      { key: 'ngor', value: String(ngorScore), label: 'Ngor', color: colors.green },
+      { key: 'ngor', value: String(ngorScore), label: 'Ngor', color: colors.greenDark },
       { key: 'mboolo', value: String(summary.stats.mboolo), label: 'Mboolo', color: colors.ink },
-      { key: 'events', value: String(summary.stats.events), label: 'Événements', color: colors.flagGold },
-      { key: 'pass', value: passStatLabel, label: 'Pass UCAD', color: colors.terracotta },
+      { key: 'events', value: String(summary.stats.events), label: 'Événements', color: colors.goldDark },
+      { key: 'pass', value: passStatLabel, label: 'Pass', color: colors.terracotta },
     ],
     [summary.stats, ngorScore, passStatLabel],
   );
@@ -231,7 +231,7 @@ export default function MoiScreen({ navigation }) {
           keyboardShouldPersistTaps="handled"
         >
           <LinearGradient
-            colors={['rgba(26,240,96,0.16)', 'rgba(247,183,49,0.12)', 'rgba(255,100,34,0.06)']}
+            colors={['rgba(26,240,96,0.16)', 'rgba(250,216,54,0.12)', 'rgba(232,92,26,0.06)']}
             start={{ x: 0.2, y: 0 }}
             end={{ x: 0.8, y: 1 }}
             style={styles.hero}
@@ -259,15 +259,8 @@ export default function MoiScreen({ navigation }) {
                     <View style={styles.nameRow}>
                       <Text style={styles.name}>{profile.name || 'Mon profil'}</Text>
                     </View>
-                    <Text style={styles.handle}>@{profile.handle || '…'}</Text>
+                    <Text style={styles.handle}>@{String(profile.handle ?? '').replace(/^@+/, '') || '…'}</Text>
                     {locationLine ? <Text style={styles.location}>📍 {locationLine}</Text> : null}
-                    {profile.phone ? <Text style={styles.contactLine}>📱 {profile.phone}</Text> : null}
-                    {profile.email ? <Text style={styles.contactLine}>✉️ {profile.email}</Text> : null}
-                    {profile.afriId ? (
-                      <View style={styles.afriPill}>
-                        <Text style={styles.afriPillText}>✦ {profile.afriId}</Text>
-                      </View>
-                    ) : null}
                     <View style={styles.qrRow}>
                       <PressScale scaleTo={0.96} onPress={() => open('MyQr')} style={styles.qrBtn}>
                         <Text style={styles.qrBtnText}>📲 Mon QR</Text>
@@ -362,9 +355,21 @@ export default function MoiScreen({ navigation }) {
                 ))}
               </ScrollView>
             ) : (
-              <Text style={styles.hiEmpty}>
-                Tes billets, tontines et pass actif apparaîtront ici.
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xl }}>
+                <PressScale
+                  scaleTo={0.94}
+                  onPress={() => navigateFromRoot(navigation, 'Main', { screen: 'DiscoverTab' })}
+                  style={styles.hiItem}
+                >
+                  <View style={styles.hiPlusRing}>
+                    <Text style={styles.hiPlus}>+</Text>
+                  </View>
+                  <Text style={styles.hiName}>Nouveau</Text>
+                </PressScale>
+                <Text style={[styles.hiEmpty, { flex: 1 }]}>
+                  Tes billets, tontines et pass apparaîtront ici au fur et à mesure.
+                </Text>
+              </View>
             )}
           </View>
 
@@ -437,7 +442,7 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: fontFamily.displayBlack, fontSize: 14, letterSpacing: -0.5, color: colors.appCanvas.text },
   statLabel: { fontSize: 10, color: colors.appCanvas.textFaint, marginTop: 1 },
 
-  ngorMini: { margin: spacing.xxl, backgroundColor: 'rgba(247,183,49,0.16)', borderWidth: 1, borderColor: 'rgba(232,146,10,0.28)', borderRadius: radius.xl, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  ngorMini: { margin: spacing.xxl, backgroundColor: 'rgba(250,216,54,0.16)', borderWidth: 1, borderColor: 'rgba(232,146,10,0.28)', borderRadius: radius.xl, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   nmScore: { fontFamily: fontFamily.displayBlack, fontSize: 28, letterSpacing: -1, color: colors.goldDark },
   nmLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: colors.goldDark, textTransform: 'uppercase', marginBottom: 3 },
   nmRank: { fontSize: 11, color: colors.appCanvas.textMuted },
@@ -452,6 +457,8 @@ const styles = StyleSheet.create({
   hiInner: { width: '100%', height: '100%', borderRadius: 31, backgroundColor: colors.appCanvas.surfaceStrong, borderWidth: 2, borderColor: colors.appCanvas.text, alignItems: 'center', justifyContent: 'center' },
   hiName: { fontSize: 8, fontWeight: '700', color: colors.appCanvas.textMuted, textAlign: 'center' },
   hiEmpty: { fontSize: 11, color: colors.appCanvas.textFaint, lineHeight: 16 },
+  hiPlusRing: { width: 66, height: 66, borderRadius: 33, borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(5,8,5,0.25)', backgroundColor: colors.appCanvas.surface, alignItems: 'center', justifyContent: 'center' },
+  hiPlus: { fontFamily: fontFamily.displayBlack, fontSize: 22, color: colors.appCanvas.textMuted },
 
   passCard: { backgroundColor: colors.greenA10, borderWidth: 1.5, borderColor: colors.greenA20, borderRadius: radius.xxl, overflow: 'hidden' },
   passTop: { backgroundColor: colors.greenA08, paddingHorizontal: spacing.xl, paddingVertical: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.lg },

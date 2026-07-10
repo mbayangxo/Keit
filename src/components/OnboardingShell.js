@@ -10,7 +10,7 @@ export default function OnboardingShell({ children, edges = ['top'] }) {
   return (
     <View style={styles.root}>
       <LinearGradient colors={[ob.bg, ob.bgDeep, ob.bg]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      <WaxPattern color="rgba(255,100,34,0.05)" size={20} durationMs={32000} />
+      <WaxPattern color="rgba(232,92,26,0.05)" size={20} durationMs={32000} />
       <SafeAreaView style={{ flex: 1 }} edges={edges}>
         {children}
       </SafeAreaView>

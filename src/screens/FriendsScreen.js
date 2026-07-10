@@ -110,7 +110,7 @@ export default function FriendsScreen({ navigation, route }) {
           {profile.handle ? (
             <View style={styles.inviteCard}>
               <Text style={styles.inviteTitle}>Invite tes amis sur K21</Text>
-              <Text style={styles.inviteMeta}>@{profile.handle}</Text>
+              <Text style={styles.inviteMeta}>@{String(profile.handle ?? '').replace(/^@+/, '')}</Text>
               {buildWebFriendUrl(profile.handle) ? (
                 <Text style={styles.inviteLink}>{buildWebFriendUrl(profile.handle)}</Text>
               ) : null}
