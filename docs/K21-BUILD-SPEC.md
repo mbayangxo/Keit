@@ -215,7 +215,7 @@ Tontine · Ñu Lekk · Voice notes · Money request accept/deny · LemFi interna
 Family wallet locks · Voice/video calls · Float · Agent network · Rider dispatch · Full Kori earn
 
 ### Year 2
-Rect Sound · Alkebulan ID · TAALI · K21 Pass card · Défis · Leaderboards · K21 Junior · Xel ak Sago · Ataya rooms · Cayor checkpoints
+K21 Charts · Alkebulan ID · TAALI · K21 Pass card · Défis · Leaderboards · K21 Junior · Xel ak Sago · Ataya rooms · Cayor checkpoints
 
 ---
 

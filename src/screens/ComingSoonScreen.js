@@ -5,7 +5,7 @@ import PressScale from '../components/PressScale';
 import { colors, fontFamily, radius, spacing } from '../theme';
 
 // Placeholder for screens/tabs not yet built in this phase (or explicitly
-// out of Phase 1 scope, e.g. Rect Sound, Défis, Ataya Rooms) — keeps every
+// out of Phase 1 scope, e.g. K21 Charts, Défis, Ataya Rooms) — keeps every
 // nav destination reachable instead of leaving a dead button.
 export default function ComingSoonScreen({ route, navigation }) {
   const {
