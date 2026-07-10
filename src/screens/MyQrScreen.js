@@ -2,16 +2,26 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '../components/ScreenHeader';
 import K21QrCode from '../components/K21QrCode';
+import ProfileShareButtons from '../components/ProfileShareButtons';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import { useAppState } from '../state/AppState';
-import { buildUserPayUrl, buildMerchantPayUrl } from '../lib/k21-qr';
+import {
+  buildUserPayUrl,
+  buildUserProfileUrl,
+  buildWebFriendUrl,
+  buildWebPayUrl,
+  buildMerchantPayUrl,
+} from '../lib/k21-qr';
 import { colors, fontFamily, radius, spacing } from '../theme';
 
 export default function MyQrScreen({ navigation }) {
   const { profile } = useAppState();
   const isBusiness = profile.accountType === 'business' || profile.business?.kebuId;
   const payUrl = profile.handle ? buildUserPayUrl(profile.handle) : null;
+  const friendUrl = profile.handle ? buildUserProfileUrl(profile.handle) : null;
+  const webFriend = profile.handle ? buildWebFriendUrl(profile.handle) : null;
+  const webPay = profile.handle ? buildWebPayUrl(profile.handle) : null;
   const merchantUrl = profile.business?.id ? buildMerchantPayUrl(profile.business.id) : null;
 
   return (
@@ -36,9 +46,21 @@ export default function MyQrScreen({ navigation }) {
           ) : null}
 
           <View style={styles.qrBlock}>
+            <Text style={styles.qrLabel}>Ajoute-moi comme ami</Text>
+            {friendUrl ? <K21QrCode value={friendUrl} size={180} /> : <Text style={styles.missing}>Complète ton profil pour activer ton QR</Text>}
+            {webFriend ? <Text style={styles.qrUrl}>{webFriend}</Text> : null}
+            {profile.handle ? (
+              <ProfileShareButtons profile={profile} mode="friend" style={styles.shareRow} />
+            ) : null}
+          </View>
+
+          <View style={styles.qrBlock}>
             <Text style={styles.qrLabel}>Scanner pour m'envoyer de l'argent</Text>
-            {payUrl ? <K21QrCode value={payUrl} size={180} /> : <Text style={styles.missing}>Complète ton profil pour activer ton QR</Text>}
-            {payUrl ? <Text style={styles.qrUrl}>{payUrl}</Text> : null}
+            {payUrl ? <K21QrCode value={payUrl} size={160} /> : null}
+            {webPay ? <Text style={styles.qrUrl}>{webPay}</Text> : null}
+            {profile.handle ? (
+              <ProfileShareButtons profile={profile} mode="pay" style={styles.shareRow} />
+            ) : null}
           </View>
 
           {isBusiness && merchantUrl ? (
@@ -75,9 +97,10 @@ const styles = StyleSheet.create({
   },
   kebuPill: { backgroundColor: 'rgba(255,138,0,0.1)', borderColor: 'rgba(255,138,0,0.25)' },
   idPillText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.greenDark },
-  qrBlock: { alignItems: 'center', marginTop: spacing.xxl, marginBottom: spacing.lg, gap: spacing.md },
+  qrBlock: { alignItems: 'center', marginTop: spacing.xxl, marginBottom: spacing.lg, gap: spacing.md, alignSelf: 'stretch' },
   qrLabel: { fontSize: 11, color: 'rgba(5,8,5,0.45)', textAlign: 'center' },
   qrUrl: { fontSize: 10, color: 'rgba(5,8,5,0.4)', textAlign: 'center' },
+  shareRow: { paddingHorizontal: spacing.sm },
   missing: { fontSize: 12, color: 'rgba(5,8,5,0.5)' },
   scanBtn: {
     marginTop: spacing.xl,

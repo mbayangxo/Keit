@@ -1,6 +1,13 @@
 import { Platform } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 
-const MAX_MEDIA_CHARS = 750_000;
+/** Keep under server zod limit (800k) with JSON overhead. */
+export const MAX_MEDIA_CHARS = 720_000;
+export const MAX_VOICE_CHARS = 780_000;
+export const MAX_GIF_CHARS = 720_000;
+const MAX_IMAGE_EDGE = 1280;
+const JPEG_QUALITY = 0.62;
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -11,11 +18,155 @@ function readFileAsDataUrl(file) {
   });
 }
 
-/** Pick an image (web file input). Returns data URL or null if cancelled. */
-export function pickMboloImage() {
-  if (Platform.OS !== 'web' || typeof document === 'undefined') {
-    return Promise.reject(new Error('Photos disponibles sur le web pour la beta'));
+function assertDataUrlSize(dataUrl) {
+  if (String(dataUrl).length > MAX_MEDIA_CHARS) {
+    throw new Error('Photo trop lourde — recadre ou choisis une image plus petite');
   }
+  return dataUrl;
+}
+
+async function compressWebImageFile(file) {
+  if (typeof document === 'undefined') {
+    return assertDataUrlSize(await readFileAsDataUrl(file));
+  }
+  const blobUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const el = document.createElement('img');
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = blobUrl;
+    });
+    let { width, height } = img;
+    const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(width, height, 1));
+    width = Math.max(1, Math.round(width * scale));
+    height = Math.max(1, Math.round(height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Compression impossible');
+    ctx.drawImage(img, 0, 0, width, height);
+    return assertDataUrlSize(canvas.toDataURL('image/jpeg', JPEG_QUALITY));
+  } finally {
+    URL.revokeObjectURL(blobUrl);
+  }
+}
+
+async function compressNativeImageUri(uri, mime = 'image/jpeg') {
+  try {
+    const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
+    const result = await manipulateAsync(uri, [{ resize: { width: MAX_IMAGE_EDGE } }], {
+      compress: JPEG_QUALITY,
+      format: SaveFormat.JPEG,
+      base64: true,
+    });
+    if (result.base64) {
+      return assertDataUrlSize(`data:image/jpeg;base64,${result.base64}`);
+    }
+    if (result.uri) {
+      return readUriAsDataUrl(result.uri, 'image/jpeg');
+    }
+  } catch {
+    // Fall back to raw read if manipulator unavailable.
+  }
+  return readUriAsDataUrl(uri, mime);
+}
+
+function assertVoiceDataUrlSize(dataUrl) {
+  if (String(dataUrl).length > MAX_VOICE_CHARS) {
+    throw new Error('Message vocal trop long — enregistre moins de 60 secondes');
+  }
+  return dataUrl;
+}
+
+export async function readVoiceUriAsDataUrl(uri, mime = 'audio/mp4') {
+  if (!uri) throw new Error('Enregistrement introuvable');
+  if (uri.startsWith('data:')) return assertVoiceDataUrlSize(uri);
+  if (Platform.OS === 'web') {
+    const res = await fetch(uri);
+    const blob = await res.blob();
+    return assertVoiceDataUrlSize(await readFileAsDataUrl(blob));
+  }
+  const base64 = await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
+  return assertVoiceDataUrlSize(`data:${mime};base64,${base64}`);
+}
+
+/** Fetch a GIF and return a data URL when small enough; otherwise return the HTTPS URL. */
+export async function resolveGifMediaUrl(url) {
+  const direct = String(url ?? '').trim();
+  if (!direct.startsWith('http')) throw new Error('GIF invalide');
+
+  try {
+    const res = await fetch(direct);
+    if (!res.ok) return direct;
+    const blob = await res.blob();
+    if (blob.size > MAX_GIF_CHARS * 0.75) return direct;
+    const dataUrl = await readFileAsDataUrl(blob);
+    if (String(dataUrl).length <= MAX_GIF_CHARS) return dataUrl;
+    return direct;
+  } catch {
+    return direct;
+  }
+}
+
+export async function readUriAsDataUrl(uri, mime = 'application/octet-stream') {
+  if (!uri) throw new Error('Fichier introuvable');
+  if (uri.startsWith('data:')) return assertDataUrlSize(uri);
+  if (Platform.OS === 'web') {
+    const res = await fetch(uri);
+    const blob = await res.blob();
+    return compressWebImageFile(blob);
+  }
+  if (mime.startsWith('image/')) {
+    return compressNativeImageUri(uri, mime);
+  }
+  const base64 = await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
+  return assertDataUrlSize(`data:${mime};base64,${base64}`);
+}
+
+async function assetToDataUrl(asset) {
+  const mime = asset.mimeType ?? 'image/jpeg';
+  if (asset.base64) {
+    const raw = `data:${mime};base64,${asset.base64}`;
+    if (raw.length <= MAX_MEDIA_CHARS) return raw;
+    if (asset.uri && Platform.OS !== 'web') {
+      return compressNativeImageUri(asset.uri, mime);
+    }
+    throw new Error('Photo trop lourde — recadre ou choisis une image plus petite');
+  }
+  if (asset.uri) {
+    return readUriAsDataUrl(asset.uri, mime);
+  }
+  throw new Error('Impossible de lire la photo');
+}
+
+async function pickImageFromLibrary() {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) throw new Error('Accès photos refusé — autorise dans les réglages');
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,
+    quality: JPEG_QUALITY,
+    base64: Platform.OS === 'web',
+  });
+  if (result.canceled || !result.assets?.[0]) return null;
+  return assetToDataUrl(result.assets[0]);
+}
+
+async function takePhotoWithCamera() {
+  const perm = await ImagePicker.requestCameraPermissionsAsync();
+  if (!perm.granted) throw new Error('Accès caméra refusé — autorise dans les réglages');
+  const result = await ImagePicker.launchCameraAsync({
+    allowsEditing: true,
+    quality: JPEG_QUALITY,
+    base64: Platform.OS === 'web',
+  });
+  if (result.canceled || !result.assets?.[0]) return null;
+  return assetToDataUrl(result.assets[0]);
+}
+
+function pickMboloImageWeb() {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -27,12 +178,7 @@ export function pickMboloImage() {
         return;
       }
       try {
-        const dataUrl = await readFileAsDataUrl(file);
-        if (String(dataUrl).length > MAX_MEDIA_CHARS) {
-          reject(new Error('Image trop lourde — choisis une photo plus petite'));
-          return;
-        }
-        resolve(dataUrl);
+        resolve(await compressWebImageFile(file));
       } catch (err) {
         reject(err);
       }
@@ -41,10 +187,22 @@ export function pickMboloImage() {
   });
 }
 
-/** Record voice via MediaRecorder (web). Returns { dataUrl, stop } or rejects. */
+/** Pick an image from the library. Returns data URL or null if cancelled. */
+export async function pickMboloImage() {
+  if (Platform.OS === 'web') return pickMboloImageWeb();
+  return pickImageFromLibrary();
+}
+
+/** Take a photo with the camera. Returns data URL or null if cancelled. */
+export async function takeMboloPhoto() {
+  if (Platform.OS === 'web') return pickMboloImageWeb();
+  return takePhotoWithCamera();
+}
+
+/** Record voice via MediaRecorder (web). Returns { stop } or rejects. */
 export async function startMboloVoiceRecording() {
   if (Platform.OS !== 'web' || typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-    throw new Error('Messages vocaux disponibles sur le web pour la beta');
+    throw new Error('Messages vocaux indisponibles sur cet appareil');
   }
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   const recorder = new MediaRecorder(stream);
@@ -63,12 +221,7 @@ export async function startMboloVoiceRecording() {
           stream.getTracks().forEach((t) => t.stop());
           try {
             const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
-            const dataUrl = await readFileAsDataUrl(blob);
-            if (String(dataUrl).length > MAX_MEDIA_CHARS) {
-              reject(new Error('Enregistrement trop long'));
-              return;
-            }
-            resolve(dataUrl);
+            resolve(assertVoiceDataUrlSize(await readFileAsDataUrl(blob)));
           } catch (err) {
             reject(err);
           }

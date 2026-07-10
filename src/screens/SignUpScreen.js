@@ -10,17 +10,12 @@ import { useEntrance } from '../hooks/animations';
 import { useLocale } from '../context/LocaleContext';
 import { authEmail, authVerify, authCompleteProfile, getMe, getWallet, depositNational } from '../lib/api-client';
 import { saveSessionTokens } from '../lib/secure-storage';
+import { pickProfilePhoto } from '../lib/profile-photo';
+import ProfileAvatar from '../components/ProfileAvatar';
 import { t } from '../i18n/translations';
 
-// Backend-driven signup: email → OTP (API) → profile → intent → arrondissement → fund (optional).
-// CNI deferred to KYC flow (POST /api/kyc/cni/submit).
-const ARRONDISSEMENTS = [
-  { key: 'medina', icon: '🏘️', name: 'Médina', count: '4 821 K21' },
-  { key: 'plateau', icon: '🏙️', name: 'Plateau', count: '3 204 K21' },
-  { key: 'parcelles', icon: '🌆', name: 'Parcelles Assainies', count: '5 112 K21' },
-  { key: 'hlm', icon: '🌇', name: 'HLM', count: '2 987 K21' },
-  { key: 'ouakam', icon: '🌃', name: 'Ouakam', count: '2 341 K21' },
-];
+// Backend-driven signup: email → OTP (API) → profile → intent → fund (optional).
+// Country, region & language are set on the unified Onboarding screen.
 const FUND_METHOD = {
   key: 'mobile_money',
   icon: '💳',
@@ -40,8 +35,8 @@ const INTENTS = [
   { key: 'discover', icon: '📍', title: 'Découvrir', sub: 'Événements et vie locale' },
   { key: 'business', icon: '🏪', title: 'Mon business', sub: 'Vendre et être payé' },
 ];
-const STEP_ORDER = ['phone', 'otp', 'profile', 'intent', 'arrondissement', 'fund'];
-const STEP_NUM = { phone: 1, otp: 2, profile: 3, intent: 4, arrondissement: 5 };
+const STEP_ORDER = ['phone', 'otp', 'profile', 'intent', 'fund'];
+const STEP_NUM = { phone: 1, otp: 2, profile: 3, intent: 4 };
 
 function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ /g, ' ');
@@ -221,8 +216,20 @@ function OtpStep({ lang, mode, displayPhone, otp, setOtp, loading, devHint, emai
   );
 }
 
-function ProfileStep({ name, setName, handle, setHandle, onNext, onBack }) {
+function ProfileStep({ name, setName, handle, setHandle, avatarUrl, setAvatarUrl, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
+  const [photoLoading, setPhotoLoading] = useState(false);
+
+  const addPhoto = async () => {
+    setPhotoLoading(true);
+    try {
+      const dataUrl = await pickProfilePhoto();
+      if (dataUrl) setAvatarUrl(dataUrl);
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
+
   return (
     <Animated.View style={[styles.body, entrance]}>
       <StepHeader title="Mon profil" step={STEP_NUM.profile} onBack={onBack} />
@@ -231,15 +238,19 @@ function ProfileStep({ name, setName, handle, setHandle, onNext, onBack }) {
         <Text style={styles.g}>identité K21</Text>
       </Text>
 
-      <View style={styles.avatarPick}>
+      <PressScale scaleTo={0.96} onPress={addPhoto} disabled={photoLoading} style={styles.avatarPick}>
         <View style={styles.avatarCircle}>
-          <Text style={{ fontSize: 32 }}>👤</Text>
+          {avatarUrl ? (
+            <ProfileAvatar photoUrl={avatarUrl} size={76} style={{ borderWidth: 0, backgroundColor: 'transparent' }} />
+          ) : (
+            <Text style={{ fontSize: 32 }}>👤</Text>
+          )}
           <View style={styles.avatarAdd}>
             <Text style={{ fontSize: 12, fontWeight: '900', color: ob.ink }}>+</Text>
           </View>
         </View>
-        <Text style={styles.avatarHint}>Ajouter une photo</Text>
-      </View>
+        <Text style={styles.avatarHint}>{avatarUrl ? 'Changer la photo' : 'Ajouter une photo'}</Text>
+      </PressScale>
 
       <View style={styles.inputGroup}>
         <Text style={styles.igLabel}>Prénom et nom</Text>
@@ -303,57 +314,6 @@ function IntentStep({ lang, intent, setIntent, onNext, onBack }) {
   );
 }
 
-function ArrondissementStep({ arrondissement, setArrondissement, onNext, onBack }) {
-  const entrance = useEntrance(0, 350, 8);
-  const [query, setQuery] = useState('');
-  const filtered = ARRONDISSEMENTS.filter((a) => a.name.toLowerCase().includes(query.trim().toLowerCase()));
-
-  return (
-    <Animated.View style={[styles.body, entrance]}>
-      <View style={styles.headRow}>
-        <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
-          <Text style={{ fontSize: 14, color: ob.ink }}>←</Text>
-        </PressScale>
-        <Text style={styles.headTitle}>Mon quartier</Text>
-      </View>
-      <Text style={[styles.headline, { fontSize: 18, marginBottom: spacing.sm }]}>
-        Ton <Text style={styles.g}>arrondissement</Text>
-      </Text>
-      <Text style={[styles.sub, { marginBottom: spacing.xl }]}>Ton identité culturelle sur K21. Le classement de ton quartier dépend de toi.</Text>
-
-      <View style={styles.arrSearch}>
-        <Text style={{ fontSize: 14, opacity: 0.4 }}>🔍</Text>
-        <TextInput
-          style={{ flex: 1, fontSize: 13, color: ob.ink }}
-          placeholder="Chercher mon arrondissement..."
-          placeholderTextColor={ob.faint}
-          value={query}
-          onChangeText={setQuery}
-        />
-      </View>
-
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <View style={{ gap: spacing.sm }}>
-          {filtered.map((a) => (
-            <PressScale key={a.key} scaleTo={0.98} onPress={() => setArrondissement(a)} style={[styles.arrItem, arrondissement?.key === a.key && styles.arrItemOn]}>
-              <Text style={{ fontSize: 18 }}>{a.icon}</Text>
-              <Text style={styles.aiName}>{a.name}</Text>
-              <Text style={styles.aiCount}>{a.count}</Text>
-              {arrondissement?.key === a.key && (
-                <View style={styles.aiCheck}>
-                  <Text style={{ fontSize: 9, fontWeight: '900', color: ob.ink }}>✓</Text>
-                </View>
-              )}
-            </PressScale>
-          ))}
-        </View>
-      </ScrollView>
-
-      <GlowButton label={arrondissement ? `${arrondissement.name} — C'est mon quartier ✓` : 'Choisis ton quartier'} onPress={onNext} disabled={!arrondissement} />
-    </Animated.View>
-  );
-}
-
 function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext, onSkip }) {
   const entrance = useEntrance(0, 350, 8);
   const m = FUND_METHOD;
@@ -405,7 +365,7 @@ function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext,
 }
 
 export default function SignUpScreen({ mode = 'signup', onComplete, onLoginComplete, onCancel, onForgot, onSwitchToSignup }) {
-  const { country, langCode, setOnboardingIntent, setCountry } = useLocale();
+  const { country, region, langCode, setOnboardingIntent } = useLocale();
   const showToast = useToast();
   const [step, setStep] = useState('phone');
   const [authEmailAddress, setAuthEmailAddress] = useState('');
@@ -414,8 +374,8 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
   const [otpViaEmail, setOtpViaEmail] = useState(false);
   const [name, setName] = useState('');
   const [handle, setHandle] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const [intent, setIntent] = useState(null);
-  const [arrondissement, setArrondissement] = useState(ARRONDISSEMENTS[0]);
   const [fundMethod, setFundMethod] = useState('mobile_money');
   const [fundAmount, setFundAmount] = useState(10000);
   const [loading, setLoading] = useState(false);
@@ -515,17 +475,22 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
   };
 
   const finishSignup = async (amount) => {
+    if (!region?.key) {
+      showToast('Choisis ton pays et ta région sur l’écran précédent');
+      return;
+    }
     setLoading(true);
     try {
       if (intent) await setOnboardingIntent(intent);
       const res = await authCompleteProfile({
         name: name.trim(),
         handle,
-        arrondissement: { key: arrondissement.key, icon: arrondissement.icon, name: arrondissement.name },
+        arrondissement: { key: region.key, icon: region.icon, name: region.name },
         fundAmount: 0,
         identityChoice: intent,
         isDiaspora: country?.code !== 'SN',
         countryCode: country?.code,
+        avatarUrl: avatarUrl ?? undefined,
       });
 
       let wallet = res;
@@ -547,7 +512,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
         email: otpDestination,
         name,
         handle,
-        arrondissement,
+        arrondissement: region,
         fundAmount: balance,
         intent,
         profile: res.profile,
@@ -592,13 +557,19 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
           />
         )}
         {step === 'profile' && (
-          <ProfileStep name={name} setName={setName} handle={handle} setHandle={setHandle} onNext={() => goTo('intent')} onBack={back} />
+          <ProfileStep
+            name={name}
+            setName={setName}
+            handle={handle}
+            setHandle={setHandle}
+            avatarUrl={avatarUrl}
+            setAvatarUrl={setAvatarUrl}
+            onNext={() => goTo('intent')}
+            onBack={back}
+          />
         )}
         {step === 'intent' && (
-          <IntentStep lang={langCode} intent={intent} setIntent={setIntent} onNext={() => goTo('arrondissement')} onBack={back} />
-        )}
-        {step === 'arrondissement' && (
-          <ArrondissementStep arrondissement={arrondissement} setArrondissement={setArrondissement} onNext={() => goTo('fund')} onBack={back} />
+          <IntentStep lang={langCode} intent={intent} setIntent={setIntent} onNext={() => goTo('fund')} onBack={back} />
         )}
         {step === 'fund' && (
           <FundStep

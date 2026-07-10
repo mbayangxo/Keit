@@ -4,12 +4,18 @@ import { useAppState } from '../state/AppState';
 import { useToast } from '../components/Toast';
 import { ActivityIndicator, Animated, Easing, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import WaxPattern from '../components/WaxPattern';
+import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useScalePulse, useColorPulse, useEntrance } from '../hooks/animations';
 import { createMboloThread, getMboloThreads, getMe } from '../lib/api-client';
+import { navigateFromRoot } from '../lib/root-navigation';
+
+const SOCIAL_SHORTCUTS = [
+  { key: 'friends', icon: '👥', label: 'Amis', route: 'Friends' },
+  { key: 'tontine', icon: '🔄', label: 'Tontine', route: 'Tontine' },
+];
 
 const DOTS = [
   { size: 5, left: '12%', color: 'rgba(232,92,26,0.25)', duration: 9000, delay: 0 },
@@ -43,7 +49,16 @@ function threadToRow(thread, userId) {
     emoji,
     name,
     time: formatThreadTime(last?.createdAt ?? thread.updatedAt),
-    preview: last?.kind === 'image' ? '📷 Photo' : last?.kind === 'voice' ? '🎤 Message vocal' : last?.body ?? 'Dis bonjour 👋',
+    preview:
+      last?.kind === 'image'
+        ? '📷 Photo'
+        : last?.kind === 'gif'
+          ? '🎬 GIF'
+          : last?.kind === 'voice'
+            ? '🎤 Message vocal'
+            : last?.kind === 'sticker'
+              ? `${last.body} · Sticker`
+              : last?.body ?? 'Dis bonjour 👋',
     thread,
   };
 }
@@ -122,6 +137,7 @@ const SearchBar = ({ query, setQuery, inputRef }) => {
 };
 
 export default function MbooloHomeScreen({ navigation }) {
+  const open = (name, params) => navigateFromRoot(navigation, name, params);
   const logoBounce = useScalePulse(3000, 1.03);
   const [query, setQuery] = useState('');
   const [threads, setThreads] = useState([]);
@@ -193,7 +209,7 @@ export default function MbooloHomeScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-      <WaxPattern color="rgba(232,92,26,0.04)" size={14} durationMs={25000} />
+      <ScreenBackground />
       {DOTS.map((d, i) => (
         <FloatingDot key={i} {...d} />
       ))}
@@ -214,6 +230,25 @@ export default function MbooloHomeScreen({ navigation }) {
           <View style={{ paddingHorizontal: spacing.huge, paddingTop: spacing.lg }}>
             <SearchBar query={query} setQuery={setQuery} inputRef={searchRef} />
           </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.socialRow}
+            style={{ marginBottom: spacing.lg }}
+          >
+            {SOCIAL_SHORTCUTS.map((item) => (
+              <PressScale
+                key={item.key}
+                scaleTo={0.96}
+                onPress={() => open(item.route)}
+                style={styles.socialChip}
+              >
+                <Text style={styles.socialIcon}>{item.icon}</Text>
+                <Text style={styles.socialLabel}>{item.label}</Text>
+              </PressScale>
+            ))}
+          </ScrollView>
 
           <Text style={styles.convDivider}>Messages</Text>
 
@@ -276,10 +311,24 @@ export default function MbooloHomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.mboolo.bg },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.huge, paddingTop: spacing.lg, paddingBottom: spacing.md },
-  logo: { fontFamily: fontFamily.displayBlack, fontSize: 20, letterSpacing: -0.5, color: colors.mboolo.terra },
-  mbIcon: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.mboolo.terraPale, borderWidth: 1.5, borderColor: colors.mboolo.border, alignItems: 'center', justifyContent: 'center' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: '#fff', borderWidth: 2, borderColor: colors.mboolo.border, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, height: 42, marginBottom: spacing.xxxl, shadowColor: '#b43c0a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 2 },
+  logo: { fontFamily: fontFamily.displayBlack, fontSize: 20, letterSpacing: -0.5, color: colors.orange },
+  mbIcon: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.greenA10, borderWidth: 1.5, borderColor: colors.greenA20, alignItems: 'center', justifyContent: 'center' },
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.appCanvas.surface, borderWidth: 2, borderColor: colors.appCanvas.border, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, height: 42, marginBottom: spacing.xxxl, shadowColor: colors.orange, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 2 },
   searchInput: { flex: 1, fontSize: 13, color: colors.mboolo.ink },
+  socialRow: { paddingHorizontal: spacing.huge, gap: spacing.md },
+  socialChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.appCanvas.surface,
+    borderWidth: 2,
+    borderColor: colors.mboolo.border,
+    borderRadius: radius.xxl,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+  },
+  socialIcon: { fontSize: 16 },
+  socialLabel: { fontSize: 12, fontWeight: '700', color: colors.mboolo.ink },
   noResults: { textAlign: 'center', fontSize: 12, color: colors.mboolo.ink3 },
   newBtn: { backgroundColor: colors.mboolo.terraPale, borderWidth: 1.5, borderColor: colors.mboolo.border, borderRadius: radius.xl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.lg },
   newBtnText: { fontSize: 13, fontWeight: '700', color: colors.mboolo.terraDark },

@@ -42,7 +42,7 @@ export default function ComingSoonScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f2f8ec' },
+  root: { flex: 1, backgroundColor: colors.appCanvas.base },
   backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', alignItems: 'center', justifyContent: 'center', marginLeft: spacing.huge, marginTop: spacing.xl },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.giant },
   iconDisc: {

@@ -14,10 +14,14 @@
     "@sentry/react-native": "^8.17.0",
     "bcryptjs": "^3.0.3",
     "expo": "~57.0.1",
+    "expo-audio": "~57.0.0",
     "expo-blur": "^57.0.0",
     "expo-device": "^57.0.0",
+    "expo-file-system": "~57.0.0",
     "expo-font": "^57.0.0",
     "expo-haptics": "^57.0.0",
+    "expo-image-manipulator": "~57.0.2",
+    "expo-image-picker": "~57.0.2",
     "expo-linear-gradient": "^57.0.0",
     "expo-local-authentication": "^57.0.0",
     "expo-screen-capture": "^57.0.0",
@@ -62,7 +66,8 @@
     "test:integration": "node --test --test-concurrency=1 \"tests/integration/**/*.test.js\"",
     "test:security": "node --test --test-concurrency=1 \"tests/security/**/*.test.js\"",
     "test:load": "node --test --test-concurrency=1 --test-timeout=600000 \"tests/load/**/*.test.js\"",
-    "test:launch-gate": "node --test --test-concurrency=1 --test-timeout=600000 \"tests/unit/**/*.test.js\" \"tests/integration/**/*.test.js\" \"tests/security/**/*.test.js\" \"tests/load/**/*.test.js\""
+    "test:launch-gate": "node --test --test-concurrency=1 --test-timeout=600000 \"tests/unit/**/*.test.js\" \"tests/integration/**/*.test.js\" \"tests/security/**/*.test.js\" \"tests/load/**/*.test.js\"",
+    "test:resend-email": "node scripts/test-resend-email.mjs"
   },
   "private": true
 }

@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
-import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
+import ProfileAvatar from '../components/ProfileAvatar';
+import AppScreen, { appUi } from '../components/AppScreen';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing } from '../theme';
@@ -17,6 +18,7 @@ function countryFromProfilePhone(phone) {
   return COUNTRIES.find((c) => c.code === 'SN') ?? COUNTRIES[0];
 }
 import { mePhoneConfirm, mePhoneRequest, patchMe } from '../lib/api-client';
+import { pickProfilePhoto } from '../lib/profile-photo';
 
 function formatPhoneDisplay(phone) {
   if (!phone) return '—';
@@ -34,6 +36,35 @@ export default function EditProfileScreen({ navigation }) {
   const [pendingPhone, setPendingPhone] = useState('');
   const [devOtp, setDevOtp] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
+
+  const changePhoto = async () => {
+    setPhotoLoading(true);
+    try {
+      const dataUrl = await pickProfilePhoto();
+      if (!dataUrl) return;
+      const updated = await patchMe({ avatarUrl: dataUrl });
+      setProfile({ avatarUrl: updated.avatarUrl ?? dataUrl, avatarEmoji: updated.avatarEmoji });
+      showToast('Photo enregistrée ✓');
+    } catch (err) {
+      showToast(err.message ?? 'Photo impossible');
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
+
+  const removePhoto = async () => {
+    setPhotoLoading(true);
+    try {
+      const updated = await patchMe({ avatarUrl: null });
+      setProfile({ avatarUrl: updated.avatarUrl ?? null });
+      showToast('Photo retirée');
+    } catch (err) {
+      showToast(err.message ?? 'Mise à jour impossible');
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
 
   const saveEmail = async () => {
     const trimmed = email.trim().toLowerCase();
@@ -95,23 +126,43 @@ export default function EditProfileScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.root}>
-      <ScreenBackground />
+    <AppScreen>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.header}>
           <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={{ fontSize: 16, color: colors.ink }}>←</Text>
+            <Text style={{ fontSize: 16, color: colors.appCanvas.text }}>←</Text>
           </PressScale>
           <Text style={styles.headerTitle}>Mon compte</Text>
         </View>
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+          <Text style={styles.sectionLabel}>Photo de profil</Text>
+          <View style={[styles.card, styles.photoCard]}>
+            <PressScale scaleTo={0.96} onPress={changePhoto} disabled={photoLoading} style={styles.photoWrap}>
+              <ProfileAvatar emoji={profile.avatarEmoji} photoUrl={profile.avatarUrl} size={88} />
+              <View style={styles.photoAdd}>
+                <Text style={{ fontSize: 14, fontWeight: '900', color: colors.ink }}>+</Text>
+              </View>
+            </PressScale>
+            <Text style={styles.hint}>Visible sur ton profil Moi et l&apos;écran de confirmation avant envoi.</Text>
+            <GlowButton
+              label={photoLoading ? '…' : profile.avatarUrl ? 'Changer la photo' : 'Ajouter une photo'}
+              onPress={changePhoto}
+              disabled={photoLoading}
+            />
+            {profile.avatarUrl ? (
+              <PressScale scaleTo={0.95} onPress={removePhoto} style={{ alignSelf: 'center' }}>
+                <Text style={styles.link}>Retirer la photo</Text>
+              </PressScale>
+            ) : null}
+          </View>
+
           <Text style={styles.sectionLabel}>Identité</Text>
           <View style={styles.card}>
             <Text style={styles.fieldLabel}>Nom</Text>
             <Text style={styles.fieldValue}>{profile.name || '—'}</Text>
             <Text style={styles.fieldLabel}>@handle</Text>
-            <Text style={styles.fieldValue}>@{String(profile.handle ?? '').replace(/^@+/, '') || '—'}</Text>
+            <Text style={styles.fieldValue}>@{profile.handle || '—'}</Text>
           </View>
 
           <Text style={styles.sectionLabel}>Téléphone</Text>
@@ -130,7 +181,7 @@ export default function EditProfileScreen({ navigation }) {
                   <TextInput
                     style={styles.input}
                     placeholder="77 000 00 00"
-                    placeholderTextColor={'rgba(5,8,5,0.45)'}
+                    placeholderTextColor={colors.whiteA30}
                     keyboardType="number-pad"
                     value={newPhone}
                     onChangeText={(v) => setNewPhone(v.replace(/[^0-9]/g, ''))}
@@ -155,7 +206,7 @@ export default function EditProfileScreen({ navigation }) {
                 <TextInput
                   style={styles.input}
                   placeholder="000000"
-                  placeholderTextColor={'rgba(5,8,5,0.45)'}
+                  placeholderTextColor={colors.whiteA30}
                   keyboardType="number-pad"
                   value={otp}
                   onChangeText={(v) => setOtp(v.replace(/[^0-9]/g, '').slice(0, 6))}
@@ -175,7 +226,7 @@ export default function EditProfileScreen({ navigation }) {
             <TextInput
               style={styles.input}
               placeholder="ton@email.com"
-              placeholderTextColor={'rgba(5,8,5,0.45)'}
+              placeholderTextColor={colors.whiteA30}
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -194,38 +245,52 @@ export default function EditProfileScreen({ navigation }) {
           {loading ? <ActivityIndicator color={colors.green} style={{ marginTop: spacing.lg }} /> : null}
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f2f8ec' },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, paddingHorizontal: spacing.xxl, paddingVertical: spacing.lg },
-  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: fontFamily.displayBold, fontSize: 16, color: colors.ink },
+  backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.appCanvas.surface, borderWidth: 1, borderColor: colors.appCanvas.border, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontFamily: fontFamily.displayBold, fontSize: 16, color: colors.appCanvas.text },
   body: { padding: spacing.xxl, paddingBottom: spacing.giant, gap: spacing.md },
-  sectionLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginTop: spacing.md },
-  card: { backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', borderRadius: radius.xl, padding: spacing.xl, gap: spacing.sm },
-  fieldLabel: { fontSize: 10, color: 'rgba(5,8,5,0.5)', fontWeight: '700' },
-  fieldValue: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink, marginBottom: spacing.sm },
-  hint: { fontSize: 11, color: 'rgba(5,8,5,0.5)', lineHeight: 16, marginBottom: spacing.sm },
+  sectionLabel: { ...appUi.sectionLabel, marginTop: spacing.md },
+  card: { backgroundColor: colors.appCanvas.surface, borderWidth: 1, borderColor: colors.appCanvas.border, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.sm },
+  photoCard: { alignItems: 'center' },
+  photoWrap: { position: 'relative', marginBottom: spacing.sm },
+  photoAdd: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.green,
+    borderWidth: 2,
+    borderColor: colors.appCanvas.base,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fieldLabel: { fontSize: 10, color: colors.appCanvas.textFaint, fontWeight: '700' },
+  fieldValue: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.appCanvas.text, marginBottom: spacing.sm },
+  hint: { fontSize: 11, color: colors.appCanvas.textMuted, lineHeight: 16, marginBottom: spacing.sm },
   bold: { fontFamily: fontFamily.bodyBold, color: colors.greenDark },
   phoneRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md },
-  dial: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink },
+  dial: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.appCanvas.text },
   input: {
     flex: 1,
     height: 48,
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: colors.appCanvas.surfaceStrong,
     borderWidth: 1,
-    borderColor: 'rgba(5,8,5,0.1)',
+    borderColor: colors.appCanvas.border,
     paddingHorizontal: spacing.lg,
     fontSize: 15,
-    color: colors.ink,
+    color: colors.appCanvas.text,
     marginBottom: spacing.md,
   },
-  devOtp: { backgroundColor: 'rgba(255,100,34,0.15)', borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.md },
-  devOtpLabel: { fontSize: 10, color: colors.terracotta, fontWeight: '700' },
-  devOtpCode: { fontFamily: fontFamily.displayBlack, fontSize: 24, color: colors.terracotta, letterSpacing: 4 },
+  devOtp: { backgroundColor: colors.orangeA10, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.md },
+  devOtpLabel: { fontSize: 10, color: colors.orange, fontWeight: '700' },
+  devOtpCode: { fontFamily: fontFamily.displayBlack, fontSize: 24, color: colors.orange, letterSpacing: 4 },
   link: { fontSize: 12, color: colors.greenDark, fontWeight: '700' },
 });

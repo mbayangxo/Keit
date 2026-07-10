@@ -32,6 +32,19 @@
           "organization": "k21",
           "project": "k21-mobile"
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "K21 utilise le micro pour les messages vocaux dans Mboolo."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "K21 accède à tes photos pour les envoyer dans Mboolo.",
+          "cameraPermission": "K21 utilise la caméra pour envoyer des photos dans Mboolo."
+        }
       ]
     ]
   }

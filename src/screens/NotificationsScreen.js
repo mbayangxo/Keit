@@ -15,14 +15,14 @@ function inferKind(notification) {
   if (t.includes('mboolo') || t.includes('message')) return 'mboolo';
   if (t.includes('événement') || t.includes('event') || t.includes('concert')) return 'event';
   if (t.includes('tontine')) return 'tontine';
-  if (t.includes('wakhna')) return 'wakhna';
+  if (t.includes('ngor') || t.includes('kersa') || t.includes('wakhna')) return 'ngor';
   return 'generic';
 }
 
 function mapNotification(n) {
   const kind = inferKind(n);
-  const icons = { money: '💸', mboolo: '💬', event: '🎉', tontine: '🏦', wakhna: '✦', generic: '🔔' };
-  const accents = { money: 'g', mboolo: 'r', event: 'o', tontine: 'y', wakhna: 'g', generic: 'g' };
+  const icons = { money: '💸', mboolo: '💬', event: '🎉', tontine: '🏦', ngor: '✦', generic: '🔔' };
+  const accents = { money: 'g', mboolo: 'r', event: 'o', tontine: 'y', ngor: 'g', generic: 'g' };
   const time = new Date(n.createdAt).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   return {
     id: n.id,
@@ -98,7 +98,7 @@ export default function NotificationsScreen({ navigation }) {
         navigation.navigate('Main', { screen: 'MbooloTab' });
         break;
       case 'event':
-        navigation.navigate('Main', { screen: 'ExplorerTab', params: { initialTab: 'Events' } });
+        navigation.navigate('Main', { screen: 'DiscoverTab', params: { initialTab: 'Events' } });
         break;
       case 'money':
         navigation.navigate('Receive');
@@ -106,6 +106,8 @@ export default function NotificationsScreen({ navigation }) {
       case 'tontine':
         navigation.navigate('Tontine');
         break;
+      case 'ngor':
+      case 'kersa':
       case 'wakhna':
         navigation.navigate('Main', { screen: 'MoiTab' });
         break;

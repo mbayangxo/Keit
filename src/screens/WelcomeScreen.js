@@ -280,7 +280,7 @@ export default function WelcomeScreen({ onComplete }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f2f8ec' },
+  root: { flex: 1, backgroundColor: colors.appCanvas.base },
   frame: { flex: 1, width: '100%', maxWidth: 420, alignSelf: 'center' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xxl, paddingTop: spacing.lg },
   brandMark: { fontFamily: fontFamily.displayBlack, fontSize: 17, letterSpacing: -0.5 },

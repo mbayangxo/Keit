@@ -231,6 +231,22 @@ export function getMe() {
   return apiFetch('/api/me', { skipCache: true });
 }
 
+export function getMeSummary() {
+  return apiFetch('/api/me/summary', { skipCache: true });
+}
+
+export function getStudentPass() {
+  return apiFetch('/api/me/student-pass', { skipCache: true });
+}
+
+export function enrollStudentPass(schoolName) {
+  return apiFetch('/api/me/student-pass', {
+    method: 'POST',
+    body: { schoolName },
+    skipCache: true,
+  });
+}
+
 export function patchMe(body) {
   return apiFetch('/api/me', { method: 'PATCH', body, skipCache: true });
 }
@@ -335,6 +351,14 @@ export function purchaseEventTickets(eventId, quantity = 1) {
 export function getProducts(category) {
   const q = category ? `?category=${encodeURIComponent(category)}` : '';
   return apiFetch(`/api/products${q}`, { skipCache: true });
+}
+
+export function createProduct(body) {
+  return apiFetch('/api/products', { method: 'POST', body, skipCache: true });
+}
+
+export function registerSellerProfile(body) {
+  return apiFetch('/api/sellers/profile', { method: 'POST', body, skipCache: true });
 }
 
 export function getBusinesses(category) {
@@ -587,5 +611,34 @@ export function kycSubmitAddress({ addressLine, city, region }) {
   return apiFetch('/api/kyc/address/submit', {
     method: 'POST',
     body: { addressLine, city, region },
+  });
+}
+
+export function getNearbyDeliveries(query = {}) {
+  const params = new URLSearchParams(query);
+  const q = params.toString() ? `?${params}` : '';
+  return apiFetch(`/api/deliveries/nearby${q}`, { skipCache: true });
+}
+
+export function acceptDelivery(deliveryId) {
+  return apiFetch(`/api/deliveries/${encodeURIComponent(deliveryId)}/accept`, {
+    method: 'POST',
+    skipCache: true,
+  });
+}
+
+export function registerDriverProfile(body = {}) {
+  return apiFetch('/api/drivers/profile', {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function requestDelivery(body) {
+  return apiFetch('/api/deliveries', {
+    method: 'POST',
+    body,
+    skipCache: true,
   });
 }

@@ -6,6 +6,7 @@ const DEFAULTS = {
   countryCode: 'SN',
   languageCode: 'fr',
   onboardingIntent: null,
+  showMovementTab: false,
 };
 
 async function getItem(key) {

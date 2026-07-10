@@ -80,44 +80,63 @@ export const colors = {
   redA06: 'rgba(232,25,44,0.06)',
   redA08: 'rgba(232,25,44,0.08)',
 
-  // ── Onboarding / auth flow — warm light orange shell; orange + ink + green only ──
+  // ── Unified app canvas — one bright background for every screen ──
+  appCanvas: {
+    base: '#f2f8ec',
+    baseDeep: '#edf6e4',
+    surface: 'rgba(255,255,255,0.78)',
+    surfaceStrong: 'rgba(255,255,255,0.92)',
+    border: 'rgba(5,8,5,0.08)',
+    borderStrong: 'rgba(5,8,5,0.12)',
+    text: '#050805',
+    textMuted: 'rgba(5,8,5,0.55)',
+    textFaint: 'rgba(5,8,5,0.4)',
+    greenGlow: 'rgba(26,240,96,0.16)',
+    goldGlow: 'rgba(247,183,49,0.18)',
+    orangeGlow: 'rgba(255,100,34,0.14)',
+  },
+
+  // ── Onboarding / auth flow — same warm bright family as main app ──
   onboarding: {
-    bg: '#FFF0E6',
-    bgDeep: '#FFE4D4',
+    bg: '#f2f8ec',
+    bgDeep: '#edf6e4',
     surface: '#FFFFFF',
     ink: '#050805',
     green: '#1af060',
+    gold: '#f7b731',
     orange: '#ff6422',
     muted: 'rgba(5,8,5,0.55)',
     faint: 'rgba(5,8,5,0.35)',
     border: 'rgba(5,8,5,0.12)',
-    greenSoft: 'rgba(26,240,96,0.14)',
+    greenSoft: 'rgba(26,240,96,0.16)',
     orangeSoft: 'rgba(255,100,34,0.14)',
+    goldSoft: 'rgba(247,183,49,0.16)',
     greenBorder: 'rgba(26,240,96,0.35)',
     orangeBorder: 'rgba(255,100,34,0.35)',
+    goldBorder: 'rgba(247,183,49,0.35)',
   },
 
-  // ── Mboolo Bright palette — warm white world, ONLY inside Mboolo screens ──
+  // ── Mboolo — same canvas as the rest of K21 (no separate warm-white world) ──
   mboolo: {
-    bg: '#fff9f4',        // --bg — warm white, paper in sunlight
-    bg2: '#fff3e8',       // --bg2
-    terra: '#e85c1a',
-    terraDark: '#c44010',
+    bg: '#f2f8ec',
+    bg2: '#edf6e4',
+    terra: '#ff6422',
+    terraDark: '#e85c1a',
     terraLight: '#ff8c52',
-    terraPale: '#fff0e6',
-    mango: '#ffb347',
+    terraPale: 'rgba(255,100,34,0.12)',
+    mango: '#f7b731',
     mangoDark: '#e8920a',
-    mangoPale: '#fff8e6',
+    mangoPale: 'rgba(247,183,49,0.14)',
     green: '#1af060',
     greenDark: '#0fbc48',
-    greenPale: '#e8fff0',
+    greenPale: 'rgba(26,240,96,0.14)',
     red: '#e8192c',
-    redPale: '#fff0f1',
-    ink: '#1a0e08',       // warm dark text
-    ink2: '#5a3a28',      // secondary text
-    ink3: '#c4845a',      // muted warm text
-    border: 'rgba(232,92,26,0.15)',
-    shadow: 'rgba(180,60,10,0.12)',
+    redPale: 'rgba(232,25,44,0.1)',
+    ink: '#050805',
+    ink2: 'rgba(5,8,5,0.65)',
+    ink3: 'rgba(5,8,5,0.45)',
+    border: 'rgba(5,8,5,0.1)',
+    shadow: 'rgba(5,8,5,0.08)',
   },
 };
 
@@ -150,7 +169,7 @@ export const type = {
   balanceAmount: { fontFamily: fontFamily.displayBlack, fontSize: 44, letterSpacing: -3, lineHeight: 44 }, // .bd-amount
   amountKeypad: { fontFamily: fontFamily.displayBlack, fontSize: 52, letterSpacing: -3, lineHeight: 52 },  // .ah-num
   confirmAmount: { fontFamily: fontFamily.displayBlack, fontSize: 54, letterSpacing: -3, lineHeight: 54 }, // .cs-amount
-  wakhnaScore: { fontFamily: fontFamily.displayBlack, fontSize: 28, letterSpacing: -1, lineHeight: 28 },   // .wm-score
+  ngorScore: { fontFamily: fontFamily.displayBlack, fontSize: 28, letterSpacing: -1, lineHeight: 28 },
   screenTitle: { fontFamily: fontFamily.displayBlack, fontSize: 16, letterSpacing: -0.4 },
   cardTitle: { fontFamily: fontFamily.displayBlack, fontSize: 14 },
   sqValue: { fontFamily: fontFamily.displayBlack, fontSize: 16, letterSpacing: -0.5, lineHeight: 16 },
@@ -232,7 +251,7 @@ export const motion = {
   entrance: 400,  // card scale-in (.4s)
   reveal: 500,    // success ring pop (.5s)
   count: 1000,    // amount count-up (1s)
-  fill: 1200,     // wakhna bar fill (1.2s)
+  fill: 1200,     // ngor bar fill (1.2s)
   breatheFast: 800,   // dot-blink (.8s)
   breathe: 2000,      // play-pulse (2s)
   breatheSlow: 2500,  // btn-g glow pulse (2.5s)

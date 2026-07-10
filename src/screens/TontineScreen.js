@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import PressScale from '../components/PressScale';
-import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import WaxPattern from '../components/WaxPattern';
 import StepTransition from '../components/StepTransition';
@@ -12,15 +11,20 @@ import ScreenHeader from '../components/ScreenHeader';
 import AmountChips from '../components/AmountChips';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
-import { createTontineGroup, getTontineGroups, releaseTontinePot } from '../lib/api-client';
+import { createTontineGroup, getTontineGroups, lookupUser, releaseTontinePot } from '../lib/api-client';
+import { parseK21Qr } from '../lib/k21-qr';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
-import { useBlink, useEntrance, useFillIn } from '../hooks/animations';
+import { useBlink, useEntrance, useFillIn, usePopIn } from '../hooks/animations';
 
 // design/k21-four-flows.html, FLOW 1 — TONTINE DIGITALE (Screens T1-T3):
 // My Tontines list -> Create Group -> Pot Release.
 
 const AMOUNT_CHIPS = ['10k F', '25k F', '50k F', '100k F'];
 const FREQ_OPTIONS = ['Hebdo', 'Mensuel', 'Bi-mensuel'];
+const AMOUNT_MAP = { '10k F': 10000, '25k F': 25000, '50k F': 50000, '100k F': 100000 };
+const RING_SIZE = 220;
+const RING_RADIUS = 82;
+const AVATAR_SIZE = 48;
 
 function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ /g, ' ');
@@ -77,13 +81,13 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
           end={{ x: 0.8, y: 1 }}
           style={styles.hero}
         >
-          <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
+          <WaxPattern color="rgba(255,255,255,0.06)" size={18} animated={false} />
           <ScreenHeader onBack={onBack} style={styles.topRow} />
           <Animated.View style={heroEntrance}>
             <View style={styles.flagStripe}>
               <View style={[styles.flagBar, { backgroundColor: colors.green }]} />
               <View style={[styles.flagBar, { backgroundColor: colors.flagGold }]} />
-              <View style={[styles.flagBar, { backgroundColor: colors.terracotta }]} />
+              <View style={[styles.flagBar, { backgroundColor: colors.flagRed }]} />
             </View>
             <Text style={styles.eyebrow}>TONTINE DIGITALE</Text>
             <Text style={styles.title}>Mes groupes</Text>
@@ -95,7 +99,7 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
                 <Text style={styles.statLabel}>Tontines actives</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={[styles.statNum, { color: colors.terracotta, fontSize: 13 }]}>Ce mois</Text>
+                <Text style={[styles.statNum, { color: colors.flagRed, fontSize: 13 }]}>Ce mois</Text>
                 <Text style={styles.statLabel}>{formatAmount(receivedThisMonth)} F reçu</Text>
               </View>
               <View style={styles.statBox}>
@@ -114,7 +118,7 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
 
         <View style={styles.groupsList}>
           {!loading && groups.length === 0 && (
-            <Text style={{ textAlign: 'center', color: 'rgba(5,8,5,0.5)', fontSize: 12, padding: spacing.xxl }}>
+            <Text style={{ textAlign: 'center', color: colors.whiteA40, fontSize: 12, padding: spacing.xxl }}>
               Aucune tontine — crée ton premier groupe ci-dessous.
             </Text>
           )}
@@ -124,15 +128,15 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
               item={{
                 key: g.id,
                 icon: '🏆',
-                iconBg: g.isMyTurn ? 'rgba(232,92,26,0.12)' : 'rgba(26,240,96,0.08)',
+                iconBg: g.isMyTurn ? 'rgba(232,25,44,0.12)' : 'rgba(26,240,96,0.08)',
                 name: g.name,
                 members: g.memberCount,
                 perMonth: g.amountPerMember,
                 total: g.potBalance || g.expectedPot,
                 totalLabel: g.potBalance > 0 ? 'F dans le pot' : 'F attendus',
-                totalColor: g.isMyTurn ? colors.terracotta : colors.green,
+                totalColor: g.isMyTurn ? colors.flagRed : colors.green,
                 progress: g.expectedPot ? Math.round((g.potBalance / g.expectedPot) * 100) : 0,
-                progressColor: g.isMyTurn ? colors.terracotta : colors.green,
+                progressColor: g.isMyTurn ? colors.flagRed : colors.green,
                 releasing: g.isMyTurn,
                 raw: g,
               }}
@@ -176,26 +180,191 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
   );
 }
 
-function CreateStep({ onBack, onCreate, creating }) {
+function displayHandle(handle) {
+  const h = String(handle ?? '').replace(/^@/, '');
+  return h ? `@${h}` : '';
+}
+
+function ringPosition(index, total) {
+  const angle = (index / Math.max(total, 1)) * 2 * Math.PI - Math.PI / 2;
+  const center = RING_SIZE / 2;
+  const half = AVATAR_SIZE / 2;
+  return {
+    left: center + RING_RADIUS * Math.cos(angle) - half,
+    top: center + RING_RADIUS * Math.sin(angle) - half,
+  };
+}
+
+function MemberRing({ members, creatorLabel, onRemove }) {
+  const slots = members.length;
+  return (
+    <View style={styles.ringWrap}>
+      <View style={[styles.ringTrack, { width: RING_SIZE, height: RING_SIZE }]}>
+        <View style={styles.ringCenter}>
+          <Text style={styles.ringCount}>{slots + 1}</Text>
+          <Text style={styles.ringCountLabel}>membres{'\n'}avec toi</Text>
+        </View>
+        {members.map((m, i) => {
+          const pos = ringPosition(i, slots);
+          return (
+            <View key={m.handle} style={[styles.ringAvatarSlot, pos]}>
+              <View style={styles.ringAvatar}>
+                <Text style={{ fontSize: 22 }}>{m.avatarEmoji ?? '👤'}</Text>
+              </View>
+              <PressScale scaleTo={0.88} onPress={() => onRemove(m.handle)} style={styles.ringRemove}>
+                <Text style={styles.ringRemoveText}>×</Text>
+              </PressScale>
+              <Text style={styles.ringAvatarName} numberOfLines={1}>
+                {m.name?.split(' ')[0] ?? m.handle}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+      {creatorLabel ? <Text style={styles.ringCreatorNote}>Toi ({creatorLabel}) es déjà dans le groupe</Text> : null}
+    </View>
+  );
+}
+
+function MemberPreviewCard({ profile, onAdd, onDismiss, adding }) {
+  const pop = usePopIn(0, 280, 0.92);
+  if (!profile) return null;
+  return (
+    <Animated.View style={[styles.memberPreview, pop]}>
+      <View style={styles.memberPreviewAva}>
+        <Text style={{ fontSize: 28 }}>{profile.avatarEmoji ?? '👤'}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.memberPreviewName}>{profile.name}</Text>
+        <Text style={styles.memberPreviewHandle}>{displayHandle(profile.handle)}</Text>
+        {profile.arrondissement?.name ? (
+          <Text style={styles.memberPreviewMeta}>
+            {profile.arrondissement.icon} {profile.arrondissement.name}
+          </Text>
+        ) : null}
+      </View>
+      <View style={styles.memberPreviewActions}>
+        <PressScale scaleTo={0.94} onPress={onAdd} disabled={adding} style={styles.memberPreviewAdd}>
+          <Text style={styles.memberPreviewAddText}>{adding ? '…' : '+ Ajouter'}</Text>
+        </PressScale>
+        <PressScale scaleTo={0.94} onPress={onDismiss}>
+          <Text style={styles.memberPreviewDismiss}>✕</Text>
+        </PressScale>
+      </View>
+    </Animated.View>
+  );
+}
+
+function CreateStep({ navigation, creatorHandle, pendingMember, onConsumePendingMember, onBack, onCreate, creating }) {
+  const showToast = useToast();
   const [name, setName] = useState('');
   const [amountChip, setAmountChip] = useState('25k F');
   const [freq, setFreq] = useState('Mensuel');
-  const [memberHandles, setMemberHandles] = useState('');
+  const [members, setMembers] = useState([]);
+  const [searchMode, setSearchMode] = useState('handle');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchProfile, setSearchProfile] = useState(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState('');
+  const lookupTimer = useRef(null);
 
-  const amountMap = { '10k F': 10000, '25k F': 25000, '50k F': 50000, '100k F': 100000 };
+  const normalizeHandle = (h) => String(h ?? '').replace(/^@/, '').trim().toLowerCase();
+
+  const isDuplicate = useCallback(
+    (handle) => {
+      const h = normalizeHandle(handle);
+      if (!h) return true;
+      if (h === normalizeHandle(creatorHandle)) return true;
+      return members.some((m) => normalizeHandle(m.handle) === h);
+    },
+    [members, creatorHandle],
+  );
+
+  const addMember = useCallback(
+    (profile) => {
+      const handle = normalizeHandle(profile?.handle);
+      if (!handle || isDuplicate(handle)) {
+        showToast('Cette personne est déjà dans le groupe');
+        return false;
+      }
+      setMembers((prev) => [
+        ...prev,
+        {
+          handle,
+          name: profile.name ?? handle,
+          avatarEmoji: profile.avatarEmoji ?? '👤',
+          arrondissement: profile.arrondissement,
+        },
+      ]);
+      setSearchProfile(null);
+      setSearchQuery('');
+      setLookupError('');
+      showToast(`${profile.name ?? handle} ajouté ✓`);
+      return true;
+    },
+    [isDuplicate, showToast],
+  );
+
+  const removeMember = (handle) => {
+    setMembers((prev) => prev.filter((m) => normalizeHandle(m.handle) !== normalizeHandle(handle)));
+  };
+
+  const runLookup = useCallback(
+    async (raw) => {
+      const trimmed = String(raw).trim();
+      if (trimmed.length < 3) {
+        setSearchProfile(null);
+        setLookupError('');
+        return;
+      }
+      const parsed = parseK21Qr(trimmed);
+      const query = parsed?.handle ? parsed.handle : trimmed.replace(/^@/, '');
+      setLookupLoading(true);
+      setLookupError('');
+      try {
+        const profile = await lookupUser(query);
+        if (isDuplicate(profile.handle)) {
+          setSearchProfile(null);
+          setLookupError('Déjà dans le groupe');
+          return;
+        }
+        setSearchProfile(profile);
+      } catch (err) {
+        setSearchProfile(null);
+        setLookupError(err.message ?? 'Personne introuvable');
+      } finally {
+        setLookupLoading(false);
+      }
+    },
+    [isDuplicate],
+  );
+
+  useEffect(() => {
+    if (lookupTimer.current) clearTimeout(lookupTimer.current);
+    lookupTimer.current = setTimeout(() => runLookup(searchQuery), 400);
+    return () => {
+      if (lookupTimer.current) clearTimeout(lookupTimer.current);
+    };
+  }, [searchQuery, runLookup]);
+
+  useEffect(() => {
+    if (pendingMember?.handle) {
+      addMember(pendingMember);
+      onConsumePendingMember?.();
+    }
+  }, [pendingMember, addMember, onConsumePendingMember]);
 
   const submit = () => {
-    const handles = memberHandles
-      .split(/[,;\s]+/)
-      .map((h) => h.replace(/^@/, '').trim())
-      .filter(Boolean);
     onCreate({
       name: name.trim(),
-      amountPerMember: amountMap[amountChip] ?? 25000,
+      amountPerMember: AMOUNT_MAP[amountChip] ?? 25000,
       frequency: freq,
-      memberHandles: handles,
+      memberHandles: members.map((m) => m.handle),
     });
   };
+
+  const perPerson = AMOUNT_MAP[amountChip] ?? 25000;
+  const totalMembers = members.length + 1;
 
   return (
     <View style={{ flex: 1 }}>
@@ -208,7 +377,69 @@ function CreateStep({ onBack, onCreate, creating }) {
             value={name}
             onChangeText={setName}
             style={[styles.fieldInput, name.length > 0 && styles.fieldInputFilled]}
-            placeholderTextColor={'rgba(5,8,5,0.45)'}
+            placeholder="Tontine Médina"
+            placeholderTextColor={colors.whiteA30}
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>Membres du groupe</Text>
+          <MemberRing members={members} creatorLabel={creatorHandle ? `@${creatorHandle}` : 'toi'} onRemove={removeMember} />
+
+          <View style={styles.searchModeRow}>
+            <PressScale
+              scaleTo={0.96}
+              onPress={() => setSearchMode('handle')}
+              style={[styles.searchModePill, searchMode === 'handle' && styles.searchModePillOn]}
+            >
+              <Text style={[styles.searchModeText, searchMode === 'handle' && styles.searchModeTextOn]}>@ Handle</Text>
+            </PressScale>
+            <PressScale
+              scaleTo={0.96}
+              onPress={() => setSearchMode('scan')}
+              style={[styles.searchModePill, searchMode === 'scan' && styles.searchModePillOn]}
+            >
+              <Text style={[styles.searchModeText, searchMode === 'scan' && styles.searchModeTextOn]}>📷 Scanner</Text>
+            </PressScale>
+          </View>
+
+          {searchMode === 'scan' ? (
+            <>
+              <PressScale
+                scaleTo={0.98}
+                onPress={() => navigation.navigate('QrScan', { mode: 'tontine_member' })}
+                style={styles.scanCard}
+              >
+                <Text style={{ fontSize: 28 }}>📷</Text>
+                <Text style={styles.scanCardTitle}>Scanner un QR K21</Text>
+                <Text style={styles.scanCardSub}>Le profil s'ajoute au cercle après le scan</Text>
+              </PressScale>
+              <Text style={styles.orSearchLabel}>ou colle @handle / k21://…</Text>
+            </>
+          ) : null}
+
+          <View style={styles.searchRow}>
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder={searchMode === 'scan' ? 'k21://pay/@fatou' : '@fatou'}
+              placeholderTextColor={colors.whiteA30}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={[styles.fieldInput, styles.searchInput, searchQuery.length > 0 && styles.fieldInputFilled]}
+            />
+            {lookupLoading ? <ActivityIndicator color={colors.green} style={{ marginLeft: spacing.sm }} /> : null}
+          </View>
+          {lookupError && !lookupLoading ? <Text style={styles.lookupError}>{lookupError}</Text> : null}
+
+          <MemberPreviewCard
+            profile={searchProfile}
+            onAdd={() => addMember(searchProfile)}
+            onDismiss={() => {
+              setSearchProfile(null);
+              setLookupError('');
+            }}
+            adding={false}
           />
         </View>
 
@@ -233,24 +464,14 @@ function CreateStep({ onBack, onCreate, creating }) {
           </View>
         </View>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>Membres (@handles, séparés par des espaces)</Text>
-          <TextInput
-            value={memberHandles}
-            onChangeText={setMemberHandles}
-            placeholder="@fatou @ibou"
-            placeholderTextColor={'rgba(5,8,5,0.45)'}
-            autoCapitalize="none"
-            style={[styles.fieldInput, memberHandles.length > 0 && styles.fieldInputFilled]}
-          />
-        </View>
-
         <View style={styles.previewCard}>
           <View style={styles.previewRow}>
             <Text style={styles.previewLabel}>Pot par cycle</Text>
-            <Text style={[styles.previewValue, { color: colors.greenDark }]}>
-              {formatAmount((amountMap[amountChip] ?? 25000) * Math.max(1, memberHandles.split(/\s+/).filter(Boolean).length + 1))} F
-            </Text>
+            <Text style={[styles.previewValue, { color: colors.green }]}>{formatAmount(perPerson * totalMembers)} F</Text>
+          </View>
+          <View style={styles.previewRow}>
+            <Text style={styles.previewLabel}>Membres</Text>
+            <Text style={styles.previewValue}>{totalMembers}</Text>
           </View>
           <View style={styles.previewRow}>
             <Text style={styles.previewLabel}>Fréquence</Text>
@@ -259,11 +480,18 @@ function CreateStep({ onBack, onCreate, creating }) {
           <View style={styles.previewDivider} />
           <View style={styles.previewRow}>
             <Text style={styles.previewLabel}>Collecte auto</Text>
-            <Text style={[styles.previewValue, { color: colors.greenDark }]}>✓ Activée</Text>
+            <Text style={[styles.previewValue, { color: colors.green }]}>✓ Activée</Text>
           </View>
         </View>
 
-        <GlowButton label={creating ? 'Création…' : 'Créer le groupe →'} onPress={submit} disabled={creating || name.trim().length < 2} />
+        <GlowButton
+          label={creating ? 'Création…' : 'Créer le groupe →'}
+          onPress={submit}
+          disabled={creating || name.trim().length < 2 || members.length < 1}
+        />
+        {members.length < 1 ? (
+          <Text style={styles.createHint}>Ajoute au moins 1 membre avec @handle ou le scanner</Text>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -278,7 +506,7 @@ function ReleaseStep({ group, onBack, onReceive, receiving }) {
     <View style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.releaseHero}>
-          <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
+          <WaxPattern color="rgba(255,255,255,0.06)" size={18} animated={false} />
           <ScreenHeader onBack={onBack} style={styles.topRow} />
           <Animated.View style={[{ alignItems: 'center' }, heroEntrance]}>
             <View style={styles.releaseBadgeBig}>
@@ -311,7 +539,7 @@ function ReleaseStep({ group, onBack, onReceive, receiving }) {
                   style={[
                     styles.potOrderText,
                     m.rotationOrder === group.rotationIndex && { color: colors.ink },
-                    m.hasReceivedPayout && { color: colors.greenDark },
+                    m.hasReceivedPayout && { color: colors.green },
                   ]}
                 >
                   {m.hasReceivedPayout ? '✓' : m.rotationOrder + 1}
@@ -334,15 +562,24 @@ function ReleaseStep({ group, onBack, onReceive, receiving }) {
   );
 }
 
-export default function TontineScreen({ navigation }) {
+export default function TontineScreen({ navigation, route }) {
   const showToast = useToast();
+  const { profile, refreshWallet } = useAppState();
   const [step, setStep] = useState('home');
   const [groups, setGroups] = useState([]);
   const [activeGroup, setActiveGroup] = useState(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [receiving, setReceiving] = useState(false);
-  const { refreshWallet } = useAppState();
+  const [pendingMember, setPendingMember] = useState(null);
+
+  useEffect(() => {
+    if (route.params?.pickedMember) {
+      setPendingMember(route.params.pickedMember);
+      setStep('create');
+      navigation.setParams({ pickedMember: undefined });
+    }
+  }, [route.params?.pickedMember, navigation]);
 
   const loadGroups = useCallback(async () => {
     setLoading(true);
@@ -405,7 +642,6 @@ export default function TontineScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-      <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {step === 'home' && (
           <StepTransition>
@@ -429,7 +665,15 @@ export default function TontineScreen({ navigation }) {
         )}
         {step === 'create' && (
           <StepTransition>
-            <CreateStep onBack={() => setStep('home')} onCreate={createGroup} creating={creating} />
+            <CreateStep
+              navigation={navigation}
+              creatorHandle={profile.handle}
+              pendingMember={pendingMember}
+              onConsumePendingMember={() => setPendingMember(null)}
+              onBack={() => setStep('home')}
+              onCreate={createGroup}
+              creating={creating}
+            />
           </StepTransition>
         )}
         {step === 'release' && activeGroup && (
@@ -443,7 +687,7 @@ export default function TontineScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f2f8ec' },
+  root: { flex: 1, backgroundColor: colors.ink },
 
   topRow: { paddingHorizontal: spacing.huge, paddingTop: spacing.xl },
 
@@ -451,96 +695,198 @@ const styles = StyleSheet.create({
   hero: { paddingHorizontal: spacing.huge, paddingBottom: spacing.xxl, position: 'relative', overflow: 'hidden', borderBottomWidth: 1, borderBottomColor: colors.greenA15 },
   flagStripe: { flexDirection: 'row', height: 2, borderRadius: 1, overflow: 'hidden', width: 48, marginTop: spacing.xl, marginBottom: spacing.lg },
   flagBar: { flex: 1 },
-  eyebrow: { ...type.eyebrow, color: colors.greenDark, marginBottom: spacing.xs },
-  title: { fontFamily: fontFamily.displayBlack, fontSize: 22, letterSpacing: -0.8, color: colors.ink, marginBottom: 2 },
-  sub: { fontSize: 12, color: 'rgba(5,8,5,0.5)' },
+  eyebrow: { ...type.eyebrow, color: colors.green, marginBottom: spacing.xs },
+  title: { fontFamily: fontFamily.displayBlack, fontSize: 22, letterSpacing: -0.8, color: colors.white, marginBottom: 2 },
+  sub: { fontSize: 12, color: colors.whiteA40 },
   statsRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl },
-  statBox: { flex: 1, backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', borderRadius: radius.lg, padding: spacing.md, alignItems: 'center' },
-  statNum: { fontFamily: fontFamily.displayBlack, fontSize: 18, fontWeight: '900', color: colors.greenDark, letterSpacing: -0.5 },
-  statLabel: { fontSize: 10, color: 'rgba(5,8,5,0.5)', marginTop: 2, textAlign: 'center' },
+  statBox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: colors.greenA15, borderRadius: radius.lg, padding: spacing.md, alignItems: 'center' },
+  statNum: { fontFamily: fontFamily.displayBlack, fontSize: 18, fontWeight: '900', color: colors.green, letterSpacing: -0.5 },
+  statLabel: { fontSize: 10, color: colors.whiteA40, marginTop: 2, textAlign: 'center' },
 
   groupsList: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.md, gap: spacing.md },
 
   howItWorks: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.xxl },
-  howLabel: { ...type.eyebrow, color: 'rgba(5,8,5,0.45)', marginBottom: spacing.md },
-  howRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.07)', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  howLabel: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.md },
+  howRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   howIcon: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.greenA08, alignItems: 'center', justifyContent: 'center' },
-  howText: { flex: 1, fontSize: 11, color: 'rgba(5,8,5,0.5)', lineHeight: 16 },
-  groupItem: { borderRadius: radius.xl, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)' },
-  groupItemReleasing: { borderColor: 'rgba(232,92,26,0.3)' },
+  howText: { flex: 1, fontSize: 11, color: colors.whiteA40, lineHeight: 16 },
+  groupItem: { borderRadius: radius.xl, overflow: 'hidden', borderWidth: 1, borderColor: colors.whiteA08 },
+  groupItemReleasing: { borderColor: 'rgba(232,25,44,0.3)' },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, backgroundColor: 'rgba(255,255,255,0.03)' },
-  groupHeaderReleasing: { backgroundColor: 'rgba(232,92,26,0.1)' },
+  groupHeaderReleasing: { backgroundColor: 'rgba(232,25,44,0.1)' },
   groupIcon: { width: 40, height: 40, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
-  groupName: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink, marginBottom: 2 },
+  groupName: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white, marginBottom: 2 },
   groupMetaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.xs },
-  groupMeta: { fontSize: 10, color: 'rgba(5,8,5,0.45)' },
-  releaseBadge: { backgroundColor: colors.terracotta, borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 2 },
-  releaseBadgeText: { fontSize: 8, fontWeight: '700', letterSpacing: 0.5, color: colors.ink, textTransform: 'uppercase' },
+  groupMeta: { fontSize: 10, color: colors.whiteA35 },
+  releaseBadge: { backgroundColor: colors.flagRed, borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 2 },
+  releaseBadgeText: { fontSize: 8, fontWeight: '700', letterSpacing: 0.5, color: colors.white, textTransform: 'uppercase' },
   groupAmountBox: { alignItems: 'flex-end' },
   groupAmount: { fontFamily: fontFamily.displayBlack, fontSize: 14, fontWeight: '900' },
-  groupAmountLabel: { fontSize: 10, color: 'rgba(5,8,5,0.5)' },
-  progressTrack: { height: 3, backgroundColor: 'rgba(255,255,255,0.75)' },
+  groupAmountLabel: { fontSize: 10, color: colors.whiteA40 },
+  progressTrack: { height: 3, backgroundColor: colors.whiteA08 },
 
   footer: { paddingHorizontal: spacing.huge, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   createBtn: { marginHorizontal: 0, height: 48, borderRadius: radius.xl, backgroundColor: colors.greenA08, borderWidth: 1.5, borderColor: colors.greenA20, alignItems: 'center', justifyContent: 'center' },
-  createBtnText: { fontFamily: fontFamily.displayBlack, fontSize: 10, fontWeight: '900', letterSpacing: 0.5, color: colors.greenDark },
+  createBtnText: { fontFamily: fontFamily.displayBlack, fontSize: 10, fontWeight: '900', letterSpacing: 0.5, color: colors.green },
 
   // Create
   createScroll: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.giant, gap: 0 },
   createHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, marginBottom: spacing.xxl },
-  createTitle: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.ink },
+  createTitle: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.white },
   fieldGroup: { marginBottom: spacing.lg },
-  fieldLabel: { ...type.eyebrow, color: 'rgba(5,8,5,0.45)', marginBottom: spacing.sm },
-  fieldInput: { width: '100%', height: 50, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.75)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)', paddingHorizontal: spacing.xl, fontFamily: fontFamily.bodyRegular, fontSize: 14, color: colors.ink },
+  fieldLabel: { ...type.eyebrow, color: colors.whiteA30, marginBottom: spacing.sm },
+  fieldInput: { width: '100%', height: 50, borderRadius: radius.lg, backgroundColor: colors.whiteA08, borderWidth: 1.5, borderColor: colors.whiteA12, paddingHorizontal: spacing.xl, fontFamily: fontFamily.bodyRegular, fontSize: 14, color: colors.white },
   fieldInputFilled: { borderColor: colors.greenA25 },
   chipsRow: { gap: spacing.sm, flexWrap: 'wrap' },
   freqRow: { flexDirection: 'row', gap: spacing.sm },
-  freqOpt: { flex: 1, height: 44, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.09)', alignItems: 'center', justifyContent: 'center' },
+  freqOpt: { flex: 1, height: 44, borderRadius: radius.lg, backgroundColor: colors.whiteA06, borderWidth: 1.5, borderColor: colors.whiteA10, alignItems: 'center', justifyContent: 'center' },
   freqOptOn: { backgroundColor: 'rgba(250,216,54,0.1)', borderColor: 'rgba(250,216,54,0.3)' },
-  freqText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.ink },
-  freqTextOn: { color: colors.goldDark },
+  freqText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.white },
+  freqTextOn: { color: colors.flagGold },
   memberList: { gap: spacing.xs, marginBottom: spacing.sm },
-  memberItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  memberItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   memberAva: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  memberName: { flex: 1, fontFamily: fontFamily.bodyMedium, fontSize: 12, color: colors.ink },
+  memberName: { flex: 1, fontFamily: fontFamily.bodyMedium, fontSize: 12, color: colors.white },
   memberOrder: { backgroundColor: colors.greenA10, borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 2 },
-  memberOrderText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.greenDark },
-  addMember: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)', borderStyle: 'dashed', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  addMemberIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
-  addMemberText: { fontSize: 12, color: 'rgba(5,8,5,0.45)' },
+  memberOrderText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.green },
+  addMember: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1.5, borderColor: colors.whiteA12, borderStyle: 'dashed', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  addMemberIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
+  addMemberText: { fontSize: 12, color: colors.whiteA35 },
   previewCard: { backgroundColor: colors.greenA08, borderWidth: 1, borderColor: colors.greenA20, borderRadius: radius.xl, padding: spacing.lg, marginBottom: spacing.lg },
   previewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
-  previewLabel: { fontSize: 10, color: 'rgba(5,8,5,0.45)' },
-  previewValue: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.ink },
-  previewDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.75)', marginVertical: spacing.sm },
+  previewLabel: { fontSize: 10, color: colors.whiteA30 },
+  previewValue: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.white },
+  previewDivider: { height: 1, backgroundColor: colors.whiteA08, marginVertical: spacing.sm },
+  createHint: { fontSize: 11, color: colors.whiteA35, textAlign: 'center', marginTop: spacing.md },
+
+  ringWrap: { alignItems: 'center', marginBottom: spacing.lg },
+  ringTrack: {
+    position: 'relative',
+    borderRadius: RING_SIZE / 2,
+    borderWidth: 2,
+    borderColor: colors.greenA20,
+    borderStyle: 'dashed',
+    marginBottom: spacing.sm,
+    backgroundColor: colors.greenA05,
+  },
+  ringCenter: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  ringCount: { fontFamily: fontFamily.displayBlack, fontSize: 28, color: colors.green, letterSpacing: -1 },
+  ringCountLabel: { fontSize: 9, color: colors.whiteA40, textAlign: 'center', lineHeight: 12, marginTop: 2 },
+  ringAvatarSlot: { position: 'absolute', width: AVATAR_SIZE, alignItems: 'center' },
+  ringAvatar: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: colors.whiteA10,
+    borderWidth: 2,
+    borderColor: colors.greenA30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ringRemove: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.flagRed,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.ink,
+  },
+  ringRemoveText: { fontSize: 12, fontWeight: '900', color: colors.white, lineHeight: 14 },
+  ringAvatarName: { fontSize: 8, fontWeight: '700', color: colors.whiteA55, marginTop: 2, maxWidth: 56, textAlign: 'center' },
+  ringCreatorNote: { fontSize: 10, color: colors.whiteA35, textAlign: 'center' },
+
+  searchModeRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  searchModePill: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.lg,
+    backgroundColor: colors.whiteA06,
+    borderWidth: 1.5,
+    borderColor: colors.whiteA12,
+    alignItems: 'center',
+  },
+  searchModePillOn: { backgroundColor: colors.greenA08, borderColor: colors.greenA30 },
+  searchModeText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.whiteA40 },
+  searchModeTextOn: { color: colors.green },
+  scanCard: {
+    backgroundColor: colors.greenA08,
+    borderWidth: 1.5,
+    borderColor: colors.greenA25,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  scanCardTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.white, marginTop: spacing.sm },
+  scanCardSub: { fontSize: 10, color: colors.whiteA40, textAlign: 'center', marginTop: 4 },
+  orSearchLabel: { fontSize: 10, color: colors.whiteA30, textAlign: 'center', marginBottom: spacing.sm, fontWeight: '700' },
+  searchRow: { flexDirection: 'row', alignItems: 'center' },
+  searchInput: { flex: 1 },
+  lookupError: { fontSize: 11, color: colors.flagRed, marginTop: spacing.sm },
+  memberPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.xl,
+    backgroundColor: colors.greenA10,
+    borderWidth: 1.5,
+    borderColor: colors.greenA25,
+  },
+  memberPreviewAva: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.whiteA10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  memberPreviewName: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.white },
+  memberPreviewHandle: { fontSize: 11, color: colors.green, marginTop: 2 },
+  memberPreviewMeta: { fontSize: 10, color: colors.whiteA40, marginTop: 2 },
+  memberPreviewActions: { alignItems: 'flex-end', gap: spacing.sm },
+  memberPreviewAdd: {
+    backgroundColor: colors.green,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  memberPreviewAddText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.ink },
+  memberPreviewDismiss: { fontSize: 14, color: colors.whiteA40, paddingHorizontal: spacing.sm },
 
   // Release
-  releaseHero: { paddingBottom: spacing.xxl, position: 'relative', overflow: 'hidden', backgroundColor: 'rgba(232,92,26,0.1)', borderBottomWidth: 1, borderBottomColor: 'rgba(232,92,26,0.2)' },
-  releaseBadgeBig: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.terracotta, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, marginTop: spacing.xxl, marginBottom: spacing.xl },
+  releaseHero: { paddingBottom: spacing.xxl, position: 'relative', overflow: 'hidden', backgroundColor: 'rgba(232,25,44,0.1)', borderBottomWidth: 1, borderBottomColor: 'rgba(232,25,44,0.2)' },
+  releaseBadgeBig: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.flagRed, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, marginTop: spacing.xxl, marginBottom: spacing.xl },
   releaseDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.white },
-  releaseBadgeBigText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5, color: colors.ink, textTransform: 'uppercase' },
-  releaseName: { fontFamily: fontFamily.displayBlack, fontSize: 14, fontWeight: '900', color: colors.ink, marginBottom: spacing.md },
-  releaseAmount: { fontFamily: fontFamily.displayBlack, fontSize: 44, fontWeight: '900', letterSpacing: -2, color: colors.terracotta, lineHeight: 44 },
-  releaseCurr: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(232,92,26,0.5)' },
-  releaseRecipient: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginTop: spacing.md },
-  releaseRecipientBold: { fontFamily: fontFamily.bodyBold, color: colors.ink },
+  releaseBadgeBigText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5, color: colors.white, textTransform: 'uppercase' },
+  releaseName: { fontFamily: fontFamily.displayBlack, fontSize: 14, fontWeight: '900', color: colors.white, marginBottom: spacing.md },
+  releaseAmount: { fontFamily: fontFamily.displayBlack, fontSize: 44, fontWeight: '900', letterSpacing: -2, color: colors.flagRed, lineHeight: 44 },
+  releaseCurr: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(232,25,44,0.5)' },
+  releaseRecipient: { fontSize: 12, color: colors.whiteA40, marginTop: spacing.md },
+  releaseRecipientBold: { fontFamily: fontFamily.bodyBold, color: colors.white },
 
   potMembers: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.sm },
-  potMembersLabel: { ...type.eyebrow, color: 'rgba(5,8,5,0.4)', marginBottom: spacing.xs },
-  potMemberItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.07)', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  potMembersLabel: { ...type.eyebrow, color: colors.whiteA25, marginBottom: spacing.xs },
+  potMemberItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.whiteA04, borderWidth: 1, borderColor: colors.whiteA06, borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   potMemberCurrent: { backgroundColor: colors.greenA08 /* matches .pm-item.current */, borderColor: colors.greenA20 },
-  potOrder: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
+  potOrder: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.whiteA08, alignItems: 'center', justifyContent: 'center' },
   potOrderNow: { backgroundColor: colors.green },
   potOrderDone: { backgroundColor: colors.greenA15 },
-  potOrderText: { fontSize: 10, fontWeight: '700', color: 'rgba(5,8,5,0.45)' },
-  potMemberName: { flex: 1, fontFamily: fontFamily.bodyMedium, fontSize: 12, color: colors.ink },
+  potOrderText: { fontSize: 10, fontWeight: '700', color: colors.whiteA30 },
+  potMemberName: { flex: 1, fontFamily: fontFamily.bodyMedium, fontSize: 12, color: colors.white },
   potStatus: { borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   potStatusNow: { backgroundColor: colors.green },
   potStatusDone: { backgroundColor: colors.greenA10 },
-  potStatusWait: { backgroundColor: 'rgba(255,255,255,0.7)' },
+  potStatusWait: { backgroundColor: colors.whiteA06 },
   potStatusText: { fontSize: 9, fontWeight: '700' },
 
-  receiveBtn: { height: 50, borderRadius: radius.xl, backgroundColor: colors.terracotta, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
-  receiveBtnText: { fontFamily: fontFamily.displayBlack, fontSize: 12, fontWeight: '900', color: colors.ink },
-  releaseFootnote: { fontSize: 11, color: 'rgba(5,8,5,0.45)', textAlign: 'center' },
+  receiveBtn: { height: 50, borderRadius: radius.xl, backgroundColor: colors.flagRed, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+  receiveBtnText: { fontFamily: fontFamily.displayBlack, fontSize: 12, fontWeight: '900', color: colors.white },
+  releaseFootnote: { fontSize: 11, color: colors.whiteA30, textAlign: 'center' },
 });

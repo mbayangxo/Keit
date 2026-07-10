@@ -10,10 +10,11 @@ import { toE164 } from '../lib/phone';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { ob } from '../theme/onboarding';
 import { useEntrance } from '../hooks/animations';
+import { useLocale } from '../context/LocaleContext';
 
 // Business-account equivalent of SignUpScreen.js: phone -> OTP -> business
-// profile -> arrondissement -> AFRI ID confirm -> fund wallet.
-// Business needs AFRI ID (personal) + KEBU ID (commerce) at Tier 1 — no address verification.
+// profile -> AFRI ID confirm -> fund wallet.
+// Country, region & language are set on the unified Onboarding screen.
 
 const CATEGORIES = [
   { key: 'restaurant', icon: '🍽️', name: 'Restaurant / Dibiterie' },
@@ -22,14 +23,6 @@ const CATEGORIES = [
   { key: 'mode', icon: '👗', name: 'Mode / Fashion' },
   { key: 'services', icon: '🔧', name: 'Services' },
   { key: 'autre', icon: '✦', name: 'Autre' },
-];
-
-const ARRONDISSEMENTS = [
-  { key: 'medina', icon: '🏘️', name: 'Médina', count: '4 821 K21' },
-  { key: 'plateau', icon: '🏙️', name: 'Plateau', count: '3 204 K21' },
-  { key: 'parcelles', icon: '🌆', name: 'Parcelles Assainies', count: '5 112 K21' },
-  { key: 'hlm', icon: '🌇', name: 'HLM', count: '2 987 K21' },
-  { key: 'ouakam', icon: '🌃', name: 'Ouakam', count: '2 341 K21' },
 ];
 
 const FUND_METHODS = [
@@ -196,58 +189,6 @@ function BusinessProfileStep({ businessName, setBusinessName, category, setCateg
   );
 }
 
-function ArrondissementStep({ arrondissement, setArrondissement, onNext, onBack }) {
-  const entrance = useEntrance(0, 350, 8);
-  const [query, setQuery] = useState('');
-  const filtered = ARRONDISSEMENTS.filter((a) => a.name.toLowerCase().includes(query.trim().toLowerCase()));
-
-  return (
-    <Animated.View style={[styles.body, entrance]}>
-      <StepHeader title="Emplacement" step={4} onBack={onBack} />
-      <Text style={[styles.headline, { fontSize: 18, marginBottom: spacing.sm }]}>
-        Où se trouve{'\n'}
-        <Text style={styles.g}>ton commerce ?</Text>
-      </Text>
-      <Text style={[styles.sub, { marginBottom: spacing.xl }]}>Les clients découvrent ton commerce par arrondissement sur Discover.</Text>
-
-      <View style={styles.arrSearch}>
-        <Text style={{ fontSize: 14, opacity: 0.4 }}>🔍</Text>
-        <TextInput
-          style={{ flex: 1, fontSize: 13, color: ob.ink }}
-          placeholder="Chercher un arrondissement..."
-          placeholderTextColor={ob.faint}
-          value={query}
-          onChangeText={setQuery}
-        />
-      </View>
-
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <View style={{ gap: spacing.sm }}>
-          {filtered.map((a) => (
-            <PressScale key={a.key} scaleTo={0.98} onPress={() => setArrondissement(a)} style={[styles.arrItem, arrondissement?.key === a.key && styles.arrItemOn]}>
-              <Text style={{ fontSize: 18 }}>{a.icon}</Text>
-              <Text style={styles.aiName}>{a.name}</Text>
-              <Text style={styles.aiCount}>{a.count}</Text>
-              {arrondissement?.key === a.key && (
-                <View style={styles.aiCheck}>
-                  <Text style={{ fontSize: 9, fontWeight: '900', color: ob.ink }}>✓</Text>
-                </View>
-              )}
-            </PressScale>
-          ))}
-        </View>
-      </ScrollView>
-
-      <GlowButton
-        label={arrondissement ? `${arrondissement.name} — C'est confirmé ✓` : 'Choisis ton arrondissement'}
-        onPress={onNext}
-        disabled={!arrondissement}
-        style={{ backgroundColor: ob.orange }}
-      />
-    </Animated.View>
-  );
-}
-
 function AfriStep({ afriId, loading, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
   return (
@@ -342,10 +283,11 @@ function FundStep({ amount, setAmount, method, setMethod, onNext, onSkip, loadin
   );
 }
 
-const STEP_ORDER = ['phone', 'otp', 'profile', 'arrondissement', 'afri', 'fund'];
+const STEP_ORDER = ['phone', 'otp', 'profile', 'afri', 'fund'];
 
 export default function BusinessSignUpScreen({ onComplete, onCancel }) {
   const showToast = useToast();
+  const { region } = useLocale();
   const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
   const [e164Phone, setE164Phone] = useState('');
@@ -353,7 +295,6 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
   const [devOtpHint, setDevOtpHint] = useState(null);
   const [businessName, setBusinessName] = useState('');
   const [category, setCategory] = useState(null);
-  const [arrondissement, setArrondissement] = useState(null);
   const [afriId, setAfriId] = useState('');
   const [ownerHandle, setOwnerHandle] = useState('');
   const [fundMethod, setFundMethod] = useState('orange');
@@ -414,14 +355,17 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
   };
 
   const savePersonalProfile = async () => {
-    if (!businessName.trim() || !category || !arrondissement) return;
+    if (!businessName.trim() || !category || !region?.key) {
+      if (!region?.key) showToast('Choisis ton pays et ta région sur l’écran précédent');
+      return;
+    }
     setLoading(true);
     try {
       const handle = businessHandleFromName(businessName);
       const res = await authCompleteProfile({
         name: businessName.trim(),
         handle,
-        arrondissement: { key: arrondissement.key, icon: arrondissement.icon, name: arrondissement.name },
+        arrondissement: { key: region.key, icon: region.icon, name: region.name },
         fundAmount: 0,
         countryCode: 'SN',
         isDiaspora: false,
@@ -437,14 +381,14 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
   };
 
   const finishSignup = async (amount) => {
-    if (!businessName.trim() || !category || !arrondissement || !afriId) return;
+    if (!businessName.trim() || !category || !region?.key || !afriId) return;
     setLoading(true);
     try {
       const handle = ownerHandle || businessHandleFromName(businessName);
       const business = await createBusiness({
         name: businessName.trim(),
         category: category.key,
-        arrondissement: arrondissement.name,
+        arrondissement: region.name,
       });
 
       let balance = 0;
@@ -467,7 +411,7 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
         phone: e164Phone,
         businessName: businessName.trim(),
         category: category.name,
-        arrondissement,
+        arrondissement: region,
         fundAmount: balance,
         businessId: business.id,
         handle,
@@ -504,14 +448,6 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
             setBusinessName={setBusinessName}
             category={category}
             setCategory={setCategory}
-            onNext={() => goTo('arrondissement')}
-            onBack={back}
-          />
-        )}
-        {step === 'arrondissement' && (
-          <ArrondissementStep
-            arrondissement={arrondissement}
-            setArrondissement={setArrondissement}
             onNext={savePersonalProfile}
             onBack={back}
           />

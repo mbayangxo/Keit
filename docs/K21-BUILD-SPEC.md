@@ -139,11 +139,12 @@ Family Wallet for mother, child, spouse, etc. Framed as **"Protège ta famille"*
 
 ---
 
-## ÑU LEKK (group buying)
+## ÑU LEKK (food bill split)
 
-- From Mboolo: "On mange ensemble?"
-- Set per-person amount · one-tap contribute · pool to buyer · buyer pays merchant
-- Split history for all · auto-refund if goal not met by deadline
+- Standalone flow (not Mboolo chat or group threads): split a restaurant bill after eating together
+- Organizer sets total bill + per-person share · invite by link or @handle
+- One-tap pay your part · pool releases to merchant (or organizer pays merchant) when complete
+- Split history for all · auto-refund if not fully paid by deadline
 
 **Backend today:** not implemented.
 

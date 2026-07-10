@@ -10,7 +10,8 @@ import { colors, fontFamily, radius, spacing, type } from '../theme';
 const ACTIONS = [
   { key: 'cash', icon: '🏧', title: 'Cash In / Out', subtitle: 'Déposer ou retirer chez un agent Julaya', route: 'Cash' },
   { key: 'tontine', icon: '🏦', title: 'Tontine Digitale', subtitle: 'Épargne collective automatique', route: 'Tontine' },
-  { key: 'nulekk', icon: '🍖', title: 'Ñu Lekk', subtitle: 'Cagnotte de groupe pour manger ensemble', route: 'NuLekk' },
+  { key: 'movement', icon: '🛵', title: 'Mouvement', subtitle: 'Livraison, courses et gigs', route: 'Movement' },
+  { key: 'nulekk', icon: '🍖', title: 'Ñu Lekk', subtitle: 'Partage l\'addition après un repas', route: 'NuLekk' },
 ];
 
 export default function MoreActionsScreen({ navigation }) {

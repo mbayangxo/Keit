@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import PinGateScreen from './src/screens/PinGateScreen';
 import DeviceSecurityBanner from './src/components/DeviceSecurityBanner';
 import { ToastProvider } from './src/components/Toast';
 import { navigationIntegration, Sentry } from './src/lib/sentry';
+import { useInviteDeepLink } from './src/hooks/useInviteDeepLink';
 
 function AppShell() {
   const { locked, pinReady, deviceRisk } = useSecurity();
@@ -44,6 +45,9 @@ const navTheme = {
 export default Sentry.wrap(function App() {
   const [fontsLoaded] = useFonts(fontsToLoad);
   const navigationRef = useRef(null);
+  const [navReady, setNavReady] = useState(false);
+
+  useInviteDeepLink(navigationRef, navReady);
 
   // Web: hide the native splash overlay as soon as JS runs — otherwise a white
   // sheet can sit on top of the app forever if fonts or onLayout are slow.
@@ -77,7 +81,10 @@ export default Sentry.wrap(function App() {
           <NavigationContainer
             ref={navigationRef}
             theme={navTheme}
-            onReady={() => navigationIntegration.registerNavigationContainer(navigationRef)}
+            onReady={() => {
+              navigationIntegration.registerNavigationContainer(navigationRef);
+              setNavReady(true);
+            }}
           >
             <AppStateProvider>
               <SessionProvider>

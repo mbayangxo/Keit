@@ -18,6 +18,7 @@ model User {
   arrondissementIcon     String?
   arrondissementName     String?
   avatarEmoji            String?
+  avatarUrl              String?   @db.Text
   identityChoice         String?
   otpVerifiedAt          DateTime?
   pinHash                String?
@@ -42,6 +43,11 @@ model User {
   email                  String?   @unique
   emailVerifiedAt        DateTime?
   afriId                 String?   @unique
+  studentPassSchool      String?
+  studentPassStatus      String?
+  studentPassRequestedAt DateTime?
+  studentPassVerifiedAt  DateTime?
+  studentPassExpiresAt   DateTime?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 

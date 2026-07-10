@@ -265,7 +265,7 @@ function SuccessStep({ merchant, amount, oldBalance, newBalance, reference, onDo
         <Animated.View style={[styles.wakhnaBonus, bonus]}>
           <Text style={{ fontSize: 16 }}>✦</Text>
           <Text style={styles.wakhnaBonusText}>
-            <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.greenDark }}>+5 points Wakhna</Text> pour ce paiement marchand
+            <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.greenDark }}>+5 Ngor</Text> pour ce paiement marchand
           </Text>
         </Animated.View>
       )}

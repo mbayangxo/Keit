@@ -28,7 +28,13 @@ export default function PressScale({ children, style, onPress, scaleTo = 0.9, ha
   };
   const pressOut = () => Animated.timing(scale, { toValue: 1, duration: 150, useNativeDriver: true }).start();
   return (
-    <AnimatedPressable onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} style={[style, { transform: [{ scale }] }]}>
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
+      disabled={!onPress}
+      style={[style, { transform: [{ scale }] }]}
+    >
       {children}
     </AnimatedPressable>
   );

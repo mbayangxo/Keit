@@ -1,204 +1,261 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
-import WaxPattern from '../components/WaxPattern';
 import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
+import ProfileAvatar from '../components/ProfileAvatar';
 import { useAppState } from '../state/AppState';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
-import { getEvents } from '../lib/api-client';
+import { getFriends, getMboloThreads, getMe, getTontineGroups, getTransactions } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing, type, motion } from '../theme';
+import { navigateFromRoot } from '../lib/root-navigation';
 import {
   useFloatLoop,
   useBlink,
   useScalePulse,
   useColorPulse,
-  useGlowPulse,
-  useBarLoop,
-  useSpinFlick,
   useEntrance,
-  usePopIn,
-  useFillIn,
 } from '../hooks/animations';
 
-const ACTIONS = [
+const PRIMARY_ACTIONS = [
   { icon: '💸', label: 'Yónnee', gradient: ['#2dff7d', '#0fbc48'], glow: colors.green, route: 'SendMoney' },
   { icon: '📥', label: 'Jël', gradient: ['#ffe45c', '#e8920a'], glow: colors.flagGold, route: 'Receive' },
   { icon: '🏪', label: 'Fey', gradient: ['#ff8c52', '#c44010'], glow: colors.terracotta, route: 'PayMerchant' },
-  { icon: '⋯', label: 'Plus', gradient: ['#fdf3cd', '#eeda96'], glow: colors.flagGold, route: 'MoreActions' },
+];
+
+const SECONDARY_ACTIONS = [
+  { icon: '🏧', label: 'Cash', gradient: ['#c8f0ff', '#5eb8e8'], glow: '#5eb8e8', route: 'Cash' },
+  { icon: '🏦', label: 'Tontine', gradient: ['#fdf3cd', '#eeda96'], glow: colors.flagGold, route: 'Tontine' },
+  { icon: '🍖', label: 'Ñu Lekk', gradient: ['#ffd4c4', '#e85c1a'], glow: colors.terracotta, route: 'NuLekk' },
+  { icon: '🛵', label: 'Mouvement', gradient: ['#d4f5e2', '#1a9e52'], glow: colors.green, route: 'Movement' },
 ];
 
 function formatAmount(n) {
   return Math.round(n).toLocaleString('fr-FR').replace(/ /g, ' ');
 }
 
-function ActionButton({ icon, label, gradient, glow, delay, onPress }) {
+const SPEND_COLORS = {
+  envois: colors.greenDark,
+  marche: colors.flagGold,
+  autre: colors.terracotta,
+};
+
+function computeMonthlySpending(transactions) {
+  if (!Array.isArray(transactions) || !transactions.length) return null;
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const outflows = transactions.filter((tx) => {
+    if (!tx.createdAt || tx.amount >= 0) return false;
+    return new Date(tx.createdAt) >= monthStart;
+  });
+  const total = outflows.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+  if (total <= 0) return null;
+
+  const buckets = { envois: 0, marche: 0, autre: 0 };
+  for (const tx of outflows) {
+    const abs = Math.abs(tx.amount);
+    if (tx.type === 'send') buckets.envois += abs;
+    else if (['pay_merchant', 'marketplace_purchase', 'ticket_purchase'].includes(tx.type)) buckets.marche += abs;
+    else buckets.autre += abs;
+  }
+
+  const segments = [
+    { label: 'Envois', key: 'envois' },
+    { label: 'Marché', key: 'marche' },
+    { label: 'Autre', key: 'autre' },
+  ]
+    .filter(({ key }) => buckets[key] > 0)
+    .map(({ label, key }) => ({
+      label,
+      color: SPEND_COLORS[key],
+      pct: Math.round((buckets[key] / total) * 100),
+    }));
+
+  const pctSum = segments.reduce((s, seg) => s + seg.pct, 0);
+  if (pctSum !== 100 && segments.length) segments[segments.length - 1].pct += 100 - pctSum;
+
+  return {
+    total,
+    segments,
+    monthLabel: now.toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase(),
+  };
+}
+
+function formatTontineDue(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(':', 'h');
+}
+
+function mbooloThreadPreview(thread, userId) {
+  const last = thread.messages?.[0];
+  const others = (thread.members ?? []).filter((m) => m.userId !== userId).map((m) => m.user).filter(Boolean);
+  const name = thread.name?.trim() || others.map((u) => u.name).join(', ') || 'Conversation';
+  const preview =
+    last?.kind === 'image' ? '📷 Photo' : last?.kind === 'voice' ? '🎤 Message vocal' : last?.body ?? 'Dis bonjour 👋';
+  const avatars = others.slice(0, 3).map((u) => u.avatarEmoji ?? '👤');
+  while (avatars.length < Math.min(3, (thread.members?.length ?? 1) - 1)) avatars.push('👤');
+  return { name, preview, avatars, memberCount: thread.members?.length ?? 0 };
+}
+
+function ActionButton({ icon, label, gradient, glow, delay, onPress, compact }) {
   const float = useFloatLoop(delay);
+  const handlePress = () => {
+    if (typeof onPress === 'function') onPress();
+  };
   return (
-    <PressScale scaleTo={0.9} onPress={onPress} style={styles.haItem}>
-      <View style={[styles.haBtn, { shadowColor: glow }]}>
+    <PressScale scaleTo={0.9} onPress={handlePress} style={[styles.haItem, compact && styles.haItemCompact]}>
+      <View style={[styles.haBtn, compact && styles.haBtnCompact, { shadowColor: glow }]}>
         <LinearGradient colors={gradient} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={StyleSheet.absoluteFill} />
         <View style={styles.haSheen} />
         <Animated.View style={{ transform: [{ translateY: float }] }}>
-          <Text style={styles.haIcon}>{icon}</Text>
+          <Text style={[styles.haIcon, compact && styles.haIconCompact]}>{icon}</Text>
         </Animated.View>
       </View>
-      <Text style={styles.haLabel}>{label}</Text>
+      <Text style={[styles.haLabel, compact && styles.haLabelCompact]} numberOfLines={2}>{label}</Text>
     </PressScale>
   );
 }
 
-function EventsTonightCard({ event, onPress }) {
-  const glow = useGlowPulse(motion.pulseSlow, 0.35);
-  const dotBlink = useBlink();
-  const title = event?.title ?? 'Concerts & soirées';
-  const subtitle = event
-    ? `${event.venue ?? 'Dakar'}${event.ticketPrice === 0 ? ' · Gratuit K21' : ` · ${event.ticketPrice.toLocaleString('fr-FR')} F`}`
-    : 'Billets via K21 · Gratuit ou payant';
-
-  return (
-    <PressScale scaleTo={0.98} onPress={onPress}>
-      <Animated.View
-        style={[
-          styles.rectCard,
-          {
-            shadowColor: colors.green,
-            shadowOffset: { width: 0, height: 0 },
-            shadowRadius: 24,
-            shadowOpacity: glow,
-            elevation: 4,
-          },
-        ]}
-      >
-      <View style={styles.rcTop}>
-        <Text style={styles.rcTag}>Événements · Dakar</Text>
-        <View style={styles.rcLive}>
-          <Animated.View style={[styles.rcDot, { opacity: dotBlink }]} />
-          <Text style={styles.rcLiveText}>Découvrir</Text>
-        </View>
-      </View>
-      <View style={styles.rcSong}>
-        <View style={styles.rcCover}>
-          <Text style={{ fontSize: 19 }}>🎤</Text>
-        </View>
-        <View style={styles.rcInfo}>
-          <Text style={styles.rcTitle} numberOfLines={1}>{title}</Text>
-          <Text style={styles.rcArtist}>{subtitle}</Text>
-          <Text style={styles.rcChart}>{event ? 'Voir les détails →' : 'Voir ce qui se passe ce soir →'}</Text>
-        </View>
-      </View>
-      </Animated.View>
-    </PressScale>
-  );
-}
-
-function WakhnaMiniCard({ onPress }) {
-  const pop = usePopIn(300, 1000, 0.7);
-  const fill = useFillIn(72, 500, 1200);
-  const starPulse = useScalePulse(2000, 1.15);
-
-  return (
-    <PressScale onPress={onPress} scaleTo={0.98} style={styles.wakhnaMini}>
-      <Animated.Text style={[styles.wmScore, pop]}>840</Animated.Text>
-      <View style={styles.wmBody}>
-        <Text style={styles.wmLabel}>Wakhna Score</Text>
-        <Text style={styles.wmRank}>Top <Text style={styles.wmRankBold}>12%</Text> Médina · #47</Text>
-        <View style={styles.wmBar}>
-          <Animated.View style={{ width: fill, height: '100%' }}>
-            <LinearGradient
-              colors={[colors.green, colors.flagGold]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ flex: 1, borderRadius: 2 }}
-            />
-          </Animated.View>
-        </View>
-      </View>
-      <Animated.Text style={[styles.wmStar, { transform: [{ scale: starPulse }] }]}>✦</Animated.Text>
-    </PressScale>
-  );
-}
-
-function MbooloPulseCard({ onPress }) {
+function MbooloPulseCard({ thread, userId, onPress }) {
   const borderColor = useColorPulse(colors.terracottaA20, colors.terracottaA45, motion.pulse);
   const badgeScale = useScalePulse(1500, 1.15);
+
+  if (!thread) return null;
+  const { name, preview, avatars, memberCount } = mbooloThreadPreview(thread, userId);
 
   return (
     <PressScale onPress={onPress} scaleTo={0.98} style={[styles.mbooloMini, { borderColor }]}>
       <View style={styles.mmAvaStack}>
-        <View style={[styles.mmAva, { marginLeft: 0 }]}><Text style={styles.mmAvaText}>👩🏾</Text></View>
-        <View style={styles.mmAva}><Text style={styles.mmAvaText}>👦🏿</Text></View>
-        <View style={styles.mmAva}><Text style={styles.mmAvaText}>👩🏿</Text></View>
+        {avatars.length ? (
+          avatars.map((emoji, i) => (
+            <View key={`${emoji}-${i}`} style={[styles.mmAva, i === 0 && { marginLeft: 0 }]}>
+              <Text style={styles.mmAvaText}>{emoji}</Text>
+            </View>
+          ))
+        ) : (
+          <View style={[styles.mmAva, { marginLeft: 0 }]}>
+            <Text style={styles.mmAvaText}>💬</Text>
+          </View>
+        )}
       </View>
       <View style={styles.mmBody}>
-        <Text style={styles.mmTitle}>Médina Squad</Text>
-        <Text style={styles.mmSub}>Ibou: Ñu lekk 18h bi 🍖</Text>
+        <Text style={styles.mmTitle} numberOfLines={1}>{name}</Text>
+        <Text style={styles.mmSub} numberOfLines={1}>{preview}</Text>
       </View>
-      <Animated.View style={[styles.mmBadge, { transform: [{ scale: badgeScale }] }]}>
-        <Text style={styles.mmBadgeText}>4</Text>
-      </Animated.View>
+      {memberCount > 1 ? (
+        <Animated.View style={[styles.mmBadge, { transform: [{ scale: badgeScale }] }]}>
+          <Text style={styles.mmBadgeText}>{memberCount}</Text>
+        </Animated.View>
+      ) : null}
     </PressScale>
   );
 }
 
-// "Yónnee rapide" — your people first (initials, no photos): tinted discs
-// cycling through the three brand colors, one tap to send.
-const QUICK_CONTACTS = [
-  { name: 'Fatou', tone: { bg: 'rgba(26,240,96,0.16)', border: 'rgba(15,188,72,0.45)', text: colors.greenDark } },
-  { name: 'Ibou', tone: { bg: 'rgba(247,183,49,0.18)', border: 'rgba(232,146,10,0.45)', text: colors.goldDark } },
-  { name: 'Awa', tone: { bg: 'rgba(232,92,26,0.14)', border: 'rgba(232,92,26,0.4)', text: colors.terracottaDark } },
-  { name: 'Moussa', tone: { bg: 'rgba(26,240,96,0.16)', border: 'rgba(15,188,72,0.45)', text: colors.greenDark } },
-  { name: 'Khady', tone: { bg: 'rgba(247,183,49,0.18)', border: 'rgba(232,146,10,0.45)', text: colors.goldDark } },
+const QUICK_SEND_TONES = [
+  { bg: 'rgba(26,240,96,0.16)', border: 'rgba(15,188,72,0.45)', text: colors.greenDark },
+  { bg: 'rgba(247,183,49,0.18)', border: 'rgba(232,146,10,0.45)', text: colors.goldDark },
+  { bg: 'rgba(232,92,26,0.14)', border: 'rgba(232,92,26,0.4)', text: colors.terracottaDark },
 ];
 
+const QUICK_SEND_LIMIT = 8;
+
 function QuickSendRow({ navigation }) {
+  const open = (route, params) => navigateFromRoot(navigation, route, params);
+  const [friends, setFriends] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      setLoading(true);
+      getFriends()
+        .then((list) => {
+          if (!cancelled) setFriends(Array.isArray(list) ? list : []);
+        })
+        .catch(() => {
+          if (!cancelled) setFriends([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
+
+  const quickFriends = friends.slice(0, QUICK_SEND_LIMIT);
+
   return (
     <View style={styles.qs}>
       <View style={styles.discHead}>
         <Text style={styles.discLabel}>Yónnee rapide</Text>
+        {friends.length > QUICK_SEND_LIMIT ? (
+          <PressScale scaleTo={0.97} onPress={() => open('Friends')}>
+            <Text style={styles.discAll}>Tous</Text>
+          </PressScale>
+        ) : null}
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.qsRow}>
-        <PressScale scaleTo={0.9} onPress={() => navigation.navigate('SendMoney')} style={styles.qsItem}>
+        <PressScale scaleTo={0.9} onPress={() => open('SendMoney')} style={styles.qsItem}>
           <View style={styles.qsAddDisc}>
             <Text style={styles.qsAddPlus}>+</Text>
           </View>
           <Text style={styles.qsName}>Yónnee</Text>
         </PressScale>
-        {QUICK_CONTACTS.map((c) => (
-          <PressScale key={c.name} scaleTo={0.9} onPress={() => navigation.navigate('SendMoney')} style={styles.qsItem}>
-            <View style={[styles.qsDisc, { backgroundColor: c.tone.bg, borderColor: c.tone.border }]}>
-              <Text style={[styles.qsInitial, { color: c.tone.text }]}>{c.name[0]}</Text>
-            </View>
-            <Text style={styles.qsName}>{c.name}</Text>
+        {loading ? (
+          <ActivityIndicator color={colors.greenDark} style={styles.qsLoading} />
+        ) : quickFriends.length === 0 ? (
+          <PressScale scaleTo={0.97} onPress={() => open('Friends')} style={styles.qsEmpty}>
+            <Text style={styles.qsEmptyText}>Ajoute un ami pour envoyer en un tap</Text>
           </PressScale>
-        ))}
+        ) : (
+          quickFriends.map((friend, i) => {
+            const tone = QUICK_SEND_TONES[i % QUICK_SEND_TONES.length];
+            const label = friend.name?.trim() || friend.handle;
+            return (
+              <PressScale
+                key={friend.id}
+                scaleTo={0.9}
+                onPress={() => open('SendMoney', { recipientHandle: friend.handle })}
+                style={styles.qsItem}
+              >
+                <View style={[styles.qsDisc, { backgroundColor: tone.bg, borderColor: tone.border }]}>
+                  <ProfileAvatar
+                    photoUrl={friend.avatarUrl}
+                    initial={label[0]?.toUpperCase() ?? '?'}
+                    size={54}
+                    style={styles.qsAvatar}
+                    textStyle={{ color: tone.text }}
+                  />
+                </View>
+                <Text style={styles.qsName} numberOfLines={2}>{label}</Text>
+              </PressScale>
+            );
+          })
+        )}
       </ScrollView>
     </View>
   );
 }
 
-// "Dépenses du mois" — the tontine circle as a spending ring: three arcs,
-// three brand colors, dashed orbit accent. Demo data until the backend
-// categorizes spending.
+// "Dépenses du mois" — spending ring from real ledger outflows this month.
 const RING_R = 46;
 const RING_C = 2 * Math.PI * RING_R;
-const SPEND_SEGMENTS = [
-  { label: 'Envois', pct: 48, color: colors.greenDark },
-  { label: 'Marché', pct: 32, color: colors.flagGold },
-  { label: 'Transport', pct: 20, color: colors.terracotta },
-];
 
-function SpendingRing({ navigation }) {
+function SpendingRing({ spending }) {
+  if (!spending?.segments?.length) return null;
   let acc = 0;
   return (
-    <PressScale scaleTo={0.98} onPress={() => navigation.navigate('MoreActions')} style={styles.spendCard}>
+    <View style={styles.spendCard}>
       <View style={styles.spendRingWrap}>
         <Svg width={124} height={124} viewBox="0 0 124 124">
           <Circle cx="62" cy="62" r="58" stroke="rgba(5,8,5,0.14)" strokeWidth="1.5" strokeDasharray="3 5" fill="none" />
-          {SPEND_SEGMENTS.map((s) => {
+          {spending.segments.map((s) => {
             const dash = (s.pct / 100) * RING_C;
             const offset = -(acc / 100) * RING_C;
             acc += s.pct;
@@ -215,14 +272,14 @@ function SpendingRing({ navigation }) {
           })}
         </Svg>
         <View style={styles.spendCenter}>
-          <Text style={styles.spendMonth}>JUILLET</Text>
-          <Text style={styles.spendTotal}>42 500</Text>
+          <Text style={styles.spendMonth}>{spending.monthLabel}</Text>
+          <Text style={styles.spendTotal}>{formatAmount(spending.total)}</Text>
           <Text style={styles.spendCurrency}>FCFA</Text>
         </View>
       </View>
       <View style={styles.spendLegend}>
         <Text style={styles.spendTitle}>Dépenses du mois</Text>
-        {SPEND_SEGMENTS.map((s) => (
+        {spending.segments.map((s) => (
           <View key={s.label} style={styles.spendLegendRow}>
             <View style={[styles.spendDot, { backgroundColor: s.color }]} />
             <Text style={styles.spendLegendLabel}>{s.label}</Text>
@@ -230,138 +287,33 @@ function SpendingRing({ navigation }) {
           </View>
         ))}
       </View>
-    </PressScale>
+    </View>
   );
 }
 
-// Tontine as a living goal card — rounds progress toward the pot.
-function TontineGoalCard({ navigation }) {
+function TontineGoalCard({ group, open }) {
+  if (!group) return null;
+  const progress = group.expectedPot ? Math.min(100, Math.round((group.potBalance / group.expectedPot) * 100)) : 0;
+  const roundLabel = group.memberCount ? `${group.rotationIndex + 1}/${group.memberCount}` : '—';
+  const dueLabel = group.nextDueAt ? `Prochain tour · ${formatTontineDue(group.nextDueAt)}` : 'Tontine active';
+
   return (
-    <PressScale scaleTo={0.98} onPress={() => navigation.navigate('Tontine')} style={styles.goalCard}>
+    <PressScale scaleTo={0.98} onPress={() => open('Tontine')} style={styles.goalCard}>
       <View style={styles.goalRing}>
-        <Text style={styles.goalRingText}>3/9</Text>
+        <Text style={styles.goalRingText}>{roundLabel}</Text>
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.goalTitle}>Tontine Médina</Text>
-        <Text style={styles.goalSub}>Prochain tour · Sam 18h</Text>
+        <Text style={styles.goalTitle} numberOfLines={1}>{group.name}</Text>
+        <Text style={styles.goalSub}>{dueLabel}</Text>
         <View style={styles.goalBar}>
-          <View style={[styles.goalFill, { width: '33%' }]} />
+          <View style={[styles.goalFill, { width: `${progress}%` }]} />
         </View>
       </View>
       <View style={styles.goalAmount}>
-        <Text style={styles.goalAmountText}>30 000</Text>
+        <Text style={styles.goalAmountText}>{formatAmount(group.potBalance || group.expectedPot)}</Text>
         <Text style={styles.goalAmountF}>F</Text>
       </View>
     </PressScale>
-  );
-}
-
-// One uniform chip style - the color story lives in the big cards, not here.
-const DISCOVER_CHIPS = [
-  { icon: '🎉', label: 'Events' },
-  { icon: '🍽️', label: 'Food' },
-  { icon: '🛍️', label: 'Shopping' },
-  { icon: '🏖️', label: 'Plages' },
-  { icon: '⚽', label: 'Foot' },
-  { icon: '🎵', label: 'Musique' },
-];
-
-function FeaturedEventCard({ onPress }) {
-  const glow = useGlowPulse(motion.pulseSlow, 0.4);
-  const bar1 = useBarLoop(0);
-  const bar2 = useBarLoop(120);
-  const bar3 = useBarLoop(240);
-  const dotBlink = useBlink();
-
-  return (
-    <PressScale scaleTo={0.98} onPress={onPress}>
-      <Animated.View
-        style={[
-          styles.featCard,
-          { shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowRadius: 26, shadowOpacity: glow, elevation: 5 },
-        ]}
-      >
-        <LinearGradient colors={['#13d95c', colors.greenDark, '#0a8a36']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-        <WaxPattern color="rgba(255,255,255,0.07)" size={16} animated={false} />
-        <View style={styles.featTop}>
-          <View style={styles.featLivePill}>
-            <Animated.View style={[styles.featLiveDot, { opacity: dotBlink }]} />
-            <Text style={styles.featLiveText}>CE SOIR</Text>
-          </View>
-          <View style={styles.featBars}>
-            <Animated.View style={[styles.featBar, { height: 10, transform: [{ scaleY: bar1 }] }]} />
-            <Animated.View style={[styles.featBar, { height: 18, transform: [{ scaleY: bar2 }] }]} />
-            <Animated.View style={[styles.featBar, { height: 13, transform: [{ scaleY: bar3 }] }]} />
-          </View>
-        </View>
-        <Text style={styles.featTitle}>Afrobeats{'\n'}Rooftop Party</Text>
-        <View style={styles.featMetaRow}>
-          <Text style={styles.featMeta}>📍 Almadies · 21h</Text>
-          <View style={styles.featTicket}>
-            <Text style={styles.featTicketText}>Billets · 5 000 F</Text>
-          </View>
-        </View>
-      </Animated.View>
-    </PressScale>
-  );
-}
-
-function MiniEventCard({ gradient, tag, tagColor, textColor, metaColor, title, meta, onPress }) {
-  return (
-    <PressScale scaleTo={0.97} onPress={onPress} style={styles.miniCard}>
-      <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      <Text style={[styles.miniTag, { color: tagColor }]}>{tag}</Text>
-      <Text style={[styles.miniTitle, { color: textColor }]} numberOfLines={2}>{title}</Text>
-      <Text style={[styles.miniMeta, { color: metaColor }]}>{meta}</Text>
-    </PressScale>
-  );
-}
-
-function DiscoverSection({ navigation }) {
-  const goExplore = () => navigation.navigate('ExplorerTab');
-  return (
-    <View style={styles.discover}>
-      <View style={styles.discHead}>
-        <Text style={styles.discLabel}>Découvre Dakar</Text>
-        <PressScale scaleTo={0.94} onPress={goExplore}>
-          <Text style={styles.discAll}>Voir tout →</Text>
-        </PressScale>
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {DISCOVER_CHIPS.map((c) => (
-          <PressScale key={c.label} scaleTo={0.93} onPress={goExplore} style={styles.chip}>
-            <Text style={{ fontSize: 13 }}>{c.icon}</Text>
-            <Text style={styles.chipText}>{c.label}</Text>
-          </PressScale>
-        ))}
-      </ScrollView>
-
-      <FeaturedEventCard onPress={goExplore} />
-
-      <View style={styles.miniRow}>
-        <MiniEventCard
-          gradient={['#ff8c52', colors.terracotta, colors.terracottaDark]}
-          tag="MARCHÉ"
-          tagColor="rgba(255,255,255,0.85)"
-          textColor={colors.white}
-          metaColor="rgba(255,255,255,0.75)"
-          title="Marché des tissus"
-          meta="Sandaga · Sam 10h"
-          onPress={goExplore}
-        />
-        <MiniEventCard
-          gradient={['#ffe45c', colors.flagGold, colors.goldDark]}
-          tag="FESTIVAL"
-          tagColor="rgba(5,8,5,0.55)"
-          textColor={colors.ink}
-          metaColor="rgba(5,8,5,0.6)"
-          title="Yoff Beach Festival"
-          meta="Yoff · Dim 15h"
-          onPress={goExplore}
-        />
-      </View>
-    </View>
   );
 }
 
@@ -382,34 +334,52 @@ function TransactionRow({ icon, iconBg, title, subtitle, amount, amountColor }) 
 
 export default function HomeScreen({ navigation }) {
   useScreenshotBlock(true);
+  const open = (route, params) => navigateFromRoot(navigation, route, params);
   const notifBlink = useBlink();
   const balanceEntrance = useEntrance(0, 1000, 12);
   const { profile, balance, transactions, refreshWallet } = useAppState();
   const firstName = profile.name.split(' ')[0];
-  const [tonightEvent, setTonightEvent] = useState(null);
+  const [spendingTxs, setSpendingTxs] = useState([]);
+  const [tontineGroup, setTontineGroup] = useState(null);
+  const [mboloThread, setMbooloThread] = useState(null);
+  const [mboloUserId, setMbooloUserId] = useState(null);
+
+  const spending = computeMonthlySpending(spendingTxs.length ? spendingTxs : transactions);
 
   useFocusEffect(
     useCallback(() => {
       refreshWallet().catch(() => {});
+      let cancelled = false;
+
+      Promise.all([
+        getTransactions(100),
+        getTontineGroups(),
+        getMe(),
+        getMboloThreads(),
+      ])
+        .then(([txList, tontines, me, threads]) => {
+          if (cancelled) return;
+          setSpendingTxs(Array.isArray(txList) ? txList : []);
+          const groups = Array.isArray(tontines) ? tontines : [];
+          const primary =
+            groups.find((g) => g.isMyTurn) ?? groups.find((g) => g.releasing) ?? groups[0] ?? null;
+          setTontineGroup(primary);
+          setMbooloUserId(me?.id ?? null);
+          const threadList = Array.isArray(threads) ? threads : [];
+          setMbooloThread(threadList[0] ?? null);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setTontineGroup(null);
+            setMbooloThread(null);
+          }
+        });
+
+      return () => {
+        cancelled = true;
+      };
     }, [refreshWallet]),
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    getEvents()
-      .then((list) => {
-        if (cancelled || !Array.isArray(list) || !list.length) return;
-        const now = Date.now();
-        const upcoming = list
-          .filter((ev) => new Date(ev.startsAt).getTime() >= now - 6 * 3600 * 1000)
-          .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
-        if (upcoming[0]) setTonightEvent(upcoming[0]);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   return (
     <View style={styles.root}>
@@ -430,7 +400,7 @@ export default function HomeScreen({ navigation }) {
                     Salut <Text style={styles.greetingBold}>{firstName}</Text> 👋🏿
                   </Text>
                 </View>
-                <PressScale scaleTo={0.9} onPress={() => navigation.navigate('Notifications')} style={styles.notifBtn}>
+                <PressScale scaleTo={0.9} onPress={() => open('Notifications')} style={styles.notifBtn}>
                   <Text style={{ fontSize: 16 }}>🔔</Text>
                   <Animated.View style={[styles.notifDot, { opacity: notifBlink }]} />
                 </PressScale>
@@ -447,8 +417,19 @@ export default function HomeScreen({ navigation }) {
               </View>
 
               <View style={styles.homeActions}>
-                {ACTIONS.map((a, i) => (
-                  <ActionButton key={a.label} {...a} delay={i * 300} onPress={() => navigation.navigate(a.route)} />
+                {PRIMARY_ACTIONS.map((a, i) => (
+                  <ActionButton key={a.label} {...a} delay={i * 300} onPress={() => open(a.route)} />
+                ))}
+              </View>
+              <View style={styles.homeActionsSecondary}>
+                {SECONDARY_ACTIONS.map((a, i) => (
+                  <ActionButton
+                    key={a.label}
+                    {...a}
+                    compact
+                    delay={i * 300 + 900}
+                    onPress={() => open(a.route)}
+                  />
                 ))}
               </View>
             </View>
@@ -464,17 +445,14 @@ export default function HomeScreen({ navigation }) {
           <QuickSendRow navigation={navigation} />
 
           <View style={styles.homeCards}>
-            <SpendingRing navigation={navigation} />
-            <TontineGoalCard navigation={navigation} />
-            <EventsTonightCard
-              event={tonightEvent}
-              onPress={() => navigation.navigate('ExplorerTab', { initialTab: 'Events' })}
+            <SpendingRing spending={spending} />
+            <TontineGoalCard group={tontineGroup} open={open} />
+            <MbooloPulseCard
+              thread={mboloThread}
+              userId={mboloUserId}
+              onPress={() => open('MbooloTab')}
             />
-            <WakhnaMiniCard onPress={() => navigation.navigate('MoiTab')} />
-            <MbooloPulseCard onPress={() => navigation.navigate('MbooloTab')} />
           </View>
-
-          <DiscoverSection navigation={navigation} />
 
           <View style={styles.txSection}>
             <Text style={styles.txLabel}>Transactions récentes</Text>
@@ -503,7 +481,7 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f2f8ec' },
+  root: { flex: 1, backgroundColor: colors.appCanvas.base },
 
   hero: { position: 'relative', overflow: 'hidden', paddingHorizontal: spacing.huge, paddingTop: spacing.giant, paddingBottom: 22 },
   heroContent: { position: 'relative', zIndex: 2 },
@@ -512,7 +490,7 @@ const styles = StyleSheet.create({
   greeting: { fontFamily: fontFamily.displayBold, fontSize: 17, letterSpacing: -0.4, color: 'rgba(5,8,5,0.55)' },
   greetingBold: { color: colors.ink, fontFamily: fontFamily.displayBlack },
   notifBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(5,8,5,0.05)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', alignItems: 'center', justifyContent: 'center' },
-  notifDot: { position: 'absolute', top: 8, right: 9, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.terracotta, borderWidth: 1.5, borderColor: '#f2f8ec' },
+  notifDot: { position: 'absolute', top: 8, right: 9, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.orange, borderWidth: 1.5, borderColor: colors.appCanvas.base },
 
   balanceDisplay: { alignItems: 'center', marginBottom: spacing.giant },
   balanceEye: { ...type.bodySmall, color: 'rgba(5,8,5,0.45)', marginBottom: spacing.sm },
@@ -521,38 +499,28 @@ const styles = StyleSheet.create({
   zeroFeesPill: { marginTop: spacing.md, alignSelf: 'center', backgroundColor: 'rgba(247,183,49,0.14)', borderWidth: 1, borderColor: 'rgba(232,146,10,0.3)', borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: spacing.xs },
   zeroFeesText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.goldDark },
 
-  homeActions: { flexDirection: 'row', justifyContent: 'space-between' },
-  haItem: { alignItems: 'center', gap: spacing.xs },
+  homeActions: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.lg },
+  homeActionsSecondary: { flexDirection: 'row', justifyContent: 'space-between' },
+  haItem: { alignItems: 'center', gap: spacing.xs, flex: 1, maxWidth: 88, minHeight: 72 },
+  haItemCompact: { maxWidth: 72, minHeight: 68 },
   haBtn: {
     width: 58, height: 58, borderRadius: 29, overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
     shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 7,
   },
+  haBtnCompact: { width: 50, height: 50, borderRadius: 25 },
   haSheen: { position: 'absolute', top: 3, left: 12, right: 12, height: 10, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.28)' },
   haIcon: { fontSize: 23 },
+  haIconCompact: { fontSize: 20 },
   haLabel: { ...type.actionLabel, color: 'rgba(5,8,5,0.65)', textAlign: 'center' },
+  haLabelCompact: { fontSize: 9, lineHeight: 11 },
 
   flagDiv: { flexDirection: 'row', height: 2, marginVertical: spacing.xxxl },
   flagSeg: { flex: 1 },
 
   homeCards: { paddingHorizontal: spacing.xxxl, paddingBottom: spacing.xxxl, gap: spacing.lg },
 
-  rectCard: { backgroundColor: 'rgba(26,240,96,0.1)', borderWidth: 1.5, borderColor: 'rgba(15,188,72,0.3)', borderRadius: radius.xxxl, padding: spacing.xxl },
-  rcTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
-  rcTag: { fontFamily: fontFamily.bodyBold, fontSize: 8, letterSpacing: 1, color: colors.greenDark, textTransform: 'uppercase' },
-  rcLive: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  rcDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.terracotta },
-  rcLiveText: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.terracotta },
-  rcSong: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-  rcCover: { width: 44, height: 44, borderRadius: radius.lg, backgroundColor: colors.greenDark, alignItems: 'center', justifyContent: 'center' },
-  rcInfo: { flex: 1, minWidth: 0 },
-  rcTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
-  rcArtist: { ...type.bodySmall, color: 'rgba(5,8,5,0.5)' },
-  rcChart: { fontFamily: fontFamily.bodyBold, fontSize: 9, color: colors.greenDark, marginTop: 2 },
-  rcBars: { flexDirection: 'row', gap: 2, alignItems: 'flex-end', height: 20 },
-  rcBar: { width: 3, borderRadius: 2, backgroundColor: colors.greenDark },
-
   wakhnaMini: { backgroundColor: 'rgba(247,183,49,0.14)', borderWidth: 1, borderColor: 'rgba(232,146,10,0.28)', borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
-  wmScore: { ...type.wakhnaScore, color: colors.goldDark },
+  wmScore: { ...type.ngorScore, color: colors.goldDark },
   wmBody: { flex: 1 },
   wmLabel: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: colors.goldDark, textTransform: 'uppercase', marginBottom: 3 },
   wmRank: { ...type.bodySmall, color: 'rgba(5,8,5,0.55)' },
@@ -562,7 +530,7 @@ const styles = StyleSheet.create({
 
   mbooloMini: { backgroundColor: 'rgba(232,92,26,0.1)', borderWidth: 1, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
   mmAvaStack: { flexDirection: 'row' },
-  mmAva: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(5,8,5,0.06)', borderWidth: 2, borderColor: '#f2f8ec', alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
+  mmAva: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.appCanvas.surface, borderWidth: 2, borderColor: colors.appCanvas.base, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
   mmAvaText: { fontSize: 13 },
   mmBody: { flex: 1 },
   mmTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.terracottaDark },
@@ -571,6 +539,9 @@ const styles = StyleSheet.create({
   mmBadgeText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.white },
 
   qs: { paddingTop: spacing.xl },
+  discHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xxxl, marginBottom: spacing.md },
+  discLabel: { fontFamily: fontFamily.bodyBold, fontSize: 11, letterSpacing: 0.8, color: 'rgba(5,8,5,0.5)', textTransform: 'uppercase' },
+  discAll: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.greenDark },
   qsRow: { paddingHorizontal: spacing.xxxl, gap: spacing.xl, paddingBottom: spacing.lg },
   qsItem: { alignItems: 'center', gap: 5 },
   qsAddDisc: {
@@ -581,10 +552,13 @@ const styles = StyleSheet.create({
   qsAddPlus: { fontSize: 22, color: colors.flagGold, marginTop: -2 },
   qsDisc: {
     width: 54, height: 54, borderRadius: 27, borderBottomRightRadius: 9, borderWidth: 1.5,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
-  qsInitial: { fontFamily: fontFamily.displayBlack, fontSize: 19 },
-  qsName: { fontFamily: fontFamily.bodySemiBold, fontSize: 10.5, color: 'rgba(5,8,5,0.6)' },
+  qsAvatar: { borderWidth: 0, backgroundColor: 'transparent', borderRadius: 27, borderBottomRightRadius: 9 },
+  qsName: { fontFamily: fontFamily.bodySemiBold, fontSize: 10.5, color: 'rgba(5,8,5,0.6)', maxWidth: 64, textAlign: 'center', lineHeight: 13 },
+  qsLoading: { alignSelf: 'center', marginLeft: spacing.lg },
+  qsEmpty: { justifyContent: 'center', paddingHorizontal: spacing.lg, maxWidth: 200 },
+  qsEmptyText: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: 'rgba(5,8,5,0.45)', lineHeight: 15 },
 
   spendCard: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.xxl,
@@ -620,37 +594,6 @@ const styles = StyleSheet.create({
   goalAmount: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   goalAmountText: { fontFamily: fontFamily.displayBlack, fontSize: 17, letterSpacing: -0.5, color: colors.goldDark },
   goalAmountF: { fontFamily: fontFamily.bodySemiBold, fontSize: 10, color: 'rgba(5,8,5,0.5)' },
-
-  discover: { paddingBottom: spacing.xxxl },
-  discHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xxxl, marginBottom: spacing.lg },
-  discLabel: { fontFamily: fontFamily.displayBlack, fontSize: 15, letterSpacing: -0.4, color: colors.ink },
-  discAll: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.greenDark },
-  chipRow: { paddingHorizontal: spacing.xxxl, gap: spacing.sm, paddingBottom: spacing.lg },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.09)',
-    borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: 7,
-  },
-  chipText: { fontFamily: fontFamily.bodyBold, fontSize: 11.5, color: 'rgba(5,8,5,0.72)' },
-
-  featCard: { marginHorizontal: spacing.xxxl, borderRadius: radius.xxxl, borderWidth: 1.5, borderColor: colors.greenA20, padding: spacing.xxl, overflow: 'hidden', marginBottom: spacing.md },
-  featTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xl },
-  featLivePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3 },
-  featLiveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.terracotta },
-  featLiveText: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1, color: colors.terracotta },
-  featBars: { flexDirection: 'row', gap: 3, alignItems: 'flex-end', height: 18 },
-  featBar: { width: 3.5, borderRadius: 2, backgroundColor: colors.flagGold },
-  featTitle: { fontFamily: fontFamily.displayBlack, fontSize: 22, lineHeight: 27, letterSpacing: -0.8, color: colors.white, marginBottom: spacing.lg },
-  featMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  featMeta: { fontFamily: fontFamily.bodySemiBold, fontSize: 11.5, color: 'rgba(255,255,255,0.85)' },
-  featTicket: { backgroundColor: colors.flagGold, borderRadius: radius.round, paddingHorizontal: spacing.xl, paddingVertical: 6 },
-  featTicketText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.ink },
-
-  miniRow: { flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.xxxl },
-  miniCard: { flex: 1, borderRadius: radius.xxl, borderWidth: 1, borderColor: colors.whiteA08, padding: spacing.xl, overflow: 'hidden', minHeight: 108 },
-  miniTag: { fontFamily: fontFamily.bodyBold, fontSize: 8.5, letterSpacing: 1.2, marginBottom: spacing.sm },
-  miniTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13.5, lineHeight: 18, color: colors.white, marginBottom: 4 },
-  miniMeta: { fontFamily: fontFamily.bodyRegular, fontSize: 10.5, color: colors.whiteA55 },
 
   txSection: { paddingHorizontal: spacing.huge, paddingBottom: spacing.xxxl },
   txLabel: { ...type.eyebrow, color: 'rgba(5,8,5,0.45)', marginBottom: spacing.lg },

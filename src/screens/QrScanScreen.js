@@ -13,11 +13,17 @@ import { colors, fontFamily, radius, spacing } from '../theme';
 export default function QrScanScreen({ navigation, route }) {
   const mode = route.params?.mode ?? 'pay';
   const showToast = useToast();
-  const [raw, setRaw] = useState(route.params?.prefill ?? '');
+  const [raw, setRaw] = useState(route.params?.prefill ?? route.params?.prefilled ?? '');
   const [loading, setLoading] = useState(false);
 
   const title =
-    mode === 'merchant' ? 'Scanner marchand' : mode === 'friend' ? 'Ajouter un ami' : 'Scanner pour envoyer';
+    mode === 'merchant'
+      ? 'Scanner marchand'
+      : mode === 'friend'
+        ? 'Ajouter un ami'
+        : mode === 'tontine_member'
+          ? 'Scanner un membre'
+          : 'Scanner pour envoyer';
 
   const handleSubmit = async () => {
     const parsed = parseK21Qr(raw);
@@ -43,6 +49,13 @@ export default function QrScanScreen({ navigation, route }) {
         const result = await addFriend(parsed.handle);
         showToast(result.alreadyFriends ? 'Déjà dans tes amis ✓' : `${result.friend.name} ajouté ✓`);
         navigation.goBack();
+        return;
+      }
+
+      if (mode === 'tontine_member') {
+        const handle = parsed?.handle ?? raw.replace(/^@/, '').trim();
+        const profile = await lookupUser(handle);
+        navigation.navigate('Tontine', { pickedMember: profile });
         return;
       }
 

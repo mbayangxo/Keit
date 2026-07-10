@@ -14,6 +14,7 @@ import SendMoneyScreen from '../screens/SendMoneyScreen';
 import PayMerchantScreen from '../screens/PayMerchantScreen';
 import CashScreen from '../screens/CashScreen';
 import MoreActionsScreen from '../screens/MoreActionsScreen';
+import MovementScreen from '../screens/MovementScreen';
 import NuLekkScreen from '../screens/NuLekkScreen';
 import ReceiveScreen from '../screens/ReceiveScreen';
 import TontineScreen from '../screens/TontineScreen';
@@ -23,6 +24,7 @@ import EditProfileScreen from '../screens/EditProfileScreen';
 import QrScanScreen from '../screens/QrScanScreen';
 import MyQrScreen from '../screens/MyQrScreen';
 import FriendsScreen from '../screens/FriendsScreen';
+import StudentPassScreen from '../screens/StudentPassScreen';
 import PinGateScreen from '../screens/PinGateScreen';
 import ForgotAccessScreen from '../screens/ForgotAccessScreen';
 import { useAppState } from '../state/AppState';
@@ -155,6 +157,7 @@ export default function RootNavigator() {
       <Stack.Screen name="PayMerchant" component={PayMerchantScreen} />
       <Stack.Screen name="Cash" component={CashScreen} />
       <Stack.Screen name="MoreActions" component={MoreActionsScreen} />
+      <Stack.Screen name="Movement" component={MovementScreen} />
       <Stack.Screen name="NuLekk" component={NuLekkScreen} />
       <Stack.Screen name="Receive" component={ReceiveScreen} />
       <Stack.Screen name="Tontine" component={TontineScreen} />
@@ -163,6 +166,7 @@ export default function RootNavigator() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="QrScan" component={QrScanScreen} />
       <Stack.Screen name="MyQr" component={MyQrScreen} />
+      <Stack.Screen name="StudentPass" component={StudentPassScreen} />
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="Info" component={ComingSoonScreen} />
     </Stack.Navigator>

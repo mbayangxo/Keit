@@ -90,7 +90,8 @@ if (/:[^/@]+@[^/@]+@/.test(url)) {
 console.log('✓ DATABASE_URL looks valid');
 console.log('→ Pushing schema to Supabase…');
 
-const push = spawnSync('npx', ['prisma', 'db', 'push', '--accept-data-loss'], {
+const prismaBin = join(root, 'node_modules', '.bin', 'prisma');
+const push = spawnSync(prismaBin, ['db', 'push', '--accept-data-loss'], {
   cwd: root,
   stdio: 'inherit',
   env: process.env,

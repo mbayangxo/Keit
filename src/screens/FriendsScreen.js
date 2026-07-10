@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -7,7 +7,12 @@ import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import { useToast } from '../components/Toast';
-import { getFriends, addFriend } from '../lib/api-client';
+import { getFriends, addFriend, getMboloThreads, createMboloThread } from '../lib/api-client';
+import { findDirectThreadForUser, navigateToMboloChat } from '../lib/mbolo-social';
+import ProfileShareButtons from '../components/ProfileShareButtons';
+import { useAppState } from '../state/AppState';
+import { buildWebFriendUrl } from '../lib/k21-qr';
+import { navigateFromRoot } from '../lib/root-navigation';
 import { colors, fontFamily, radius, spacing } from '../theme';
 
 function FriendRow({ friend, onSend, onMbolo }) {
@@ -27,12 +32,21 @@ function FriendRow({ friend, onSend, onMbolo }) {
   );
 }
 
-export default function FriendsScreen({ navigation }) {
+export default function FriendsScreen({ navigation, route }) {
+  const { profile } = useAppState();
   const showToast = useToast();
+  const open = (name, params) => navigateFromRoot(navigation, name, params);
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [handle, setHandle] = useState('');
   const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    const incoming = route.params?.addHandle;
+    if (incoming) {
+      setHandle(`@${String(incoming).replace(/^@/, '')}`);
+    }
+  }, [route.params?.addHandle]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,6 +82,23 @@ export default function FriendsScreen({ navigation }) {
     }
   };
 
+  const openMbooloWithFriend = async (friend) => {
+    try {
+      const threads = await getMboloThreads();
+      let thread = findDirectThreadForUser(threads, friend.id);
+      if (!thread) {
+        thread = await createMboloThread({ memberHandles: [friend.handle] });
+      }
+      navigateToMboloChat(navigation, {
+        threadId: thread.id,
+        thread,
+        title: friend.name ?? friend.handle,
+      });
+    } catch (err) {
+      showToast(err.message ?? 'Mboolo indisponible');
+    }
+  };
+
   return (
     <View style={styles.root}>
       <ScreenBackground />
@@ -75,6 +106,20 @@ export default function FriendsScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.scroll}>
           <ScreenHeader onBack={() => navigation.goBack()} title="Mes amis" style={styles.header} />
           <Text style={styles.sub}>Envoie de l'argent ou ouvre Mboolo en un tap.</Text>
+
+          {profile.handle ? (
+            <View style={styles.inviteCard}>
+              <Text style={styles.inviteTitle}>Invite tes amis sur K21</Text>
+              <Text style={styles.inviteMeta}>@{profile.handle}</Text>
+              {buildWebFriendUrl(profile.handle) ? (
+                <Text style={styles.inviteLink}>{buildWebFriendUrl(profile.handle)}</Text>
+              ) : null}
+              <ProfileShareButtons profile={profile} mode="friend" />
+              <PressScale scaleTo={0.97} onPress={() => open('MyQr')} style={styles.inviteQr}>
+                <Text style={styles.inviteQrText}>📲 Mon QR à scanner</Text>
+              </PressScale>
+            </View>
+          ) : null}
 
           <View style={styles.addRow}>
             <TextInput
@@ -88,7 +133,7 @@ export default function FriendsScreen({ navigation }) {
             <GlowButton label={adding ? '…' : 'Ajouter'} onPress={submitAdd} disabled={adding || handle.trim().length < 3} style={styles.addBtn} />
           </View>
 
-          <PressScale scaleTo={0.97} onPress={() => navigation.navigate('QrScan', { mode: 'friend' })} style={styles.scanLink}>
+          <PressScale scaleTo={0.97} onPress={() => open('QrScan', { mode: 'friend' })} style={styles.scanLink}>
             <Text style={styles.scanLinkText}>📷 Scanner un QR pour ajouter</Text>
           </PressScale>
 
@@ -102,11 +147,8 @@ export default function FriendsScreen({ navigation }) {
                 <FriendRow
                   key={f.id}
                   friend={f}
-                  onSend={() => navigation.navigate('SendMoney', { recipientHandle: f.handle })}
-                  onMbolo={() => {
-                    showToast('Mboolo ouvert ✓');
-                    navigation.navigate('Main', { screen: 'Mboolo' });
-                  }}
+                  onSend={() => open('SendMoney', { recipientHandle: f.handle })}
+                  onMbolo={() => openMbooloWithFriend(f)}
                 />
               ))}
             </View>
@@ -122,6 +164,20 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: spacing.xl, paddingBottom: spacing.giant },
   header: { marginBottom: spacing.sm },
   sub: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginBottom: spacing.xl },
+  inviteCard: {
+    backgroundColor: colors.greenA08,
+    borderWidth: 1,
+    borderColor: colors.greenA20,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    marginBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+  inviteTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
+  inviteMeta: { fontSize: 12, color: colors.greenDark },
+  inviteLink: { fontSize: 10, color: 'rgba(5,8,5,0.45)' },
+  inviteQr: { alignSelf: 'center', marginTop: spacing.xs },
+  inviteQrText: { fontSize: 11, color: colors.greenDark, fontFamily: fontFamily.bodyBold },
   addRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   input: {
     flex: 1,
