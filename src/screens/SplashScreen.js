@@ -95,6 +95,42 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
     ],
   });
 
+  // Letter cascade — each glyph rises a beat after the previous one, all
+  // driven by the line's single Animated value (no per-letter timers).
+  const renderStagger = (text, v, baseStyle) => {
+    const chars = [...String(text)];
+    const n = Math.max(chars.length, 1);
+    return (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+        {chars.map((ch, i) => {
+          const start = (i / n) * 0.55;
+          const end = Math.min(start + 0.45, 1);
+          return (
+            <Animated.Text
+              key={`${i}-${ch}`}
+              style={[
+                baseStyle,
+                {
+                  opacity: v.interpolate({ inputRange: [0, start, end, 1], outputRange: [0, 0, 1, 1] }),
+                  transform: [
+                    {
+                      translateY: v.interpolate({
+                        inputRange: [0, start, end, 1],
+                        outputRange: [26, 26, 0, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              {ch === ' ' ? '\u00A0' : ch}
+            </Animated.Text>
+          );
+        })}
+      </View>
+    );
+  };
+
   const ringPulse = (from, to) => ({
     transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [from, to] }) }],
   });
@@ -131,9 +167,7 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
                 </View>
               )}
             </View>
-            <PressScale scaleTo={0.94} onPress={onHaveAccount}>
-              <Text style={styles.loginLink}>{t(langCode, 'splashSignInAction')}</Text>
-            </PressScale>
+            <View />
           </View>
 
           {/* Sunrise hero — concentric rings breaking the top of the layout */}
@@ -146,6 +180,18 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
               },
             ]}
           >
+            <Animated.View
+              style={[
+                styles.sunriseArc,
+                {
+                  opacity: sunrise.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 0, 0.55] }),
+                  transform: [
+                    { translateY: sunrise.interpolate({ inputRange: [0, 1], outputRange: [70, 18] }) },
+                    { scaleX: 1.35 },
+                  ],
+                },
+              ]}
+            />
             <Animated.View style={[styles.ringOuter, ringPulse(1, 1.07)]}>
               <Animated.View style={[styles.ringMid, ringPulse(1.04, 1)]}>
                 <Animated.View
@@ -193,21 +239,17 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
 
           {/* Editorial stacked headline */}
           <View style={styles.headline}>
-            <Animated.Text style={[styles.headLine, lineStyle(lines[0])]}>{t(langCode, 'splashHead1')}</Animated.Text>
-            <Animated.Text style={[styles.headLine, styles.headIndent, lineStyle(lines[1])]}>{t(langCode, 'splashHead2')}</Animated.Text>
-            <Animated.View style={lineStyle(lines[2])}>
-              <Animated.Text
-                style={[
-                  styles.headLine,
-                  styles.headAccent,
-                  {
-                    opacity: goldPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.72] }),
-                    transform: [{ scale: goldPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.02] }) }],
-                  },
-                ]}
-              >
-                {t(langCode, 'splashHead3')}
-              </Animated.Text>
+            {renderStagger(t(langCode, 'splashHead1'), lines[0], styles.headLine)}
+            <View style={styles.headIndent}>
+              {renderStagger(t(langCode, 'splashHead2'), lines[1], styles.headLine)}
+            </View>
+            <Animated.View
+              style={{
+                opacity: goldPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.78] }),
+                transform: [{ scale: goldPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.015] }) }],
+              }}
+            >
+              {renderStagger(t(langCode, 'splashHead3'), lines[2], [styles.headLine, styles.headAccent])}
             </Animated.View>
           </View>
 
@@ -220,15 +262,43 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
 
           <Animated.View style={[styles.ctaBlock, lineStyle(ctas)]}>
             <PressScale scaleTo={0.97} onPress={onCreateAccount} style={styles.primaryBtn}>
+              <LinearGradient
+                colors={['#ffe45c', colors.flagGold, colors.goldDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <Animated.View
+                style={[
+                  styles.primaryBtnSheen,
+                  {
+                    transform: [
+                      { translateX: sheen.interpolate({ inputRange: [0, 1], outputRange: [-220, 380] }) },
+                      { rotate: '18deg' },
+                    ],
+                  },
+                ]}
+              />
               <Text style={styles.primaryBtnText}>{t(langCode, 'splashCreate')}</Text>
-              <View style={styles.primaryBtnBadge}>
+              <Animated.View
+                style={[
+                  styles.primaryBtnBadge,
+                  { transform: [{ translateX: goldPulse.interpolate({ inputRange: [0, 1], outputRange: [0, 3] }) }] },
+                ]}
+              >
                 <Text style={styles.primaryBtnBadgeArrow}>→</Text>
-              </View>
+              </Animated.View>
               <View style={styles.primaryBtnStripe}>
                 <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
                 <View style={[styles.flagSeg, { backgroundColor: colors.ink }]} />
                 <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
               </View>
+            </PressScale>
+
+            <PressScale scaleTo={0.97} onPress={onHaveAccount} style={styles.secondaryBtn}>
+              <Text style={styles.secondaryBtnText}>
+                {t(langCode, 'splashHaveAccount')} <Text style={styles.secondaryBtnBold}>{t(langCode, 'splashSignInAction')}</Text>
+              </Text>
             </PressScale>
 
             <Text style={styles.caption}>{t(langCode, 'splashCaption')}</Text>
@@ -276,6 +346,12 @@ const styles = StyleSheet.create({
   loginLink: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: 'rgba(5,8,5,0.75)', textDecorationLine: 'underline' },
 
   hero: { alignItems: 'center', marginTop: spacing.giant },
+  // Warm gold half-glow rising behind the mark on first load — the sunrise.
+  sunriseArc: {
+    position: 'absolute', alignSelf: 'center', top: 60,
+    width: 300, height: 150, borderTopLeftRadius: 150, borderTopRightRadius: 150,
+    backgroundColor: 'rgba(250,216,54,0.28)',
+  },
   ringOuter: {
     width: RING_OUTER, height: RING_OUTER, borderRadius: RING_OUTER / 2,
     backgroundColor: 'rgba(26,240,96,0.10)', alignItems: 'center', justifyContent: 'center',
@@ -333,9 +409,13 @@ const styles = StyleSheet.create({
     height: 58, borderRadius: radius.round, borderBottomRightRadius: 10,
     backgroundColor: colors.flagGold, overflow: 'hidden',
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.goldDark, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 6,
+    shadowColor: colors.goldDark, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.45, shadowRadius: 20, elevation: 8,
   },
-  primaryBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 15, color: colors.ink },
+  primaryBtnSheen: {
+    position: 'absolute', top: -20, bottom: -20, width: 46,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  primaryBtnText: { fontFamily: fontFamily.displayBlack, fontSize: 13, letterSpacing: 0.4, color: colors.ink },
   primaryBtnBadge: {
     position: 'absolute', right: 10, width: 38, height: 38, borderRadius: 19, borderBottomRightRadius: 7,
     backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center',
@@ -345,5 +425,13 @@ const styles = StyleSheet.create({
 
 
 
-  caption: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: 'rgba(5,8,5,0.5)', textAlign: 'center', marginTop: spacing.sm, letterSpacing: 0.4 },
+  secondaryBtn: {
+    marginTop: spacing.md, height: 46, borderRadius: radius.round, borderBottomRightRadius: 9,
+    backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  secondaryBtnText: { fontFamily: fontFamily.bodyMedium, fontSize: 13, color: 'rgba(5,8,5,0.6)' },
+  secondaryBtnBold: { fontFamily: fontFamily.bodyBold, color: colors.greenDark },
+
+  caption: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: 'rgba(5,8,5,0.5)', textAlign: 'center', marginTop: spacing.md, letterSpacing: 0.4 },
 });
