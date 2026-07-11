@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, PanResponder, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
@@ -13,9 +13,9 @@ import { t } from '../i18n/translations';
 
 /** Slide 1 — giant tilted "0%" inside the K21 orbit, truth chips floating. */
 const ZERO_CHIPS = [
-  { text: 'Zéro frais', style: { top: '12%', left: '2%' }, delay: 0 },
-  { text: 'Instantané', style: { top: '4%', right: '4%' }, delay: 700 },
-  { text: 'Sécurisé', style: { bottom: '8%', right: '2%' }, delay: 1400 },
+  { text: 'Zéro frais', style: { top: '16%', left: '8%' }, delay: 0 },
+  { text: 'Instantané', style: { top: '10%', right: '8%' }, delay: 700 },
+  { text: 'Sécurisé', style: { bottom: '14%', right: '10%' }, delay: 1400 },
 ];
 
 function FloatChip({ text, style, delay }) {
@@ -106,9 +106,9 @@ function ZeroVisual() {
 
 /** Slide 2 — living equalizer in flag colors on the ink field. */
 const HUSTLE_CHIPS = [
-  { text: 'Gigs', style: { top: '10%', left: '4%' }, delay: 0 },
-  { text: 'Livraison', style: { top: '2%', right: '6%' }, delay: 700 },
-  { text: 'Marché', style: { bottom: '6%', right: '4%' }, delay: 1400 },
+  { text: 'Gigs', style: { top: '16%', left: '10%' }, delay: 0 },
+  { text: 'Livraison', style: { top: '10%', right: '10%' }, delay: 700 },
+  { text: 'Marché', style: { bottom: '14%', right: '12%' }, delay: 1400 },
 ];
 
 function HustleVisual() {
@@ -134,6 +134,7 @@ function HustleVisual() {
         <Animated.View style={[vs.hustleSat, { bottom: 4, left: -8 }, { transform: [{ rotate: counter }] }]}>
           <Text style={{ fontSize: 20 }}>🛍️</Text>
         </Animated.View>
+        <View style={[vs.hustleParcel, { bottom: 30, right: -4 }]} />
       </Animated.View>
       <View style={vs.hustleCore}>
         <Text style={{ fontSize: 44 }}>💼</Text>
@@ -162,9 +163,12 @@ function TontineVisual() {
   }, [spin]);
 
   const R = 108;
-  const DOTS = 9;
+  const FEATURES = ['💬', '📞', '🎟️', '🎶'];
+  const DOTS = 8;
+  const counter = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-360deg'] });
   return (
     <View style={vs.center}>
+      <View style={vs.communityHalo} />
       <Animated.View
         style={[
           vs.orbit,
@@ -174,23 +178,28 @@ function TontineVisual() {
       >
         {Array.from({ length: DOTS }).map((_, i) => {
           const a = (i / DOTS) * Math.PI * 2;
-          return (
+          const feature = i % 2 === 0 ? FEATURES[(i / 2) % FEATURES.length] : null;
+          const x = R + 13 + Math.cos(a) * R;
+          const y = R + 13 + Math.sin(a) * R;
+          return feature ? (
+            <Animated.View key={i} style={[vs.orbitFeature, { left: x - 21, top: y - 21 }, { transform: [{ rotate: counter }] }]}>
+              <Text style={{ fontSize: 17 }}>{feature}</Text>
+            </Animated.View>
+          ) : (
             <View
               key={i}
               style={[
                 vs.orbitDot,
                 i % 3 === 0 && { backgroundColor: colors.flagGold },
-                {
-                  left: R + 13 + Math.cos(a) * R - 9,
-                  top: R + 13 + Math.sin(a) * R - 9,
-                },
+                { left: x - 8, top: y - 8 },
               ]}
             />
           );
         })}
       </Animated.View>
       <View style={vs.pot}>
-        <Text style={vs.potText}>K21</Text>
+        <Text style={{ fontSize: 34 }}>💬</Text>
+        <Text style={vs.potText}>Mboolo</Text>
       </View>
     </View>
   );
@@ -226,12 +235,21 @@ const vs = StyleSheet.create({
 
 
   orbit: { position: 'absolute', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.22)', borderStyle: 'dashed' },
-  orbitDot: { position: 'absolute', width: 18, height: 18, borderRadius: 9, backgroundColor: colors.terracotta },
+  orbitDot: { position: 'absolute', width: 16, height: 16, borderRadius: 8, backgroundColor: colors.terracotta },
+  orbitFeature: {
+    position: 'absolute', width: 42, height: 42, borderRadius: 21, borderBottomRightRadius: 9,
+    backgroundColor: 'rgba(255,255,255,0.95)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 4,
+  },
+  communityHalo: { position: 'absolute', width: 240, height: 240, borderRadius: 120, backgroundColor: 'rgba(232,92,26,0.12)' },
+  hustleParcel: { position: 'absolute', width: 14, height: 14, borderRadius: 4, backgroundColor: colors.terracotta, borderWidth: 2, borderColor: 'rgba(255,255,255,0.9)' },
   pot: {
-    width: 108, height: 108, borderRadius: 54, backgroundColor: colors.terracotta, alignItems: 'center', justifyContent: 'center',
+    width: 118, height: 118, borderRadius: 59, borderBottomRightRadius: 14, backgroundColor: colors.terracotta,
+    alignItems: 'center', justifyContent: 'center', gap: 2,
     shadowColor: colors.terracotta, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 20, elevation: 9,
   },
-  potText: { fontFamily: fontFamily.displayBlack, fontSize: 28, letterSpacing: -1, color: colors.white },
+  potText: { fontFamily: fontFamily.displayBlack, fontSize: 14, letterSpacing: 0, color: colors.white },
 });
 
 // One shared canvas (ScreenBackground) — each slide keeps its own color
@@ -289,6 +307,39 @@ export default function WelcomeScreen({ onComplete }) {
     if (index < slides.length - 1) setIndex(index + 1);
     else onComplete?.();
   };
+  const goBack = () => {
+    if (index > 0) setIndex(index - 1);
+  };
+
+  // Stories-style navigation: swipe left/right anywhere on the visual, or
+  // tap (left quarter = back, rest = next) — matches the segment bars.
+  const indexRef = useRef(0);
+  indexRef.current = index;
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderRelease: (e, g) => {
+        if (g.dx <= -48) {
+          if (indexRef.current < SLIDES.length - 1) setIndex(indexRef.current + 1);
+          return;
+        }
+        if (g.dx >= 48) {
+          if (indexRef.current > 0) setIndex(indexRef.current - 1);
+          return;
+        }
+        if (Math.abs(g.dx) < 10 && Math.abs(g.dy) < 10) {
+          const x = e.nativeEvent.pageX ?? 0;
+          if (x < 100) {
+            if (indexRef.current > 0) setIndex(indexRef.current - 1);
+          } else if (indexRef.current < SLIDES.length - 1) {
+            setIndex(indexRef.current + 1);
+          }
+        }
+      },
+    }),
+  ).current;
 
   const rise = {
     opacity: enter,
@@ -308,7 +359,7 @@ export default function WelcomeScreen({ onComplete }) {
             </PressScale>
           </View>
 
-          <Animated.View style={[{ flex: 1 }, rise]}>
+          <Animated.View style={[{ flex: 1 }, rise]} {...pan.panHandlers}>
             <Visual />
           </Animated.View>
 
