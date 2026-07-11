@@ -9,7 +9,7 @@ export default function ScreenBackground({ wax = true }) {
   const c = colors.appCanvas;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Svg style={StyleSheet.absoluteFill} viewBox="0 0 100 100" preserveAspectRatio="none">
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} viewBox="0 0 100 100" preserveAspectRatio="none">
         <Defs>
           <LinearGradient id="sbBase" x1="30%" y1="0%" x2="70%" y2="100%">
             <Stop offset="0%" stopColor={c.base} stopOpacity={1} />

@@ -23,7 +23,7 @@ export default function SplashBackground() {
   const glowOpacity = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] });
 
   return (
-    <Svg style={StyleSheet.absoluteFill} viewBox="0 0 100 100" preserveAspectRatio="none">
+    <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} viewBox="0 0 100 100" preserveAspectRatio="none">
       <Defs>
         <RadialGradient id="warm1" cx="20%" cy="15%" r="50%">
           <Stop offset="0%" stopColor="#c4500a" stopOpacity={1} />

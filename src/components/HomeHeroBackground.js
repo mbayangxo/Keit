@@ -41,7 +41,7 @@ export default function HomeHeroBackground() {
   const redOpacity = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.3] });
 
   return (
-    <Svg style={StyleSheet.absoluteFill} viewBox="0 0 100 100" preserveAspectRatio="none">
+    <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} viewBox="0 0 100 100" preserveAspectRatio="none">
       <Defs>
         <LinearGradient id="hhBase" x1="35%" y1="0%" x2="65%" y2="100%">
           <Stop offset="0%" stopColor="#0d1f0f" stopOpacity={1} />

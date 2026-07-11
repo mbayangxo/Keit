@@ -11,9 +11,42 @@ import { t } from '../i18n/translations';
 // no emoji, no stock art: the zero-fee promise, Wey yu 221 bëgg music, and the
 // Mboolo/tontine community circle.
 
-/** Slide 1 — giant tilted "0%" over the brand green field. */
+/** Slide 1 — giant tilted "0%" inside the K21 orbit, truth chips floating. */
+const ZERO_CHIPS = [
+  { text: 'Zéro frais', style: { top: '12%', left: '2%' }, delay: 0 },
+  { text: 'Instantané', style: { top: '4%', right: '4%' }, delay: 700 },
+  { text: 'Sécurisé', style: { bottom: '8%', right: '2%' }, delay: 1400 },
+];
+
+function FloatChip({ text, style, delay }) {
+  const bob = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(bob, { toValue: 1, duration: 1900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(bob, { toValue: 0, duration: 1900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [bob, delay]);
+  return (
+    <Animated.View
+      style={[
+        vs.floatChip,
+        style,
+        { transform: [{ translateY: bob.interpolate({ inputRange: [0, 1], outputRange: [0, -7] }) }] },
+      ]}
+    >
+      <Text style={vs.floatChipText}>{text}</Text>
+    </Animated.View>
+  );
+}
+
 function ZeroVisual() {
   const pulse = useRef(new Animated.Value(0)).current;
+  const spin = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
@@ -21,9 +54,16 @@ function ZeroVisual() {
         Animated.timing(pulse, { toValue: 0, duration: 2400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ]),
     );
+    const orbit = Animated.loop(
+      Animated.timing(spin, { toValue: 1, duration: 26000, easing: Easing.linear, useNativeDriver: true }),
+    );
     loop.start();
-    return () => loop.stop();
-  }, [pulse]);
+    orbit.start();
+    return () => {
+      loop.stop();
+      orbit.stop();
+    };
+  }, [pulse, spin]);
 
   return (
     <View style={vs.center}>
@@ -31,6 +71,12 @@ function ZeroVisual() {
         style={[
           vs.zeroHalo,
           { transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] },
+        ]}
+      />
+      <Animated.View
+        style={[
+          vs.zeroOrbit,
+          { transform: [{ rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] },
         ]}
       />
       <Animated.Text
@@ -51,6 +97,9 @@ function ZeroVisual() {
         <View style={[vs.stripeSeg, { backgroundColor: colors.flagGold }]} />
         <View style={[vs.stripeSeg, { backgroundColor: colors.terracotta }]} />
       </View>
+      {ZERO_CHIPS.map((c) => (
+        <FloatChip key={c.text} text={c.text} style={c.style} delay={c.delay} />
+      ))}
     </View>
   );
 }
@@ -155,6 +204,13 @@ function TontineVisual() {
 const vs = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', flex: 1 },
   zeroHalo: { position: 'absolute', width: 230, height: 230, borderRadius: 115, backgroundColor: 'rgba(26,240,96,0.14)' },
+  zeroOrbit: { position: 'absolute', width: 268, height: 268, borderRadius: 134, borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(15,188,72,0.5)' },
+  floatChip: {
+    position: 'absolute', backgroundColor: 'rgba(255,255,255,0.92)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)',
+    borderRadius: radius.round, borderBottomRightRadius: 8, paddingVertical: 6, paddingHorizontal: spacing.lg,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
+  },
+  floatChipText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: 'rgba(5,8,5,0.75)' },
   zeroText: { fontFamily: fontFamily.displayBlack, fontSize: 128, letterSpacing: -6, color: colors.greenDark, textShadowColor: 'rgba(26,240,96,0.45)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 24 },
   zeroStripe: { flexDirection: 'row', height: 4, borderRadius: 2, overflow: 'hidden', width: 74, marginTop: spacing.md },
   stripeSeg: { flex: 1 },

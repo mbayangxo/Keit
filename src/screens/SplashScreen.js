@@ -25,6 +25,8 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
   const sheen = useRef(new Animated.Value(0)).current;
   const lines = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
   const ctas = useRef(new Animated.Value(0)).current;
+  const tickerFade = useRef(new Animated.Value(1)).current;
+  const [tickerIx, setTickerIx] = useState(0);
   const { langCode, setLanguageFromSplash } = useLocale();
   const lang = SPLASH_FROM_CODE[langCode] ?? 'FR';
   const [langOpen, setLangOpen] = useState(false);
@@ -69,11 +71,19 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
     glow.start();
     orbit.start();
     sweep.start();
+    // Promise ticker — one live line cycling through the three K21 pillars.
+    const ticker = setInterval(() => {
+      Animated.timing(tickerFade, { toValue: 0, duration: 260, useNativeDriver: true }).start(() => {
+        setTickerIx((i) => (i + 1) % 3);
+        Animated.timing(tickerFade, { toValue: 1, duration: 320, useNativeDriver: true }).start();
+      });
+    }, 3400);
     return () => {
       breathe.stop();
       glow.stop();
       orbit.stop();
       sweep.stop();
+      clearInterval(ticker);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -143,7 +153,20 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
                     styles.dashRing,
                     { transform: [{ rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] },
                   ]}
-                />
+                >
+                  {ORBITERS.map((o) => (
+                    <View key={o.icon} style={[styles.orbiter, o.pos]}>
+                      <Animated.Text
+                        style={{
+                          fontSize: 15,
+                          transform: [{ rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-360deg'] }) }],
+                        }}
+                      >
+                        {o.icon}
+                      </Animated.Text>
+                    </View>
+                  ))}
+                </Animated.View>
                 <View style={styles.sun}>
                   <Animated.View
                     style={[
@@ -188,6 +211,13 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
             </Animated.View>
           </View>
 
+          <Animated.View style={[styles.tickerWrap, { opacity: tickerFade }]}>
+            <View style={styles.tickerDot} />
+            <Text style={styles.tickerText} numberOfLines={1}>
+              {t(langCode, `splashTicker${tickerIx + 1}`)}
+            </Text>
+          </Animated.View>
+
           <Animated.View style={[styles.ctaBlock, lineStyle(ctas)]}>
             <PressScale scaleTo={0.97} onPress={onCreateAccount} style={styles.primaryBtn}>
               <Text style={styles.primaryBtnText}>{t(langCode, 'splashCreate')}</Text>
@@ -208,6 +238,13 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
     </View>
   );
 }
+
+const ORB = 34;
+const ORBITERS = [
+  { icon: '💸', pos: { top: -ORB / 2, left: ((168 + 24) - ORB) / 2 } },
+  { icon: '🎶', pos: { bottom: 6, right: -ORB / 4 } },
+  { icon: '🍖', pos: { bottom: 6, left: -ORB / 4 } },
+];
 
 const RING_OUTER = 260;
 const RING_MID = 214;
@@ -251,6 +288,14 @@ const styles = StyleSheet.create({
     position: 'absolute', width: SUN + 24, height: SUN + 24, borderRadius: (SUN + 24) / 2,
     borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(15,188,72,0.6)',
   },
+  // The money/culture loop — three mini-discs riding the orbit, kept upright
+  // by counter-rotation: send money, vote your song, eat together.
+  orbiter: {
+    position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, borderBottomRightRadius: 9,
+    backgroundColor: 'rgba(255,255,255,0.95)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 4,
+  },
   sun: {
     width: SUN, height: SUN, borderRadius: SUN / 2, backgroundColor: colors.ink,
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
@@ -266,10 +311,20 @@ const styles = StyleSheet.create({
   flagSeg: { flex: 1 },
   brandLine: { fontFamily: fontFamily.bodyBold, fontSize: 10, letterSpacing: 3, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginTop: spacing.xl },
 
-  headline: { marginTop: 'auto', marginBottom: 'auto', paddingVertical: spacing.giant },
+  headline: { marginTop: 'auto', paddingTop: spacing.giant, paddingBottom: spacing.xl },
   headLine: { fontFamily: fontFamily.displayBlack, fontSize: 37, lineHeight: 46, letterSpacing: -1.6, color: colors.ink },
   headIndent: { marginLeft: 34 },
   headAccent: { color: colors.goldDark, textShadowColor: 'rgba(232,146,10,0.25)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10 },
+
+  tickerWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    alignSelf: 'flex-start', marginTop: spacing.lg, marginBottom: 'auto',
+    backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)',
+    borderRadius: radius.round, borderBottomRightRadius: 8,
+    paddingVertical: 7, paddingHorizontal: spacing.lg, maxWidth: '100%',
+  },
+  tickerDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.greenDark },
+  tickerText: { fontFamily: fontFamily.bodySemiBold, fontSize: 12, color: 'rgba(5,8,5,0.7)', flexShrink: 1 },
 
   ctaBlock: { marginTop: 'auto', paddingBottom: spacing.xl },
   // K21 signature button: pill with one "cut" corner (bottom-right), an ink
