@@ -312,8 +312,8 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
 const ORB = 34;
 const ORBITERS = [
   { icon: '💸', pos: { top: -ORB / 2, left: ((168 + 24) - ORB) / 2 } },
-  { icon: '🎶', pos: { bottom: 6, right: -ORB / 4 } },
-  { icon: '🍖', pos: { bottom: 6, left: -ORB / 4 } },
+  { icon: '🛵', pos: { bottom: 6, right: -ORB / 4 } },
+  { icon: '💬', pos: { bottom: 6, left: -ORB / 4 } },
 ];
 
 const RING_OUTER = 260;

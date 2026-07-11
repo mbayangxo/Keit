@@ -105,52 +105,47 @@ function ZeroVisual() {
 }
 
 /** Slide 2 — living equalizer in flag colors on the ink field. */
-function EqualizerBar({ color, delay, tall }) {
-  const v = useRef(new Animated.Value(0)).current;
+const HUSTLE_CHIPS = [
+  { text: 'Gigs', style: { top: '10%', left: '4%' }, delay: 0 },
+  { text: 'Livraison', style: { top: '2%', right: '6%' }, delay: 700 },
+  { text: 'Marché', style: { bottom: '6%', right: '4%' }, delay: 1400 },
+];
+
+function HustleVisual() {
+  const spin = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
-      Animated.sequence([
-        Animated.delay(delay),
-        Animated.timing(v, { toValue: 1, duration: 460 + delay / 3, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(v, { toValue: 0, duration: 520 + delay / 4, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      ]),
+      Animated.timing(spin, { toValue: 1, duration: 24000, easing: Easing.linear, useNativeDriver: true }),
     );
     loop.start();
     return () => loop.stop();
-  }, [v, delay]);
+  }, [spin]);
 
-  return (
-    <Animated.View
-      style={[
-        vs.eqBar,
-        {
-          backgroundColor: color,
-          height: tall,
-          transform: [{ scaleY: v.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] }) }],
-        },
-      ]}
-    />
-  );
-}
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const counter = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-360deg'] });
 
-function MusicVisual() {
-  const bars = [
-    { color: colors.green, tall: 74, delay: 0 },
-    { color: colors.flagGold, tall: 120, delay: 140 },
-    { color: colors.terracotta, tall: 96, delay: 260 },
-    { color: colors.green, tall: 150, delay: 80 },
-    { color: colors.flagGold, tall: 88, delay: 320 },
-    { color: colors.terracotta, tall: 128, delay: 200 },
-    { color: colors.green, tall: 66, delay: 380 },
-  ];
   return (
     <View style={vs.center}>
-      <View style={vs.eqRow}>
-        {bars.map((b, i) => (
-          <EqualizerBar key={i} {...b} />
-        ))}
+      <View style={vs.hustleHalo} />
+      <Animated.View style={[vs.hustleOrbit, { transform: [{ rotate }] }]}>
+        <Animated.View style={[vs.hustleSat, { top: -23, left: 108 - 23 }, { transform: [{ rotate: counter }] }]}>
+          <Text style={{ fontSize: 20 }}>🛵</Text>
+        </Animated.View>
+        <Animated.View style={[vs.hustleSat, { bottom: 4, left: -8 }, { transform: [{ rotate: counter }] }]}>
+          <Text style={{ fontSize: 20 }}>🛍️</Text>
+        </Animated.View>
+      </Animated.View>
+      <View style={vs.hustleCore}>
+        <Text style={{ fontSize: 44 }}>💼</Text>
+        <View style={vs.zeroStripe}>
+          <View style={[vs.stripeSeg, { backgroundColor: colors.green }]} />
+          <View style={[vs.stripeSeg, { backgroundColor: colors.flagGold }]} />
+          <View style={[vs.stripeSeg, { backgroundColor: colors.terracotta }]} />
+        </View>
       </View>
-      <Text style={vs.eqCaption}>WEY YU 221 BËGG</Text>
+      {HUSTLE_CHIPS.map((c) => (
+        <FloatChip key={c.text} text={c.text} style={c.style} delay={c.delay} />
+      ))}
     </View>
   );
 }
@@ -215,9 +210,20 @@ const vs = StyleSheet.create({
   zeroStripe: { flexDirection: 'row', height: 4, borderRadius: 2, overflow: 'hidden', width: 74, marginTop: spacing.md },
   stripeSeg: { flex: 1 },
 
-  eqRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, height: 160 },
-  eqBar: { width: 18, borderRadius: 9 },
-  eqCaption: { fontFamily: fontFamily.displayBlack, fontSize: 15, letterSpacing: 4, color: 'rgba(5,8,5,0.55)', marginTop: spacing.xxl },
+  hustleHalo: { position: 'absolute', width: 230, height: 230, borderRadius: 115, backgroundColor: 'rgba(250,216,54,0.18)' },
+  hustleOrbit: { position: 'absolute', width: 216, height: 216, borderRadius: 108, borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(232,146,10,0.5)' },
+  hustleSat: {
+    position: 'absolute', width: 46, height: 46, borderRadius: 23, borderBottomRightRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.95)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 4,
+  },
+  hustleCore: {
+    width: 128, height: 128, borderRadius: 64, borderBottomRightRadius: 16, backgroundColor: colors.flagGold,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: colors.goldDark, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 22, elevation: 9,
+  },
+
 
   orbit: { position: 'absolute', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.22)', borderStyle: 'dashed' },
   orbitDot: { position: 'absolute', width: 18, height: 18, borderRadius: 9, backgroundColor: colors.terracotta },
@@ -239,8 +245,8 @@ const SLIDES = [
     accent: colors.greenDark,
   },
   {
-    key: 'music',
-    Visual: MusicVisual,
+    key: 'hustle',
+    Visual: HustleVisual,
     ctaBg: colors.flagGold,
     ctaColor: colors.ink,
     accent: colors.goldDark,
