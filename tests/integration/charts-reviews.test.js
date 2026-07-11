@@ -19,7 +19,7 @@ test('charts: submit casts a vote, second submit of same song joins it, one vote
   const userA = await createUserWithWallet();
   const userB = await createUserWithWallet();
 
-  const song = { title: `Yëkël ${Date.now()}`, artist: 'Saliou K.' };
+  const song = { title: `Yëkël ${Date.now()}`, artist: 'Saliou K.', videoId: 'dQw4w9WgXcQ' };
 
   const r1 = await call(chartsSubmit, { userId: userA.id, body: song });
   assert.equal(r1.statusCode, 201);
@@ -27,7 +27,7 @@ test('charts: submit casts a vote, second submit of same song joins it, one vote
   // Same song (case/space variations) from another user → same entry, new vote.
   const r2 = await call(chartsSubmit, {
     userId: userB.id,
-    body: { title: song.title.toUpperCase(), artist: '  saliou k. ' },
+    body: { title: song.title.toUpperCase(), artist: '  saliou k. ', videoId: 'dQw4w9WgXcQ' },
   });
   assert.equal(r2.statusCode, 201);
   assert.equal(r2.body.songId, r1.body.songId, 'normalized duplicate maps to the same song');
@@ -42,7 +42,7 @@ test('charts: submit casts a vote, second submit of same song joins it, one vote
   // User A moves their weekly vote to a different song — total stays 1 per user.
   const other = await call(chartsSubmit, {
     userId: userA.id,
-    body: { title: `Teranga ${Date.now()}`, artist: 'Dakar Crew' },
+    body: { title: `Teranga ${Date.now()}`, artist: 'Dakar Crew', videoId: 'abc123XYZ_-' },
   });
   assert.equal(other.statusCode, 201);
   const after1 = await call(chartsGet, { userId: userA.id });
@@ -59,8 +59,12 @@ test('charts: submit casts a vote, second submit of same song joins it, one vote
 
 test('charts: garbage input rejected', async () => {
   const user = await createUserWithWallet();
-  const bad = await call(chartsSubmit, { userId: user.id, body: { title: '', artist: 'x'.repeat(200) } });
+  const bad = await call(chartsSubmit, { userId: user.id, body: { title: '', artist: 'x'.repeat(200), videoId: 'abc123XYZ_-' } });
   assert.equal(bad.statusCode, 400);
+  // Free-typed songs (no YouTube videoId) are refused — songs come from search.
+  const noVideo = await call(chartsSubmit, { userId: user.id, body: { title: 'Chanson', artist: 'Artiste' } });
+  assert.equal(noVideo.statusCode, 400);
+  assert.equal(noVideo.body.code, 'invalid_video');
   const noSong = await call(chartsVote, { userId: user.id, body: { songId: 'nope' } });
   assert.equal(noSong.statusCode, 404);
 });

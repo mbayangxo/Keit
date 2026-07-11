@@ -46,12 +46,6 @@ function businessIcon(category) {
   if (category === 'boutique') return '🛍️';
   return '🏬';
 }
-const CULTURE_FIXTURES = [
-  { key: 'can', icon: '⚽', title: 'Sénégal vs Mali', meta: 'AFCON 2026 · 18 Mars · 17h', tag: 'Sport' },
-  { key: 'basket', icon: '🏀', title: 'AS Douanes vs Jaraaf', meta: 'Basket · Dakar Arena · 20h', tag: 'Sport' },
-  { key: 'expo', icon: '🎨', title: 'Expo Art Contemporain', meta: 'IFAN Musée · Toute la semaine', tag: 'Culture' },
-  { key: 'lutte', icon: '🤼', title: 'Gala de Lutte — Arène Nationale', meta: '25 Mars · 16h', tag: 'Sport' },
-];
 
 function buildDiscoverGrid({ events, deals, restaurants, gigs }) {
   const tiles = [];
@@ -126,14 +120,6 @@ function buildDiscoverGrid({ events, deals, restaurants, gigs }) {
   return tiles;
 }
 
-const DEMO_TILES = [
-  { key: 'demo-ev', bg: ['rgba(26,240,96,0.16)'], icon: '🎧', cat: 'Ce soir', catColor: colors.greenDark, title: 'Afrobeats Rooftop Party', meta: 'Almadies · 21h', tab: 'Events', wide: true, live: true },
-  { key: 'demo-food', bg: ['rgba(232,92,26,0.14)'], icon: '🧵', cat: 'Marché', catColor: colors.terracottaDark, title: 'Marché des tissus', meta: 'Sandaga · Sam 10h', tab: 'Eat' },
-  { key: 'demo-fest', bg: ['rgba(247,183,49,0.18)'], icon: '🏖️', cat: 'Festival', catColor: colors.goldDark, title: 'Yoff Beach Festival', meta: 'Yoff · Dim 15h', tab: 'Events' },
-  { key: 'demo-culture', bg: ['rgba(26,240,96,0.16)'], icon: '🎵', cat: 'Wey yu 221 bëgg', catColor: colors.greenDark, title: '"Yëkël" — Saliou K. en tête', meta: 'Chart #1 · Médina', tab: 'Culture' },
-  { key: 'demo-ataya', bg: ['rgba(247,183,49,0.18)'], icon: '🍵', cat: 'Ataya', catColor: colors.goldDark, title: 'Ataya Night — Thé & débats', meta: 'Médina · Ven 20h', tab: 'Eat' },
-  { key: 'demo-gig', bg: ['rgba(232,92,26,0.14)'], icon: '📸', cat: 'Gig', catColor: colors.terracottaDark, title: 'Photographe — mariage Ouakam', meta: '15 000 F', tab: 'Gigs' },
-];
 
 function Pill({ label, active, onPress }) {
   return (
@@ -161,14 +147,13 @@ function GridTile({ item, delay, onPress }) {
 }
 
 function AllTab({ query, onOpenTab, gridItems, loading }) {
-  const source = gridItems.length > 0 ? gridItems : DEMO_TILES;
-  const filtered = source.filter((item) => item.title.toLowerCase().includes(query.trim().toLowerCase()));
+  const filtered = gridItems.filter((item) => item.title.toLowerCase().includes(query.trim().toLowerCase()));
   return (
     <View style={styles.discGrid}>
       {loading && <Text style={styles.noResults}>Chargement…</Text>}
       {!loading && filtered.length === 0 && (
         <Text style={styles.noResults}>
-          {query.trim() ? `Rien pour "${query}"` : 'Rien publié pour l’instant — explore les onglets Eat, Gigs et Events.'}
+          {query.trim() ? `Rien pour "${query}"` : 'Rien publié pour l’instant — les vrais événements, deals et gigs de Dakar apparaîtront ici.'}
         </Text>
       )}
       {filtered.map((item, i) => (
@@ -494,7 +479,7 @@ function ListRow({ icon, title, meta, tag, tagColor, delay }) {
 
 function CultureTab({ navigation }) {
   const { country } = useLocale();
-  const [items, setItems] = useState(CULTURE_FIXTURES);
+  const [items, setItems] = useState([]);
   const [note, setNote] = useState('');
 
   useEffect(() => {
@@ -532,6 +517,11 @@ function CultureTab({ navigation }) {
           Aperçu local — pas de billetterie ici. Les vrais événements sont dans Events.
         </Text>
       )}
+      {items.length === 0 ? (
+        <Text style={[styles.noResults, { textAlign: 'left', paddingVertical: spacing.lg }]}>
+          Le programme sport & culture arrive — reviens bientôt.
+        </Text>
+      ) : null}
       {items.map((item, i) => (
         <ListRow
           key={item.key}

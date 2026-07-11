@@ -1,19 +1,18 @@
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import ScreenHeader from '../components/ScreenHeader';
-import GlowButton from '../components/GlowButton';
 import { useToast } from '../components/Toast';
-import { getWeeklyChart, submitChartSong, voteChartSong } from '../lib/api-client';
+import { getWeeklyChart, searchChartSongs, submitChartSong, voteChartSong } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useEntrance } from '../hooks/animations';
 
-// K21 Charts — "Wey yu 221 bëgg". 100% real: the community chart is ranked purely
-// by user votes (one per person per week), and the YouTube section is what
-// Senegal actually streams (cached by the daily cron). No editorial list.
+// K21 Charts — "Wey yu 221 bëgg". 100% real: songs are picked from YouTube
+// search (never free-typed), ranked purely by user votes (one per person per
+// week, movable), next to what Senegal actually streams. No editorial list.
 
 const RANK_TONES = [colors.greenDark, colors.goldDark, colors.terracotta];
 
@@ -49,9 +48,13 @@ export default function ChartsScreen({ navigation }) {
   const showToast = useToast();
   const [chart, setChart] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [title, setTitle] = useState('');
-  const [artist, setArtist] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [searchNote, setSearchNote] = useState('');
+  const searchTimer = useRef(null);
 
   const load = useCallback(async () => {
     try {
@@ -69,17 +72,45 @@ export default function ChartsScreen({ navigation }) {
     }, [load]),
   );
 
-  const submit = async () => {
-    if (title.trim().length < 1 || artist.trim().length < 1) return;
+  useEffect(() => () => clearTimeout(searchTimer.current), []);
+
+  const onQueryChange = (text) => {
+    setQuery(text);
+    setSearchNote('');
+    clearTimeout(searchTimer.current);
+    if (text.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await searchChartSongs(text.trim());
+        setResults(res.results ?? []);
+        if ((res.results ?? []).length === 0) setSearchNote('Aucun résultat — essaie un autre titre.');
+      } catch (err) {
+        setResults([]);
+        setSearchNote(
+          err.code === 'search_unavailable' || err.status === 503
+            ? 'La recherche musique ouvre bientôt — reviens vite !'
+            : err.message ?? 'Recherche indisponible',
+        );
+      } finally {
+        setSearching(false);
+      }
+    }, 650);
+  };
+
+  const pickSong = async (r) => {
     setBusy(true);
     try {
-      await submitChartSong({ title: title.trim(), artist: artist.trim() });
-      setTitle('');
-      setArtist('');
-      showToast('Chanson ajoutée — ton vote est compté ✓');
+      await submitChartSong({ title: r.title, artist: r.artist, videoId: r.videoId });
+      setQuery('');
+      setResults([]);
+      showToast(`Ton vote : ${r.title} ✓`);
       await load();
     } catch (err) {
-      showToast(err.message ?? 'Ajout impossible');
+      showToast(err.message ?? 'Vote impossible');
     } finally {
       setBusy(false);
     }
@@ -118,29 +149,43 @@ export default function ChartsScreen({ navigation }) {
 
           <View style={styles.pollCard}>
             <Text style={styles.pollQuestion}>🎶 {chart?.question ?? 'Ta chanson préférée cette semaine ?'}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Titre de la chanson"
-              placeholderTextColor={'rgba(5,8,5,0.45)'}
-              value={title}
-              onChangeText={setTitle}
-              maxLength={80}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Artiste"
-              placeholderTextColor={'rgba(5,8,5,0.45)'}
-              value={artist}
-              onChangeText={setArtist}
-              maxLength={60}
-            />
-            <GlowButton
-              tone="gold"
-              label={busy ? '…' : 'Proposer + voter →'}
-              onPress={submit}
-              disabled={busy || title.trim().length < 1 || artist.trim().length < 1}
-            />
-            <Text style={styles.pollHint}>Un vote par personne par semaine — tu peux le déplacer.</Text>
+            <View style={styles.searchRow}>
+              <Text style={{ fontSize: 13 }}>🔍</Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Cherche la chanson sur YouTube…"
+                placeholderTextColor={'rgba(5,8,5,0.45)'}
+                value={query}
+                onChangeText={onQueryChange}
+                autoCorrect={false}
+                maxLength={80}
+              />
+              {searching ? <ActivityIndicator size="small" color={colors.goldDark} /> : null}
+            </View>
+            {searchNote ? <Text style={styles.searchNote}>{searchNote}</Text> : null}
+            {results.length > 0 ? (
+              <View style={styles.resultsBox}>
+                {results.map((r) => (
+                  <PressScale key={r.videoId} scaleTo={0.98} onPress={() => pickSong(r)} disabled={busy} style={styles.resultRow}>
+                    {r.thumbnail ? (
+                      <Image source={{ uri: r.thumbnail }} style={styles.resultThumb} />
+                    ) : (
+                      <View style={[styles.resultThumb, styles.resultThumbFallback]}>
+                        <Text style={{ fontSize: 14 }}>🎵</Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.resultTitle} numberOfLines={1}>{r.title}</Text>
+                      <Text style={styles.resultArtist} numberOfLines={1}>{r.artist}</Text>
+                    </View>
+                    <View style={styles.resultVote}>
+                      <Text style={styles.resultVoteText}>Voter</Text>
+                    </View>
+                  </PressScale>
+                ))}
+              </View>
+            ) : null}
+            <Text style={styles.pollHint}>Choisis la vraie chanson — un vote par semaine, tu peux le déplacer.</Text>
           </View>
 
           <Text style={styles.sectionLabel}>Classement de la semaine</Text>
@@ -148,7 +193,7 @@ export default function ChartsScreen({ navigation }) {
             <ActivityIndicator color={colors.green} style={{ marginVertical: spacing.xxl }} />
           ) : (chart?.songs?.length ?? 0) === 0 ? (
             <Text style={styles.empty}>
-              Aucune chanson cette semaine — propose la première et lance le chart !
+              Aucune chanson cette semaine — cherche la tienne et lance le chart !
             </Text>
           ) : (
             <View style={{ gap: spacing.sm }}>
@@ -196,16 +241,41 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxl,
   },
   pollQuestion: { fontFamily: fontFamily.displayBold, fontSize: 13, color: colors.ink, marginBottom: spacing.xs },
-  input: {
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     height: 46,
     borderRadius: radius.lg,
     backgroundColor: 'rgba(255,255,255,0.85)',
     borderWidth: 1,
     borderColor: 'rgba(5,8,5,0.1)',
     paddingHorizontal: spacing.lg,
-    color: colors.ink,
-    fontSize: 14,
   },
+  searchInput: { flex: 1, color: colors.ink, fontSize: 14, height: '100%' },
+  searchNote: { fontSize: 11, color: 'rgba(5,8,5,0.55)', lineHeight: 15 },
+  resultsBox: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(5,8,5,0.08)',
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  resultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(5,8,5,0.06)',
+  },
+  resultThumb: { width: 42, height: 32, borderRadius: 6, backgroundColor: 'rgba(5,8,5,0.06)' },
+  resultThumbFallback: { alignItems: 'center', justifyContent: 'center' },
+  resultTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.ink },
+  resultArtist: { fontSize: 10, color: 'rgba(5,8,5,0.55)', marginTop: 1 },
+  resultVote: { backgroundColor: colors.green, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 4 },
+  resultVoteText: { fontSize: 10, fontWeight: '800', color: colors.ink },
   pollHint: { fontSize: 10, color: 'rgba(5,8,5,0.5)', textAlign: 'center' },
 
   sectionLabel: { ...type.eyebrow, color: 'rgba(5,8,5,0.45)', marginBottom: spacing.md },

@@ -649,8 +649,12 @@ export function getWeeklyChart() {
   return apiFetch('/api/charts', { skipCache: true });
 }
 
-export function submitChartSong({ title, artist }) {
-  return apiFetch('/api/charts/submit', { method: 'POST', body: { title, artist }, skipCache: true });
+export function submitChartSong({ title, artist, videoId }) {
+  return apiFetch('/api/charts/submit', { method: 'POST', body: { title, artist, videoId }, skipCache: true });
+}
+
+export function searchChartSongs(q) {
+  return apiFetch(`/api/charts/search?q=${encodeURIComponent(q)}`, { skipCache: true });
 }
 
 export function voteChartSong(songId) {
