@@ -307,14 +307,14 @@ export default function WelcomeScreen({ onComplete }) {
           </Animated.View>
 
           <Animated.View style={[styles.bottom, rise]}>
-            <View style={styles.dotsRow}>
+            <View style={styles.segRow}>
               {slides.map((s, i) => (
                 <View
                   key={s.key}
                   style={[
-                    styles.dot,
-                    { backgroundColor: 'rgba(5,8,5,0.18)' },
-                    i === index && { width: 22, backgroundColor: slide.accent },
+                    styles.seg,
+                    i < index && { backgroundColor: 'rgba(5,8,5,0.35)' },
+                    i === index && { backgroundColor: slide.accent },
                   ]}
                 />
               ))}
@@ -343,8 +343,8 @@ const styles = StyleSheet.create({
   skipText: { fontFamily: fontFamily.bodyBold, fontSize: 12, textDecorationLine: 'underline' },
 
   bottom: { paddingHorizontal: spacing.xxxl, paddingBottom: spacing.giant + 4 },
-  dotsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
-  dot: { width: 6, height: 6, borderRadius: 3 },
+  segRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
+  seg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(5,8,5,0.12)', maxWidth: 64 },
   title: { fontFamily: fontFamily.displayBlack, fontSize: 27, letterSpacing: -1, lineHeight: 34, marginBottom: spacing.md },
   body: { fontFamily: fontFamily.bodyRegular, fontSize: 13.5, lineHeight: 21, marginBottom: spacing.xxl },
   nextBtn: {
