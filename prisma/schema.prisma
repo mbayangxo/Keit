@@ -14,6 +14,9 @@ model User {
   country                String    @default("SN")
   name                   String?
   handle                 String?   @unique
+  statusText             String?
+  currentSong            String?
+  pinnedPhotos           Json?
   arrondissementKey      String?
   arrondissementIcon     String?
   arrondissementName     String?
@@ -215,6 +218,9 @@ model Business {
   arrondissement String?
   kebuId         String?  @unique
   description    String?
+  address        String?
+  lat            Float?
+  lng            Float?
   verified       Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -227,6 +233,7 @@ model Business {
   payrollGroups    PayrollGroup[]
   payrollEmployees PayrollEmployee[]
   schoolStudents   SchoolStudent[]
+  reviews          Review[]
   schoolFeePeriods SchoolFeePeriod[]
   deliveryLogs     FarmerDeliveryLog[]
   contentReports   ContentReport[]
@@ -289,6 +296,8 @@ model Product {
   category    String?
   inventory   Int      @default(0)
   active      Boolean  @default(true)
+  flashPrice  Int?
+  flashExpiresAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1141,4 +1150,65 @@ model OfflineSyncQueue {
 
   @@index([userId, syncedAt])
   @@index([entityType])
+}
+
+/** K21 Charts — community favorite-song chart. One vote per user per week. */
+model ChartSong {
+  id          String   @id @default(cuid())
+  weekKey     String
+  titleKey    String
+  title       String
+  artist      String
+  videoId     String?
+  submittedBy String?
+  createdAt   DateTime @default(now())
+
+  votes SongVote[]
+
+  @@unique([weekKey, titleKey])
+  @@index([weekKey])
+}
+
+model SongVote {
+  id        String   @id @default(cuid())
+  songId    String
+  userId    String
+  weekKey   String
+  createdAt DateTime @default(now())
+
+  song ChartSong @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekKey])
+  @@index([songId])
+}
+
+/** Cached external trending data (YouTube SN music, etc.) refreshed by cron. */
+model TrendingCache {
+  id        String   @id @default(cuid())
+  kind      String
+  periodKey String
+  rank      Int
+  title     String
+  meta      String?
+  url       String?
+  createdAt DateTime @default(now())
+
+  @@unique([kind, periodKey, rank])
+  @@index([kind, periodKey])
+}
+
+/** Real merchant reviews — one per user per business, no fake ratings ever. */
+model Review {
+  id         String   @id @default(cuid())
+  businessId String
+  userId     String
+  rating     Int
+  text       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([businessId])
 }

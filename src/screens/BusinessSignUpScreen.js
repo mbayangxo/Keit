@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import OnboardingShell from '../components/OnboardingShell';
 import PressScale from '../components/PressScale';
+import AddressSearchInput from '../components/AddressSearchInput';
 import GlowButton from '../components/GlowButton';
 import { useToast } from '../components/Toast';
 import { authPhone, authVerify, authCompleteProfile, createBusiness, depositNational, getWallet } from '../lib/api-client';
@@ -147,7 +148,7 @@ function OtpStep({ phone, otp, setOtp, onNext, onBack, onResend, devOtpHint, loa
   );
 }
 
-function BusinessProfileStep({ businessName, setBusinessName, category, setCategory, onNext, onBack }) {
+function BusinessProfileStep({ businessName, setBusinessName, category, setCategory, businessAddress, setBusinessAddress, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
   return (
     <Animated.View style={[styles.body, entrance]}>
@@ -166,6 +167,11 @@ function BusinessProfileStep({ businessName, setBusinessName, category, setCateg
           value={businessName}
           onChangeText={setBusinessName}
         />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.igLabel}>Adresse (optionnel)</Text>
+        <AddressSearchInput value={businessAddress} onSelect={setBusinessAddress} />
       </View>
 
       <Text style={styles.igLabel}>Catégorie</Text>
@@ -294,6 +300,7 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
   const [otp, setOtp] = useState('');
   const [devOtpHint, setDevOtpHint] = useState(null);
   const [businessName, setBusinessName] = useState('');
+  const [businessAddress, setBusinessAddress] = useState(null);
   const [category, setCategory] = useState(null);
   const [afriId, setAfriId] = useState('');
   const [ownerHandle, setOwnerHandle] = useState('');
@@ -389,6 +396,9 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
         name: businessName.trim(),
         category: category.key,
         arrondissement: region.name,
+        address: businessAddress?.label,
+        lat: businessAddress?.lat,
+        lng: businessAddress?.lng,
       });
 
       let balance = 0;
@@ -446,6 +456,8 @@ export default function BusinessSignUpScreen({ onComplete, onCancel }) {
           <BusinessProfileStep
             businessName={businessName}
             setBusinessName={setBusinessName}
+            businessAddress={businessAddress}
+            setBusinessAddress={setBusinessAddress}
             category={category}
             setCategory={setCategory}
             onNext={savePersonalProfile}

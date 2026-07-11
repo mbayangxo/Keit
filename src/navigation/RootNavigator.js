@@ -23,6 +23,7 @@ import ComingSoonScreen from '../screens/ComingSoonScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import QrScanScreen from '../screens/QrScanScreen';
 import MyQrScreen from '../screens/MyQrScreen';
+import ChartsScreen from '../screens/ChartsScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import StudentPassScreen from '../screens/StudentPassScreen';
 import PinGateScreen from '../screens/PinGateScreen';
@@ -166,6 +167,7 @@ export default function RootNavigator() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="QrScan" component={QrScanScreen} />
       <Stack.Screen name="MyQr" component={MyQrScreen} />
+      <Stack.Screen name="Charts" component={ChartsScreen} />
       <Stack.Screen name="StudentPass" component={StudentPassScreen} />
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="Info" component={ComingSoonScreen} />

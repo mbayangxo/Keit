@@ -7,7 +7,7 @@ import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useEntrance, useBlink, useScalePulse } from '../hooks/animations';
-import { getEvents, getProducts, getBusinesses, purchaseEventTickets, getCultureFeed } from '../lib/api-client';
+import { getEvents, getProducts, getBusinesses, purchaseEventTickets, getCultureFeed, submitBusinessReview } from '../lib/api-client';
 import { useLocale } from '../context/LocaleContext';
 
 // design/k21-complete-redesign.html Discover/Eat/Events sections, merged
@@ -201,8 +201,23 @@ function FlashCard({ item, delay }) {
   );
 }
 
-function RestaurantCard({ item, delay }) {
+function RestaurantCard({ item, delay, onRate }) {
   const entrance = useEntrance(delay, 350, 10);
+  const [rating, setRating] = useState(0);
+  const [sent, setSent] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const rate = async (value) => {
+    setRating(value);
+    try {
+      await onRate(item, value);
+      setSent(true);
+      setOpen(false);
+    } catch {
+      setRating(0);
+    }
+  };
+
   return (
     <Animated.View style={[styles.rgItem, entrance]}>
       <View style={[styles.rgImg, { backgroundColor: item.bg[0] }]}>
@@ -211,16 +226,45 @@ function RestaurantCard({ item, delay }) {
       <View style={styles.rgBody}>
         <Text style={styles.rgName}>{item.name}</Text>
         <Text style={styles.rgMeta}>{item.meta}</Text>
-        <Text style={styles.rgRating}>⭐ {item.rating}</Text>
+        {sent ? (
+          <Text style={styles.rgRating}>✓ Merci pour ton avis</Text>
+        ) : open ? (
+          <View style={styles.rgStarsRow}>
+            {[1, 2, 3, 4, 5].map((v) => (
+              <PressScale key={v} scaleTo={0.85} onPress={() => rate(v)}>
+                <Text style={{ fontSize: 16, opacity: v <= rating ? 1 : 0.35 }}>⭐</Text>
+              </PressScale>
+            ))}
+          </View>
+        ) : item.ratingAvg != null ? (
+          <PressScale scaleTo={0.95} onPress={() => setOpen(true)}>
+            <Text style={styles.rgRating}>⭐ {item.ratingAvg} ({item.ratingCount}) · Noter</Text>
+          </PressScale>
+        ) : (
+          <PressScale scaleTo={0.95} onPress={() => setOpen(true)}>
+            <Text style={styles.rgRatingEmpty}>Laisse le premier avis →</Text>
+          </PressScale>
+        )}
       </View>
     </Animated.View>
   );
 }
 
 function EatTab() {
+  const showToast = useToast();
   const [deals, setDeals] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const rateBusiness = async (item, rating) => {
+    try {
+      await submitBusinessReview(item.key, { rating });
+      showToast(`Avis envoyé : ${rating}★ pour ${item.name} ✓`);
+    } catch (err) {
+      showToast(err.message ?? 'Avis impossible');
+      throw err;
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -245,8 +289,9 @@ function EatTab() {
             bg: ['rgba(232,92,26,0.14)'],
             icon: businessIcon(b.category),
             name: b.name,
-            meta: `${b.category ?? 'Commerce'} · ${b.arrondissement ?? 'Dakar'}`,
-            rating: b.verified ? 'Vérifié' : 'Nouveau',
+            meta: `${b.category ?? 'Commerce'} · ${b.address ?? b.arrondissement ?? 'Dakar'}`,
+            ratingAvg: b.rating?.average ?? null,
+            ratingCount: b.rating?.count ?? 0,
           })),
         );
       })
@@ -286,7 +331,7 @@ function EatTab() {
         )}
         <View style={styles.restGrid}>
           {restaurants.map((item, i) => (
-            <RestaurantCard key={item.key} item={item} delay={i * 60} />
+            <RestaurantCard key={item.key} item={item} delay={i * 60} onRate={rateBusiness} />
           ))}
         </View>
       </View>
@@ -447,7 +492,7 @@ function ListRow({ icon, title, meta, tag, tagColor, delay }) {
   );
 }
 
-function CultureTab() {
+function CultureTab({ navigation }) {
   const { country } = useLocale();
   const [items, setItems] = useState(CULTURE_FIXTURES);
   const [note, setNote] = useState('');
@@ -470,6 +515,15 @@ function CultureTab() {
 
   return (
     <View style={{ paddingHorizontal: spacing.huge, paddingTop: spacing.lg, gap: spacing.sm }}>
+      <PressScale scaleTo={0.98} onPress={() => navigation.navigate('Charts')} style={styles.chartsCard}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.chartsCardEyebrow}>K21 CHARTS · 221 BËGG</Text>
+          <Text style={styles.chartsCardTitle}>Vote pour ta chanson de la semaine</Text>
+          <Text style={styles.chartsCardMeta}>Le classement de la communauté + tendances YouTube Sénégal</Text>
+        </View>
+        <Text style={styles.chartsCardArrow}>🎶</Text>
+      </PressScale>
+
       <Text style={styles.sectionLabel}>Sport & Culture · {country?.nameEn ?? country?.name ?? 'Local'}</Text>
       {note ? (
         <Text style={[styles.noResults, { textAlign: 'left', paddingVertical: 0, marginBottom: spacing.sm }]}>{note}</Text>
@@ -617,7 +671,7 @@ export default function DiscoverScreen({ navigation, route }) {
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
           {tab === 'Tout' && <AllTab query={query} onOpenTab={setTab} gridItems={gridItems} loading={gridLoading} />}
-          {tab === 'Culture' && <CultureTab />}
+          {tab === 'Culture' && <CultureTab navigation={navigation} />}
           {tab === 'Eat' && <EatTab />}
           {tab === 'Gigs' && <GigsTab />}
           {tab === 'Events' && <EventsTab onBuyTicket={buyTicket} buyingTicketId={buyingTicketId} />}
@@ -674,9 +728,16 @@ const styles = StyleSheet.create({
   rgItem: { width: '48.5%', backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', borderRadius: radius.xl, overflow: 'hidden' },
   rgImg: { height: 58, alignItems: 'center', justifyContent: 'center' },
   rgBody: { padding: 9 },
+  chartsCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, backgroundColor: 'rgba(250,216,54,0.16)', borderWidth: 1.5, borderColor: 'rgba(232,146,10,0.3)', borderRadius: radius.xxl, borderBottomRightRadius: 10, padding: spacing.xxl, marginBottom: spacing.md },
+  chartsCardEyebrow: { fontSize: 8, fontWeight: '700', letterSpacing: 1.2, color: colors.goldDark, textTransform: 'uppercase', marginBottom: 3 },
+  chartsCardTitle: { fontFamily: fontFamily.displayBold, fontSize: 13, color: colors.ink, marginBottom: 3 },
+  chartsCardMeta: { fontSize: 10, color: 'rgba(5,8,5,0.55)' },
+  chartsCardArrow: { fontSize: 26 },
   rgName: { fontSize: 11, fontWeight: '700', color: colors.ink, marginBottom: 2 },
   rgMeta: { fontSize: 9, color: 'rgba(5,8,5,0.5)' },
   rgRating: { color: colors.goldDark, fontSize: 9, fontWeight: '700', marginTop: 2 },
+  rgRatingEmpty: { color: colors.greenDark, fontSize: 9, fontWeight: '700', marginTop: 2 },
+  rgStarsRow: { flexDirection: 'row', gap: 2, marginTop: 2 },
 
   ehcCard: { marginHorizontal: 14, marginTop: spacing.lg, marginBottom: spacing.lg, borderRadius: radius.xxxl + 2, overflow: 'hidden', height: 140, position: 'relative', backgroundColor: 'rgba(255,255,255,0.85)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)' },
   ehcBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, fontSize: 72, textAlign: 'center', textAlignVertical: 'center' },

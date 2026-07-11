@@ -366,10 +366,10 @@ export function getBusinesses(category) {
   return apiFetch(`/api/businesses${q}`, { skipCache: true });
 }
 
-export function createBusiness({ name, type = 'merchant', category, arrondissement, description }) {
+export function createBusiness({ name, type = 'merchant', category, arrondissement, description, address, lat, lng }) {
   return apiFetch('/api/businesses', {
     method: 'POST',
-    body: { name, type, category, arrondissement, description },
+    body: { name, type, category, arrondissement, description, address, lat, lng },
     skipCache: true,
   });
 }
@@ -639,6 +639,40 @@ export function requestDelivery(body) {
   return apiFetch('/api/deliveries', {
     method: 'POST',
     body,
+    skipCache: true,
+  });
+}
+
+// ── K21 Charts — community song poll + YouTube SN trending ──
+
+export function getWeeklyChart() {
+  return apiFetch('/api/charts', { skipCache: true });
+}
+
+export function submitChartSong({ title, artist }) {
+  return apiFetch('/api/charts/submit', { method: 'POST', body: { title, artist }, skipCache: true });
+}
+
+export function voteChartSong(songId) {
+  return apiFetch('/api/charts/vote', { method: 'POST', body: { songId }, skipCache: true });
+}
+
+// ── OpenStreetMap address search (server-side Nominatim proxy) ──
+
+export function geoSearchAddress(q) {
+  return apiFetch(`/api/geo/search?q=${encodeURIComponent(q)}`, { skipCache: true });
+}
+
+// ── Real merchant reviews ──
+
+export function getBusinessReviews(businessId) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/reviews`, { skipCache: true });
+}
+
+export function submitBusinessReview(businessId, { rating, text }) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/reviews`, {
+    method: 'POST',
+    body: { rating, text },
     skipCache: true,
   });
 }
