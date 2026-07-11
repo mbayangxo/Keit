@@ -7,7 +7,7 @@ import { usePopIn, useEntrance, useSuccessHaptic } from '../hooks/animations';
 
 const PERSONAL_STEPS = [
   { key: 'send', icon: '💸', label: 'Envoyer' },
-  { key: 'chart', icon: '🎵', label: '221 Bëgg' },
+  { key: 'chart', icon: '🎵', label: 'Wey yu 221 bëgg' },
   { key: 'mboolo', icon: '💬', label: 'Mboolo' },
 ];
 

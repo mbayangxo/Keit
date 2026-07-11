@@ -8,7 +8,7 @@ import { useLocale } from '../context/LocaleContext';
 import { t } from '../i18n/translations';
 
 // Three worlds of K21, one per slide — each a crafted brand composition,
-// no emoji, no stock art: the zero-fee promise, 221 Bëgg music, and the
+// no emoji, no stock art: the zero-fee promise, Wey yu 221 bëgg music, and the
 // Mboolo/tontine community circle.
 
 /** Slide 1 — giant tilted "0%" over the brand green field. */
@@ -101,7 +101,7 @@ function MusicVisual() {
           <EqualizerBar key={i} {...b} />
         ))}
       </View>
-      <Text style={vs.eqCaption}>221 BËGG</Text>
+      <Text style={vs.eqCaption}>WEY YU 221 BËGG</Text>
     </View>
   );
 }

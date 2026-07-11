@@ -104,7 +104,7 @@ only (useNativeDriver), subtle, and never block input.
 ## 07. VOICE
 
 French-first with Wolof product names (Yónnee, Jël, Fey, Mboolo, Ñu Lekk,
-221 Bëgg, Ataya). FR/WO/EN via the i18n `t()` — new user-facing strings go
+Wey yu 221 bëgg, Ataya). FR/WO/EN via the i18n `t()` — new user-facing strings go
 in `src/i18n/translations.js`, all three languages.
 
 ---

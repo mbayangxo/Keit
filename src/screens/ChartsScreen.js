@@ -11,7 +11,7 @@ import { getWeeklyChart, submitChartSong, voteChartSong } from '../lib/api-clien
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useEntrance } from '../hooks/animations';
 
-// K21 Charts — "221 Bëgg". 100% real: the community chart is ranked purely
+// K21 Charts — "Wey yu 221 bëgg". 100% real: the community chart is ranked purely
 // by user votes (one per person per week), and the YouTube section is what
 // Senegal actually streams (cached by the daily cron). No editorial list.
 
@@ -108,7 +108,7 @@ export default function ChartsScreen({ navigation }) {
           <ScreenHeader
             onBack={() => navigation.goBack()}
             eyebrow="K21 CHARTS"
-            title="221 Bëgg"
+            title="Wey yu 221 bëgg"
             style={{ marginBottom: spacing.sm }}
           />
           <Text style={styles.sub}>

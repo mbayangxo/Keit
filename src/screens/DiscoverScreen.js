@@ -130,7 +130,7 @@ const DEMO_TILES = [
   { key: 'demo-ev', bg: ['rgba(26,240,96,0.16)'], icon: '🎧', cat: 'Ce soir', catColor: colors.greenDark, title: 'Afrobeats Rooftop Party', meta: 'Almadies · 21h', tab: 'Events', wide: true, live: true },
   { key: 'demo-food', bg: ['rgba(232,92,26,0.14)'], icon: '🧵', cat: 'Marché', catColor: colors.terracottaDark, title: 'Marché des tissus', meta: 'Sandaga · Sam 10h', tab: 'Eat' },
   { key: 'demo-fest', bg: ['rgba(247,183,49,0.18)'], icon: '🏖️', cat: 'Festival', catColor: colors.goldDark, title: 'Yoff Beach Festival', meta: 'Yoff · Dim 15h', tab: 'Events' },
-  { key: 'demo-culture', bg: ['rgba(26,240,96,0.16)'], icon: '🎵', cat: '221 Bëgg', catColor: colors.greenDark, title: '"Yëkël" — Saliou K. en tête', meta: 'Chart #1 · Médina', tab: 'Culture' },
+  { key: 'demo-culture', bg: ['rgba(26,240,96,0.16)'], icon: '🎵', cat: 'Wey yu 221 bëgg', catColor: colors.greenDark, title: '"Yëkël" — Saliou K. en tête', meta: 'Chart #1 · Médina', tab: 'Culture' },
   { key: 'demo-ataya', bg: ['rgba(247,183,49,0.18)'], icon: '🍵', cat: 'Ataya', catColor: colors.goldDark, title: 'Ataya Night — Thé & débats', meta: 'Médina · Ven 20h', tab: 'Eat' },
   { key: 'demo-gig', bg: ['rgba(232,92,26,0.14)'], icon: '📸', cat: 'Gig', catColor: colors.terracottaDark, title: 'Photographe — mariage Ouakam', meta: '15 000 F', tab: 'Gigs' },
 ];
@@ -517,7 +517,7 @@ function CultureTab({ navigation }) {
     <View style={{ paddingHorizontal: spacing.huge, paddingTop: spacing.lg, gap: spacing.sm }}>
       <PressScale scaleTo={0.98} onPress={() => navigation.navigate('Charts')} style={styles.chartsCard}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.chartsCardEyebrow}>K21 CHARTS · 221 BËGG</Text>
+          <Text style={styles.chartsCardEyebrow}>K21 CHARTS · WEY YU 221 BËGG</Text>
           <Text style={styles.chartsCardTitle}>Vote pour ta chanson de la semaine</Text>
           <Text style={styles.chartsCardMeta}>Le classement de la communauté + tendances YouTube Sénégal</Text>
         </View>
