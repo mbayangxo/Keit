@@ -7,7 +7,7 @@ import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useEntrance, useBlink, useScalePulse } from '../hooks/animations';
-import { getEvents, getProducts, getBusinesses, purchaseEventTickets, getCultureFeed, submitBusinessReview } from '../lib/api-client';
+import { getEvents, getProducts, getBusinesses, purchaseEventTickets, getCultureFeed, submitBusinessReview, getFlashDeals } from '../lib/api-client';
 import { useLocale } from '../context/LocaleContext';
 
 // design/k21-complete-redesign.html Discover/Eat/Events sections, merged
@@ -180,7 +180,8 @@ function FlashCard({ item, delay }) {
           <Text style={styles.fcNew}>{item.price}</Text>
           <Text style={styles.fcOld}>{item.old}</Text>
         </View>
-        <Text style={styles.fcTime}>{item.time}</Text>
+        {item.merchant ? <Text style={styles.fcMerchant} numberOfLines={1}>{item.merchant}</Text> : null}
+      <Text style={styles.fcTime}>⏱ {item.time}</Text>
       </View>
     </Animated.View>
   );
@@ -235,11 +236,26 @@ function RestaurantCard({ item, delay, onRate }) {
   );
 }
 
+function flashCountdown(expiresAt, now) {
+  const ms = new Date(expiresAt) - now;
+  if (ms <= 0) return null;
+  const h = Math.floor(ms / 3600_000);
+  const m = Math.floor((ms % 3600_000) / 60_000);
+  return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m restantes` : `${m} min restantes`;
+}
+
 function EatTab() {
   const showToast = useToast();
   const [deals, setDeals] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(() => Date.now());
+
+  // Real countdowns tick — and expired deals drop off without a refresh.
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   const rateBusiness = async (item, rating) => {
     try {
@@ -253,20 +269,23 @@ function EatTab() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getProducts('deal').catch(() => []), getBusinesses('restaurant').catch(() => [])])
+    Promise.all([getFlashDeals().catch(() => []), getBusinesses('restaurant').catch(() => [])])
       .then(([dealList, bizList]) => {
         if (cancelled) return;
         setDeals(
-          (Array.isArray(dealList) ? dealList : []).map((p) => ({
-            key: p.id,
-            bg: ['rgba(232,92,26,0.14)'],
-            icon: productIcon(p.category),
-            discount: p.description?.includes('%') ? p.description.split(' ')[0] : 'K21',
-            name: p.title,
-            price: `${p.price.toLocaleString('fr-FR')} F`,
-            old: p.inventory > 0 ? `${Math.round(p.price * 1.3).toLocaleString('fr-FR')} F` : '',
-            time: p.category === 'deal' ? 'Offre K21' : '',
-          })),
+          (Array.isArray(dealList) ? dealList : [])
+            .filter((p) => p.flashPrice != null && p.flashExpiresAt)
+            .map((p) => ({
+              key: p.id,
+              bg: ['rgba(232,92,26,0.14)'],
+              icon: productIcon(p.category),
+              discount: `-${Math.round((1 - p.flashPrice / p.price) * 100)}%`,
+              name: p.title,
+              merchant: p.business?.name ?? p.seller?.shopName ?? null,
+              price: `${p.flashPrice.toLocaleString('fr-FR')} F`,
+              old: `${p.price.toLocaleString('fr-FR')} F`,
+              expiresAt: p.flashExpiresAt,
+            })),
         );
         setRestaurants(
           (Array.isArray(bizList) ? bizList : []).map((b) => ({
@@ -296,14 +315,17 @@ function EatTab() {
       {loading && <Text style={[styles.noResults, { paddingHorizontal: spacing.huge }]}>Chargement…</Text>}
       {!loading && deals.length === 0 && (
         <Text style={[styles.noResults, { paddingHorizontal: spacing.huge, paddingBottom: spacing.lg }]}>
-          Aucune offre publiée — les commerçants peuvent ajouter des produits via l’API.
+          Aucune offre flash en ce moment — les commerçants en publient depuis leur espace K21 Business.
         </Text>
       )}
       {deals.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.flashCarousel}>
-          {deals.map((item, i) => (
-            <FlashCard key={item.key} item={item} delay={i * 50} />
-          ))}
+          {deals
+            .map((item) => ({ ...item, time: flashCountdown(item.expiresAt, now) }))
+            .filter((item) => item.time)
+            .map((item, i) => (
+              <FlashCard key={item.key} item={item} delay={i * 50} />
+            ))}
         </ScrollView>
       )}
 
@@ -711,6 +733,7 @@ const styles = StyleSheet.create({
   fcNew: { fontSize: 11, fontWeight: '700', color: colors.greenDark },
   fcOld: { fontSize: 9, color: 'rgba(5,8,5,0.45)', textDecorationLine: 'line-through' },
   fcTime: { fontSize: 8, color: colors.terracotta, marginTop: 3, fontWeight: '600' },
+  fcMerchant: { fontSize: 8, color: 'rgba(5,8,5,0.5)', marginTop: 1 },
 
   restSection: { paddingHorizontal: 15, paddingTop: spacing.lg },
   restLabel: { fontSize: 8, fontWeight: '700', letterSpacing: 1.5, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginBottom: spacing.lg },

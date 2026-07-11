@@ -147,7 +147,7 @@ export default function FriendsScreen({ navigation, route }) {
                 <FriendRow
                   key={f.id}
                   friend={f}
-                  onSend={() => open('SendMoney', { recipientHandle: f.handle })}
+                  onSend={() => open('UserProfile', { handle: f.handle })}
                   onMbolo={() => openMbooloWithFriend(f)}
                 />
               ))}

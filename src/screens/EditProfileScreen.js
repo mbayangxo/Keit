@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
@@ -37,6 +37,54 @@ export default function EditProfileScreen({ navigation }) {
   const [devOtp, setDevOtp] = useState(null);
   const [loading, setLoading] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [statusText, setStatusText] = useState(profile.statusText ?? '');
+  const [currentSong, setCurrentSong] = useState(profile.currentSong ?? '');
+  const [pinnedPhotos, setPinnedPhotos] = useState(Array.isArray(profile.pinnedPhotos) ? profile.pinnedPhotos : []);
+  const [publicSaving, setPublicSaving] = useState(false);
+
+  const addPinnedPhoto = async () => {
+    if (pinnedPhotos.length >= 3) return;
+    const dataUrl = await pickProfilePhoto();
+    if (!dataUrl) return;
+    const next = [...pinnedPhotos, dataUrl];
+    setPinnedPhotos(next);
+    try {
+      await patchMe({ pinnedPhotos: next });
+      setProfile({ pinnedPhotos: next });
+      showToast('Photo ajoutée à ton profil ✓');
+    } catch (err) {
+      setPinnedPhotos(pinnedPhotos);
+      showToast(err.message ?? 'Photo impossible');
+    }
+  };
+
+  const removePinnedPhoto = async (ix) => {
+    const next = pinnedPhotos.filter((_, i) => i !== ix);
+    setPinnedPhotos(next);
+    try {
+      await patchMe({ pinnedPhotos: next });
+      setProfile({ pinnedPhotos: next });
+    } catch (err) {
+      setPinnedPhotos(pinnedPhotos);
+      showToast(err.message ?? 'Mise à jour impossible');
+    }
+  };
+
+  const savePublicProfile = async () => {
+    setPublicSaving(true);
+    try {
+      const updated = await patchMe({
+        statusText: statusText.trim() || null,
+        currentSong: currentSong.trim() || null,
+      });
+      setProfile({ statusText: updated.statusText, currentSong: updated.currentSong });
+      showToast('Profil public enregistré ✓');
+    } catch (err) {
+      showToast(err.message ?? 'Mise à jour impossible');
+    } finally {
+      setPublicSaving(false);
+    }
+  };
 
   const changePhoto = async () => {
     setPhotoLoading(true);
@@ -155,6 +203,53 @@ export default function EditProfileScreen({ navigation }) {
                 <Text style={styles.link}>Retirer la photo</Text>
               </PressScale>
             ) : null}
+          </View>
+
+          <Text style={styles.sectionLabel}>Profil public — ce que les autres voient</Text>
+          <View style={styles.card}>
+            <Text style={styles.fieldLabel}>✨ Ce que tu fais en ce moment</Text>
+            <TextInput
+              style={styles.input}
+              value={statusText}
+              onChangeText={setStatusText}
+              placeholder="En ataya à Médina…"
+              placeholderTextColor={'rgba(5,8,5,0.4)'}
+              maxLength={80}
+            />
+            <Text style={styles.fieldLabel}>🎵 Ta chanson du moment</Text>
+            <TextInput
+              style={styles.input}
+              value={currentSong}
+              onChangeText={setCurrentSong}
+              placeholder="Titre — Artiste"
+              placeholderTextColor={'rgba(5,8,5,0.4)'}
+              maxLength={90}
+            />
+            <GlowButton
+              label={publicSaving ? '…' : 'Enregistrer'}
+              onPress={savePublicProfile}
+              disabled={publicSaving}
+            />
+
+            <Text style={[styles.fieldLabel, { marginTop: spacing.lg }]}>📸 Photos épinglées (max 3)</Text>
+            <View style={styles.pinnedRow}>
+              {pinnedPhotos.map((uri, ix) => (
+                <PressScale key={ix} scaleTo={0.95} onPress={() => removePinnedPhoto(ix)} style={styles.pinnedSlot}>
+                  <Image source={{ uri }} style={styles.pinnedImg} />
+                  <View style={styles.pinnedRemove}>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: colors.white }}>×</Text>
+                  </View>
+                </PressScale>
+              ))}
+              {pinnedPhotos.length < 3 ? (
+                <PressScale scaleTo={0.95} onPress={addPinnedPhoto} style={[styles.pinnedSlot, styles.pinnedAdd]}>
+                  <Text style={{ fontSize: 22, color: 'rgba(5,8,5,0.45)' }}>+</Text>
+                </PressScale>
+              ) : null}
+            </View>
+            <Text style={styles.hint}>
+              Seuls ton nom, ton @handle, ton quartier et ces éléments sont visibles — jamais ton numéro, ton email ou ton solde.
+            </Text>
           </View>
 
           <Text style={styles.sectionLabel}>Identité</Text>
@@ -277,6 +372,11 @@ const styles = StyleSheet.create({
   bold: { fontFamily: fontFamily.bodyBold, color: colors.greenDark },
   phoneRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md },
   dial: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.appCanvas.text },
+  pinnedRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm, marginBottom: spacing.sm },
+  pinnedSlot: { width: 72, height: 72, borderRadius: radius.lg, borderBottomRightRadius: 9, overflow: 'hidden', position: 'relative' },
+  pinnedImg: { width: '100%', height: '100%' },
+  pinnedRemove: { position: 'absolute', top: 3, right: 3, width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(5,8,5,0.65)', alignItems: 'center', justifyContent: 'center' },
+  pinnedAdd: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(5,8,5,0.25)', backgroundColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center' },
   input: {
     flex: 1,
     height: 48,

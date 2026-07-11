@@ -8,6 +8,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
+import { createFlashDeal } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import {
   getMyBusinesses,
@@ -78,6 +79,43 @@ export default function BusinessHubScreen({ navigation }) {
   const [deliveries, setDeliveries] = useState([]);
   const [deliveryTons, setDeliveryTons] = useState('1');
   const [farmerHandle, setFarmerHandle] = useState('');
+
+  const [flashTitle, setFlashTitle] = useState('');
+  const [flashNormalPrice, setFlashNormalPrice] = useState('');
+  const [flashDealPrice, setFlashDealPrice] = useState('');
+  const [flashHours, setFlashHours] = useState(4);
+  const [flashSaving, setFlashSaving] = useState(false);
+
+  const publishFlashDeal = async () => {
+    const price = Number(flashNormalPrice);
+    const deal = Number(flashDealPrice);
+    if (!flashTitle.trim() || !Number.isInteger(price) || price <= 0) {
+      showToast('Titre et prix normal requis');
+      return;
+    }
+    if (!Number.isInteger(deal) || deal <= 0 || deal >= price) {
+      showToast('Le prix flash doit être inférieur au prix normal');
+      return;
+    }
+    setFlashSaving(true);
+    try {
+      await createFlashDeal({
+        businessId: business.id,
+        title: flashTitle.trim(),
+        price,
+        flashPrice: deal,
+        flashHours,
+      });
+      setFlashTitle('');
+      setFlashNormalPrice('');
+      setFlashDealPrice('');
+      showToast(`Offre flash publiée — expire dans ${flashHours}h ✓`);
+    } catch (err) {
+      showToast(err.message ?? 'Publication impossible');
+    } finally {
+      setFlashSaving(false);
+    }
+  };
 
   const business = businesses.find((b) => b.id === activeId) ?? businesses[0] ?? profile.business;
   const type = business?.type ?? 'merchant';
@@ -316,6 +354,56 @@ export default function BusinessHubScreen({ navigation }) {
                   <Text style={styles.actionLabel}>Gérer</Text>
                 </PressScale>
               </View>
+              <SectionCard title="⚡ Offre flash — visible dans Discover">
+                <TextInput
+                  style={styles.input}
+                  placeholder="Plat ou produit (ex: Dibi 500g)"
+                  placeholderTextColor={'rgba(5,8,5,0.45)'}
+                  value={flashTitle}
+                  onChangeText={setFlashTitle}
+                  maxLength={60}
+                />
+                <View style={{ flexDirection: 'row', gap: spacing.md }}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder="Prix normal (F)"
+                    placeholderTextColor={'rgba(5,8,5,0.45)'}
+                    keyboardType="number-pad"
+                    value={flashNormalPrice}
+                    onChangeText={setFlashNormalPrice}
+                  />
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder="Prix flash (F)"
+                    placeholderTextColor={'rgba(5,8,5,0.45)'}
+                    keyboardType="number-pad"
+                    value={flashDealPrice}
+                    onChangeText={setFlashDealPrice}
+                  />
+                </View>
+                <View style={styles.flashHoursRow}>
+                  {[2, 4, 12, 24].map((h) => (
+                    <PressScale
+                      key={h}
+                      scaleTo={0.94}
+                      onPress={() => setFlashHours(h)}
+                      style={[styles.flashHourChip, flashHours === h && styles.flashHourChipOn]}
+                    >
+                      <Text style={[styles.flashHourText, flashHours === h && styles.flashHourTextOn]}>{h}h</Text>
+                    </PressScale>
+                  ))}
+                </View>
+                <GlowButton
+                  tone="gold"
+                  label={flashSaving ? '…' : 'Publier l’offre flash →'}
+                  onPress={publishFlashDeal}
+                  disabled={flashSaving}
+                />
+                <Text style={styles.flashHint}>
+                  L’offre disparaît automatiquement à l’expiration — vraie réduction, vraie deadline.
+                </Text>
+              </SectionCard>
+
               <Text style={styles.sectionEyebrow}>Transactions récentes</Text>
               {transactions.slice(0, 5).map((tx) => (
                 <View key={tx.key} style={styles.txRow}>
@@ -445,6 +533,12 @@ const styles = StyleSheet.create({
   actionsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: spacing.lg },
   actionBtn: { alignItems: 'center', gap: spacing.xs },
   actionLabel: { fontSize: 9, color: 'rgba(5,8,5,0.55)', fontWeight: '700' },
+  flashHoursRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  flashHourChip: { flex: 1, height: 34, borderRadius: radius.round, backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)', alignItems: 'center', justifyContent: 'center' },
+  flashHourChipOn: { backgroundColor: 'rgba(250,216,54,0.25)', borderColor: colors.goldDark },
+  flashHourText: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: 'rgba(5,8,5,0.55)' },
+  flashHourTextOn: { color: colors.goldDark },
+  flashHint: { fontSize: 10, color: 'rgba(5,8,5,0.5)', textAlign: 'center', marginTop: spacing.sm },
   sectionEyebrow: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginBottom: spacing.sm },
   txRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: 'rgba(5,8,5,0.07)' },
   txTitle: { fontSize: 12, color: colors.ink },

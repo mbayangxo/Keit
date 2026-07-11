@@ -680,3 +680,21 @@ export function submitBusinessReview(businessId, { rating, text }) {
     skipCache: true,
   });
 }
+
+// ── Public profiles + flash deals ──
+
+export function getPublicProfile(handle) {
+  return apiFetch(`/api/profiles/${encodeURIComponent(String(handle).replace(/^@+/, ''))}`, { skipCache: true });
+}
+
+export function getFlashDeals() {
+  return apiFetch('/api/products?flash=1', { skipCache: true });
+}
+
+export function createFlashDeal({ businessId, title, price, flashPrice, flashHours, category = 'deal' }) {
+  return apiFetch('/api/products', {
+    method: 'POST',
+    body: { businessId, title, price, flashPrice, flashHours, category },
+    skipCache: true,
+  });
+}

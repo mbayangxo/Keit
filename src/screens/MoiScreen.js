@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -175,6 +175,12 @@ export default function MoiScreen({ navigation }) {
 
   const statusItems = useMemo(() => {
     const items = [];
+    if (profile.statusText) {
+      items.push({ icon: '✨', text: profile.statusText });
+    }
+    if (profile.currentSong) {
+      items.push({ icon: '🎵', text: profile.currentSong, highlight: true });
+    }
     if (profile.arrondissement?.name) {
       items.push({ icon: profile.arrondissement.icon || '📍', text: profile.arrondissement.name });
     }
@@ -185,7 +191,7 @@ export default function MoiScreen({ navigation }) {
       items.push({ icon: '✦', text: `Ngor ${ngorScore}`, highlight: true });
     }
     return items;
-  }, [profile.arrondissement, isVerified, ngorScore]);
+  }, [profile.statusText, profile.currentSong, profile.arrondissement, isVerified, ngorScore]);
 
   const locationLine = [profile.arrondissement?.name, country?.name].filter(Boolean).join(' · ');
 
@@ -210,6 +216,9 @@ export default function MoiScreen({ navigation }) {
             avatarUrl: me.avatarUrl ?? null,
             verification: me.verification,
             studentPass: me.studentPass ?? sum.studentPass,
+            statusText: me.statusText ?? null,
+            currentSong: me.currentSong ?? null,
+            pinnedPhotos: Array.isArray(me.pinnedPhotos) ? me.pinnedPhotos : [],
           });
         })
         .catch(() => {
@@ -258,6 +267,13 @@ export default function MoiScreen({ navigation }) {
                   <View style={{ flex: 1 }}>
                     <View style={styles.nameRow}>
                       <Text style={styles.name}>{profile.name || 'Mon profil'}</Text>
+                      {(profile.pinnedPhotos?.length ?? 0) > 0 ? (
+                        <View style={styles.pinPhotos}>
+                          {profile.pinnedPhotos.slice(0, 3).map((uri, i) => (
+                            <Image key={i} source={{ uri }} style={[styles.ppImg, i > 0 && { marginLeft: -6 }]} />
+                          ))}
+                        </View>
+                      ) : null}
                     </View>
                     <Text style={styles.handle}>@{String(profile.handle ?? '').replace(/^@+/, '') || '…'}</Text>
                     {locationLine ? <Text style={styles.location}>📍 {locationLine}</Text> : null}
@@ -417,6 +433,8 @@ const styles = StyleSheet.create({
   avatar: { width: 68, height: 68, borderRadius: 34, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   verifiedBadge: { position: 'absolute', bottom: 0, right: 0, width: 19, height: 19, borderRadius: 10, backgroundColor: colors.green, borderWidth: 2, borderColor: colors.appCanvas.base, alignItems: 'center', justifyContent: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: 3 },
+  pinPhotos: { flexDirection: 'row' },
+  ppImg: { width: 22, height: 22, borderRadius: 7, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.9)' },
   name: { fontFamily: fontFamily.displayBlack, fontSize: 16, letterSpacing: -0.4, color: colors.appCanvas.text },
   handle: { fontSize: 11, color: colors.greenDark, marginBottom: 2 },
   location: { fontSize: 10, color: colors.appCanvas.textMuted },
