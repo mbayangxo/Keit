@@ -698,3 +698,22 @@ export function createFlashDeal({ businessId, title, price, flashPrice, flashHou
     skipCache: true,
   });
 }
+
+
+// ── Profile polls ──
+
+export function askProfilePoll({ question, options }) {
+  return apiFetch('/api/polls', { method: 'POST', body: { question, options }, skipCache: true });
+}
+
+export function closeProfilePoll() {
+  return apiFetch('/api/polls', { method: 'POST', body: { close: true }, skipCache: true });
+}
+
+export function voteProfilePoll(pollId, optionIx) {
+  return apiFetch(`/api/polls/${encodeURIComponent(pollId)}/vote`, {
+    method: 'POST',
+    body: { optionIx },
+    skipCache: true,
+  });
+}

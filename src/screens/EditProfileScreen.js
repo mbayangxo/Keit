@@ -17,7 +17,7 @@ function countryFromProfilePhone(phone) {
   if (phone?.startsWith('+221')) return COUNTRIES.find((c) => c.code === 'SN') ?? COUNTRIES[0];
   return COUNTRIES.find((c) => c.code === 'SN') ?? COUNTRIES[0];
 }
-import { mePhoneConfirm, mePhoneRequest, patchMe } from '../lib/api-client';
+import { askProfilePoll, closeProfilePoll, mePhoneConfirm, mePhoneRequest, patchMe } from '../lib/api-client';
 import { pickProfilePhoto } from '../lib/profile-photo';
 
 function formatPhoneDisplay(phone) {
@@ -67,6 +67,38 @@ export default function EditProfileScreen({ navigation }) {
     } catch (err) {
       setPinnedPhotos(pinnedPhotos);
       showToast(err.message ?? 'Mise à jour impossible');
+    }
+  };
+
+  const [pollQuestion, setPollQuestion] = useState('');
+  const [pollOptions, setPollOptions] = useState(['', '', '']);
+  const [pollSaving, setPollSaving] = useState(false);
+
+  const publishPoll = async () => {
+    const options = pollOptions.map((o) => o.trim()).filter(Boolean);
+    if (pollQuestion.trim().length < 3 || options.length < 2) {
+      showToast('Question + au moins 2 choix');
+      return;
+    }
+    setPollSaving(true);
+    try {
+      await askProfilePoll({ question: pollQuestion.trim(), options });
+      setPollQuestion('');
+      setPollOptions(['', '', '']);
+      showToast('Sondage publié sur ton profil ✓');
+    } catch (err) {
+      showToast(err.message ?? 'Publication impossible');
+    } finally {
+      setPollSaving(false);
+    }
+  };
+
+  const removePoll = async () => {
+    try {
+      await closeProfilePoll();
+      showToast('Sondage fermé');
+    } catch (err) {
+      showToast(err.message ?? 'Fermeture impossible');
     }
   };
 
@@ -250,6 +282,37 @@ export default function EditProfileScreen({ navigation }) {
             <Text style={styles.hint}>
               Seuls ton nom, ton @handle, ton quartier et ces éléments sont visibles — jamais ton numéro, ton email ou ton solde.
             </Text>
+
+            <Text style={[styles.fieldLabel, { marginTop: spacing.lg }]}>🤔 Pose une question à tes amis</Text>
+            <TextInput
+              style={styles.input}
+              value={pollQuestion}
+              onChangeText={setPollQuestion}
+              placeholder="Sortie samedi : on fait quoi ?"
+              placeholderTextColor={'rgba(5,8,5,0.4)'}
+              maxLength={120}
+            />
+            {pollOptions.map((opt, ix) => (
+              <TextInput
+                key={ix}
+                style={styles.input}
+                value={opt}
+                onChangeText={(t) => setPollOptions((prev) => prev.map((o, i) => (i === ix ? t : o)))}
+                placeholder={`Choix ${ix + 1}${ix > 1 ? ' (optionnel)' : ''}`}
+                placeholderTextColor={'rgba(5,8,5,0.4)'}
+                maxLength={40}
+              />
+            ))}
+            <GlowButton
+              tone="orange"
+              label={pollSaving ? '…' : 'Publier le sondage →'}
+              onPress={publishPoll}
+              disabled={pollSaving}
+            />
+            <PressScale scaleTo={0.95} onPress={removePoll} style={{ alignSelf: 'center', marginTop: spacing.sm }}>
+              <Text style={styles.link}>Fermer mon sondage actif</Text>
+            </PressScale>
+            <Text style={styles.hint}>Un seul sondage actif — en publier un nouveau ferme l’ancien.</Text>
           </View>
 
           <Text style={styles.sectionLabel}>Identité</Text>

@@ -119,3 +119,44 @@ test('flash deals: need discount + deadline, expire for real', async () => {
   });
   assert.equal(forged.statusCode, 403);
 });
+
+test('profile polls: ask, friends vote once (movable), owner blocked, new poll closes old', async () => {
+  const { pollsAsk, pollsVote, publicProfileGet } = await import('../../lib/handlers.js');
+  const owner = await createUserWithWallet();
+  const fatou = await createUserWithWallet();
+  const ibou = await createUserWithWallet();
+  await prisma.user.update({ where: { id: owner.id }, data: { handle: `poll${Date.now()}` } });
+  const { handle } = await prisma.user.findUniqueOrThrow({ where: { id: owner.id } });
+
+  // Garbage rejected.
+  const bad = await call(pollsAsk, { userId: owner.id, body: { question: 'ok', options: ['a'] } });
+  assert.equal(bad.statusCode, 400);
+
+  const asked = await call(pollsAsk, {
+    userId: owner.id,
+    body: { question: 'Sortie samedi ?', options: ['Plage', 'Concert', 'Ataya'] },
+  });
+  assert.equal(asked.statusCode, 201);
+  const pollId = asked.body.pollId;
+
+  // Friends vote; owner cannot vote on own poll.
+  assert.equal((await call(pollsVote, { userId: fatou.id, query: { id: pollId }, body: { optionIx: 0 } })).statusCode, 200);
+  assert.equal((await call(pollsVote, { userId: ibou.id, query: { id: pollId }, body: { optionIx: 1 } })).statusCode, 200);
+  assert.equal((await call(pollsVote, { userId: owner.id, query: { id: pollId }, body: { optionIx: 0 } })).statusCode, 403);
+  // Fatou moves her vote — still one vote for her.
+  assert.equal((await call(pollsVote, { userId: fatou.id, query: { id: pollId }, body: { optionIx: 2 } })).statusCode, 200);
+
+  const viewed = await call(publicProfileGet, { userId: fatou.id, query: { id: handle }, method: 'GET' });
+  assert.equal(viewed.body.poll.totalVotes, 2);
+  assert.equal(viewed.body.poll.options[2].votes, 1, 'fatou moved to Ataya');
+  assert.equal(viewed.body.poll.myVoteIx, 2);
+
+  // Asking a new question closes the old poll (votes reset to the new one).
+  const again = await call(pollsAsk, { userId: owner.id, body: { question: 'Match dimanche ?', options: ['Oui', 'Non'] } });
+  assert.equal(again.statusCode, 201);
+  const after2 = await call(publicProfileGet, { userId: fatou.id, query: { id: handle }, method: 'GET' });
+  assert.equal(after2.body.poll.question, 'Match dimanche ?');
+  assert.equal(after2.body.poll.totalVotes, 0);
+  const dead = await call(pollsVote, { userId: fatou.id, query: { id: pollId }, body: { optionIx: 0 } });
+  assert.equal(dead.statusCode, 404, 'closed poll rejects votes');
+});

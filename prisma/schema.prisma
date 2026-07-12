@@ -1212,3 +1212,31 @@ model Review {
   @@unique([businessId, userId])
   @@index([businessId])
 }
+
+/** Profile poll — a member asks one question, friends vote. One active poll
+ * per user (asking a new one closes the previous). */
+model UserPoll {
+  id        String   @id @default(cuid())
+  userId    String
+  question  String
+  options   Json
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  votes UserPollVote[]
+
+  @@index([userId, active])
+}
+
+model UserPollVote {
+  id        String   @id @default(cuid())
+  pollId    String
+  userId    String
+  optionIx  Int
+  createdAt DateTime @default(now())
+
+  poll UserPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([pollId])
+}

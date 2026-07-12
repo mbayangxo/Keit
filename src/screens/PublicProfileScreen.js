@@ -6,7 +6,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import ScreenHeader from '../components/ScreenHeader';
 import ProfileAvatar from '../components/ProfileAvatar';
 import PressScale from '../components/PressScale';
-import { getPublicProfile } from '../lib/api-client';
+import { getPublicProfile, voteProfilePoll } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
 // What another member sees when they open your profile — ONLY what you chose
@@ -17,6 +17,7 @@ export default function PublicProfileScreen({ navigation, route }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [voteError, setVoteError] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -39,6 +40,16 @@ export default function PublicProfileScreen({ navigation, route }) {
   );
 
   const cleanHandle = String(profile?.handle ?? handle).replace(/^@+/, '');
+
+  const vote = async (optionIx) => {
+    setVoteError(null);
+    try {
+      await voteProfilePoll(profile.poll.id, optionIx);
+      setProfile(await getPublicProfile(handle));
+    } catch (err) {
+      setVoteError(err.message ?? 'Vote impossible');
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -106,6 +117,39 @@ export default function PublicProfileScreen({ navigation, route }) {
                   </View>
                 </View>
               )}
+
+              {profile.poll ? (
+                <View style={styles.pollCard}>
+                  <Text style={styles.pollQuestion}>🤔 {profile.poll.question}</Text>
+                  {profile.poll.options.map((opt) => {
+                    const pct = profile.poll.totalVotes > 0 ? Math.round((opt.votes / profile.poll.totalVotes) * 100) : 0;
+                    const chosen = profile.poll.myVoteIx === opt.ix;
+                    const showResults = profile.poll.myVoteIx != null || profile.poll.mine;
+                    return (
+                      <PressScale
+                        key={opt.ix}
+                        scaleTo={0.98}
+                        disabled={profile.poll.mine}
+                        onPress={() => vote(opt.ix)}
+                        style={[styles.pollOption, chosen && styles.pollOptionChosen]}
+                      >
+                        {showResults ? (
+                          <View style={[styles.pollFill, { width: `${pct}%` }, chosen && styles.pollFillChosen]} />
+                        ) : null}
+                        <Text style={[styles.pollOptionText, chosen && { color: colors.greenDark }]} numberOfLines={1}>
+                          {chosen ? '✓ ' : ''}{opt.label}
+                        </Text>
+                        {showResults ? <Text style={styles.pollPct}>{pct}%</Text> : null}
+                      </PressScale>
+                    );
+                  })}
+                  <Text style={styles.pollMeta}>
+                    {profile.poll.totalVotes} vote{profile.poll.totalVotes === 1 ? '' : 's'}
+                    {profile.poll.mine ? ' · ton sondage' : profile.poll.myVoteIx == null ? ' · touche un choix pour voter' : ''}
+                  </Text>
+                  {voteError ? <Text style={styles.pollError}>{voteError}</Text> : null}
+                </View>
+              ) : null}
 
               <View style={styles.ngorCard}>
                 <Text style={styles.ngorScore}>{profile.ngor ?? 0}</Text>
@@ -178,6 +222,25 @@ const styles = StyleSheet.create({
     flex: 1, aspectRatio: 1, borderRadius: radius.xl, borderBottomRightRadius: 10,
     backgroundColor: 'rgba(5,8,5,0.05)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)',
   },
+
+  pollCard: {
+    backgroundColor: 'rgba(232,92,26,0.08)', borderWidth: 1.5, borderColor: 'rgba(232,92,26,0.25)',
+    borderRadius: radius.xl, borderBottomRightRadius: 10, padding: spacing.xl, gap: spacing.sm, marginBottom: spacing.xl,
+  },
+  pollQuestion: { fontFamily: fontFamily.displayBold, fontSize: 13, color: colors.ink, marginBottom: spacing.xs },
+  pollOption: {
+    minHeight: 40, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.8)',
+    borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', overflow: 'hidden',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+  },
+  pollOptionChosen: { borderColor: colors.greenA35 },
+  pollFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: 'rgba(232,92,26,0.16)' },
+  pollFillChosen: { backgroundColor: colors.greenA15 },
+  pollOptionText: { fontFamily: fontFamily.bodyBold, fontSize: 12.5, color: 'rgba(5,8,5,0.75)', flexShrink: 1 },
+  pollPct: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: 'rgba(5,8,5,0.5)' },
+  pollMeta: { fontSize: 10, color: 'rgba(5,8,5,0.5)', textAlign: 'center', marginTop: 2 },
+  pollError: { fontSize: 10, color: colors.terracotta, textAlign: 'center' },
 
   ngorCard: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.lg,
