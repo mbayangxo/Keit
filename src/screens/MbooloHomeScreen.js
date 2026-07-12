@@ -217,6 +217,13 @@ export default function MbooloHomeScreen({ navigation }) {
         <View style={styles.topBar}>
           <Animated.Text style={[styles.logo, { transform: [{ scale: logoBounce }] }]}>Mboolo</Animated.Text>
           <View style={{ flexDirection: 'row', gap: spacing.md }}>
+            <PressScale
+              scaleTo={0.9}
+              onPress={() => navigateFromRoot(navigation, 'Friends')}
+              style={styles.mbIcon}
+            >
+              <Text style={{ fontSize: 17 }}>🧑‍🤝‍🧑</Text>
+            </PressScale>
             <PressScale scaleTo={0.9} onPress={() => setShowNew(true)} style={styles.mbIcon}>
               <Text style={{ fontSize: 17 }}>✏️</Text>
             </PressScale>

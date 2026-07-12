@@ -31,6 +31,7 @@ const SECONDARY_ACTIONS = [
   { icon: '🏦', label: 'Tontine', gradient: ['#fdf3cd', '#eeda96'], glow: colors.flagGold, route: 'Tontine' },
   { icon: '🍖', label: 'Ñu Lekk', gradient: ['#ffd4c4', '#e85c1a'], glow: colors.terracotta, route: 'NuLekk' },
   { icon: '🛵', label: 'Mouvement', gradient: ['#d4f5e2', '#1a9e52'], glow: colors.green, route: 'Movement' },
+  { icon: '⋯', label: 'Services', gradient: ['#fdf3cd', '#eeda96'], glow: colors.flagGold, route: 'MoreActions' },
 ];
 
 function formatAmount(n) {
