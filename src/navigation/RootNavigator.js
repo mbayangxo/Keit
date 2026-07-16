@@ -85,6 +85,7 @@ export default function RootNavigator() {
             onComplete={() =>
               route.params?.accountType === 'business' ? navigation.navigate('BusinessSignUp') : navigation.navigate('SignUp', { mode: 'signup' })
             }
+            onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Welcome'))}
           />
         )}
       </Stack.Screen>

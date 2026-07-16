@@ -8,7 +8,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
-import { createFlashDeal } from '../lib/api-client';
+import { createBusiness, createFlashDeal } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import {
   getMyBusinesses,
@@ -33,6 +33,17 @@ const TYPE_LABEL = {
   school: 'École',
   cooperative: 'Coopérative',
 };
+
+// In-app business creation (personal account -> KEBU commerce), same
+// categories as the signup flow.
+const NEW_BIZ_CATEGORIES = [
+  { key: 'restaurant', icon: '🍽️', name: 'Restaurant' },
+  { key: 'boutique', icon: '🛍️', name: 'Boutique' },
+  { key: 'supermarche', icon: '🛒', name: 'Épicerie' },
+  { key: 'mode', icon: '👗', name: 'Mode' },
+  { key: 'services', icon: '🔧', name: 'Services' },
+  { key: 'autre', icon: '✦', name: 'Autre' },
+];
 
 function formatAmount(n) {
   return Math.round(n ?? 0).toLocaleString('fr-FR').replace(/ /g, ' ');
@@ -60,6 +71,9 @@ export default function BusinessHubScreen({ navigation }) {
   const { showToast } = useToast();
   const [businesses, setBusinesses] = useState(profile.businesses?.length ? profile.businesses : profile.business ? [profile.business] : []);
   const [activeId, setActiveId] = useState(profile.business?.id ?? profile.businesses?.[0]?.id ?? null);
+  const [newBizName, setNewBizName] = useState('');
+  const [newBizCategory, setNewBizCategory] = useState('restaurant');
+  const [creatingBiz, setCreatingBiz] = useState(false);
   const [tab, setTab] = useState('overview');
   const [loading, setLoading] = useState(false);
 
@@ -131,6 +145,23 @@ export default function BusinessHubScreen({ navigation }) {
       /* keep cached profile */
     }
   }, [activeId, setProfile]);
+
+  const submitNewBusiness = async () => {
+    const name = newBizName.trim();
+    if (name.length < 2) return;
+    setCreatingBiz(true);
+    try {
+      const created = await createBusiness({ name, type: 'merchant', category: newBizCategory });
+      showToast(`${created.name} créé ✓ — KEBU ${created.kebuId ?? ''}`.trim());
+      setNewBizName('');
+      setActiveId(created.id);
+      await loadBusinesses();
+    } catch (err) {
+      showToast(err.message ?? 'Création impossible — réessaie');
+    } finally {
+      setCreatingBiz(false);
+    }
+  };
 
   const loadTabData = useCallback(async () => {
     if (!business?.id) return;
@@ -291,10 +322,51 @@ export default function BusinessHubScreen({ navigation }) {
   if (!business) {
     return (
       <View style={styles.root}>
-      <ScreenBackground />
-        <SafeAreaView style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>Aucun commerce</Text>
-          <Text style={styles.emptySub}>Crée un compte business depuis l'inscription.</Text>
+        <ScreenBackground />
+        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+          <ScrollView contentContainerStyle={styles.createWrap} keyboardShouldPersistTaps="handled">
+            <View style={styles.createHeadRow}>
+              <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.createBack}>
+                <Text style={{ fontSize: 14, color: colors.ink }}>←</Text>
+              </PressScale>
+              <Text style={styles.createEyebrow}>KEBU</Text>
+            </View>
+            <Text style={styles.emptyTitle}>Crée ton business</Text>
+            <Text style={styles.emptySub}>
+              Ton compte K21 reste personnel — le commerce reçoit son propre KEBU ID pour encaisser.
+            </Text>
+
+            <Text style={styles.createLabel}>Nom du commerce</Text>
+            <TextInput
+              style={styles.createInput}
+              value={newBizName}
+              onChangeText={setNewBizName}
+              placeholder="Ex : Dibiterie Chez Awa"
+              placeholderTextColor={'rgba(5,8,5,0.4)'}
+            />
+
+            <Text style={styles.createLabel}>Catégorie</Text>
+            <View style={styles.createCats}>
+              {NEW_BIZ_CATEGORIES.map((c) => (
+                <PressScale
+                  key={c.key}
+                  scaleTo={0.95}
+                  onPress={() => setNewBizCategory(c.key)}
+                  style={[styles.createCat, newBizCategory === c.key && styles.createCatOn]}
+                >
+                  <Text style={{ fontSize: 15 }}>{c.icon}</Text>
+                  <Text style={styles.createCatText}>{c.name}</Text>
+                </PressScale>
+              ))}
+            </View>
+
+            <GlowButton
+              label={creatingBiz ? 'Création…' : '🏪 Créer mon business'}
+              onPress={submitNewBusiness}
+              disabled={creatingBiz || newBizName.trim().length < 2}
+              style={{ marginTop: spacing.xl }}
+            />
+          </ScrollView>
         </SafeAreaView>
       </View>
     );
@@ -513,6 +585,34 @@ const styles = StyleSheet.create({
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
   emptyTitle: { fontFamily: fontFamily.displayBold, fontSize: 18, color: colors.ink },
   emptySub: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginTop: spacing.sm, textAlign: 'center' },
+  createWrap: { paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.giant },
+  createHeadRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, marginBottom: spacing.xl },
+  createBack: {
+    width: 36, height: 36, borderRadius: radius.lg,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  createEyebrow: { fontFamily: fontFamily.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.greenDark },
+  createLabel: {
+    fontFamily: fontFamily.bodyBold, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
+    color: 'rgba(5,8,5,0.45)', marginTop: spacing.xxl, marginBottom: spacing.sm,
+  },
+  createInput: {
+    height: 50, borderRadius: radius.lg,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)',
+    paddingHorizontal: spacing.lg, color: colors.ink, fontSize: 14,
+  },
+  createCats: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  createCat: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)',
+    borderRadius: 999, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+  },
+  createCatOn: { backgroundColor: 'rgba(26,240,96,0.14)', borderColor: 'rgba(15,188,72,0.4)' },
+  createCatText: { fontSize: 12, color: colors.ink, fontFamily: fontFamily.bodyBold },
   hero: { padding: spacing.xxl, backgroundColor: colors.goldA10, borderBottomWidth: 1, borderBottomColor: colors.goldA20 },
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   bizName: { fontFamily: fontFamily.displayBold, fontSize: 16, color: colors.ink },

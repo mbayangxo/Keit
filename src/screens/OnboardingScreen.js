@@ -53,7 +53,7 @@ function PickerSection({ eyebrow, selectedLabel, selectedSub, leading, open, onT
   );
 }
 
-export default function OnboardingScreen({ onComplete }) {
+export default function OnboardingScreen({ onComplete, onBack }) {
   const { langCode, country: savedCountry, language: savedLanguage, region: savedRegion, setCountry, setLanguage, setRegion } = useLocale();
   const [country, setCountryLocal] = useState(savedCountry);
   const [language, setLanguageLocal] = useState(savedLanguage);
@@ -128,6 +128,11 @@ export default function OnboardingScreen({ onComplete }) {
     <OnboardingShell>
       <View style={{ flex: 1 }}>
         <View style={styles.header}>
+          {onBack ? (
+            <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
+              <Text style={{ fontSize: 15, color: ob.ink }}>←</Text>
+            </PressScale>
+          ) : null}
           <Text style={styles.eyebrow}>{t(activeLang, 'onboardingUnifiedEyebrow')}</Text>
           <Text style={styles.title}>{t(activeLang, 'onboardingUnifiedTitle')}</Text>
           <Text style={styles.subtitle}>{t(activeLang, 'onboardingUnifiedSubtitle')}</Text>
@@ -248,6 +253,17 @@ export default function OnboardingScreen({ onComplete }) {
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.md },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(5,8,5,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
   eyebrow: { ...type.eyebrow, color: ob.green, marginBottom: 4 },
   title: { fontFamily: fontFamily.displayBlack, fontSize: 22, color: ob.ink, letterSpacing: -0.5 },
   subtitle: { fontSize: 12, color: ob.muted, marginTop: spacing.sm, lineHeight: 17 },

@@ -19,6 +19,7 @@ const SECTIONS = [
       { key: 'tontine', icon: '🏦', title: 'Tontine', route: 'Tontine', tint: 'rgba(250,216,54,0.18)' },
       { key: 'scan', icon: '📷', title: 'Scanner', route: 'QrScan', tint: 'rgba(232,92,26,0.14)' },
       { key: 'myqr', icon: '📲', title: 'Mon QR', route: 'MyQr', tint: 'rgba(26,240,96,0.14)' },
+      { key: 'business', icon: '🏪', title: 'Mon business', route: 'BusinessMain', tint: 'rgba(250,216,54,0.18)' },
     ],
   },
   {

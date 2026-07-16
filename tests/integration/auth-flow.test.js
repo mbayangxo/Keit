@@ -191,3 +191,41 @@ test('email login for user with email on file', async () => {
   assert.ok(emailVerify.body.accessToken);
   assert.equal(emailVerify.body.isNewUser, false);
 });
+
+test('OTP login unlocks a PIN-locked account (no more dead end)', async () => {
+  const email = `locked-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@k21.test`;
+
+  // Create the account.
+  const signupSend = mockRes();
+  await authEmail(mockReq({ body: { email, intent: 'signup' } }), signupSend);
+  const signupVerify = mockRes();
+  await authVerify(
+    mockReq({ body: { email, otp: signupSend.body.otp }, headers: { 'x-device-id': 'auth-lock-setup' } }),
+    signupVerify,
+  );
+  assert.equal(signupVerify.statusCode, 200);
+
+  // Simulate a PIN brute-force lock.
+  const user = await prisma.user.findFirst({ where: { email } });
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { accountLockedAt: new Date(), accountLockReason: 'pin_attempts', pinFailedAttempts: 5 },
+  });
+
+  // A fresh OTP login must clear the lock — otherwise every authenticated
+  // call after login 401s and the owner can never get back in.
+  const loginSend = mockRes();
+  await authEmail(mockReq({ body: { email } }), loginSend);
+  const loginVerify = mockRes();
+  await authVerify(
+    mockReq({ body: { email, otp: loginSend.body.otp, intent: 'login' }, headers: { 'x-device-id': 'auth-lock-login' } }),
+    loginVerify,
+  );
+  assert.equal(loginVerify.statusCode, 200);
+  assert.ok(loginVerify.body.accessToken);
+
+  const after = await prisma.user.findUnique({ where: { id: user.id } });
+  assert.equal(after.accountLockedAt, null);
+  assert.equal(after.accountLockReason, null);
+  assert.equal(after.pinFailedAttempts, 0);
+});
