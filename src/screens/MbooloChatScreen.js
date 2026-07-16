@@ -21,10 +21,13 @@ function formatMsgTime(iso) {
   return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h');
 }
 
-function MessageBubble({ message, isMe, onPlayVoice }) {
+function MessageBubble({ message, isMe, onPlayVoice, onJoinCall }) {
   const time = formatMsgTime(message.createdAt);
   const sender = message.sender;
   const isMoneyCard = message.body?.startsWith('💸') || message.body?.startsWith('🙏');
+  const isCallCard =
+    message.kind === 'text' &&
+    (message.body?.startsWith('📞 Appel') || message.body?.startsWith('🎥 Appel'));
   const isSticker = message.kind === 'sticker';
   const isGif = message.kind === 'gif' || (message.kind === 'image' && message.mediaUrl?.startsWith('http'));
   const isPhoto = message.kind === 'image' && !isGif;
@@ -42,6 +45,14 @@ function MessageBubble({ message, isMe, onPlayVoice }) {
       return (
         <PressScale scaleTo={0.98} onPress={() => onPlayVoice(message.mediaUrl)} style={styles.voiceChip}>
           <Text style={isMe ? styles.meText : styles.themText}>▶ Message vocal</Text>
+        </PressScale>
+      );
+    }
+    if (isCallCard && onJoinCall) {
+      return (
+        <PressScale scaleTo={0.97} onPress={() => onJoinCall(message)}>
+          <Text style={isMe ? styles.meText : styles.themText}>{message.body}</Text>
+          <Text style={styles.callJoin}>▶ Rejoindre l’appel</Text>
         </PressScale>
       );
     }
@@ -338,6 +349,20 @@ export default function MbooloChatScreen({ navigation, route }) {
               {memberCount > 0 ? `${memberCount} membre${memberCount > 1 ? 's' : ''}` : `@${String(profile.handle ?? '').replace(/^@+/, '')}`}
             </Text>
           </View>
+          <PressScale
+            scaleTo={0.9}
+            onPress={() => open('Call', { threadId, title: chatTitle, video: false, ring: true })}
+            style={styles.chBack}
+          >
+            <Text style={{ fontSize: 15 }}>📞</Text>
+          </PressScale>
+          <PressScale
+            scaleTo={0.9}
+            onPress={() => open('Call', { threadId, title: chatTitle, video: true, ring: true })}
+            style={styles.chBack}
+          >
+            <Text style={{ fontSize: 15 }}>🎥</Text>
+          </PressScale>
         </View>
 
         <View style={styles.moneyBar}>
@@ -365,7 +390,20 @@ export default function MbooloChatScreen({ navigation, route }) {
             <Text style={styles.emptyHint}>Aucun message — envoie le premier 👋</Text>
           )}
           {messages.map((m) => (
-            <MessageBubble key={m.id} message={m} isMe={m.senderId === userId} onPlayVoice={playVoice} />
+            <MessageBubble
+              key={m.id}
+              message={m}
+              isMe={m.senderId === userId}
+              onPlayVoice={playVoice}
+              onJoinCall={(msg) =>
+                open('Call', {
+                  threadId,
+                  title: chatTitle,
+                  video: msg.body?.startsWith('🎥'),
+                  ring: false,
+                })
+              }
+            />
           ))}
         </ScrollView>
 
@@ -454,6 +492,7 @@ const styles = StyleSheet.create({
   chatHead: { backgroundColor: colors.mboolo.terra, paddingHorizontal: 14, paddingVertical: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   chBack: { width: 32, height: 32, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   chName: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  callJoin: { fontSize: 11, fontWeight: '700', color: colors.mboolo.terra, marginTop: 4 },
   chSub: { fontSize: 10, color: 'rgba(255,255,255,0.7)' },
   moneyBar: {
     flexDirection: 'row',

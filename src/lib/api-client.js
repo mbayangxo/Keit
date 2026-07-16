@@ -564,6 +564,15 @@ export function getVouchStatus() {
   return apiFetch('/api/trust/vouch', { skipCache: true });
 }
 
+/** LiveKit room token for a Mboolo call. ring=true announces the call. */
+export function getCallToken({ threadId, video = false, ring = false }) {
+  return apiFetch('/api/calls/token', {
+    method: 'POST',
+    body: { threadId, video, ring },
+    skipCache: true,
+  });
+}
+
 /** Confirm another member after scanning their QR (6-month+ accounts only). */
 export function vouchForUser(handle) {
   return apiFetch('/api/trust/vouch', {
