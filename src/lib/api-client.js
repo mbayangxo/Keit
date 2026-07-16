@@ -717,3 +717,42 @@ export function voteProfilePoll(pollId, optionIx) {
     skipCache: true,
   });
 }
+
+
+// ── Channels ──
+
+export function getMyChannel() {
+  return apiFetch('/api/channels/mine', { skipCache: true });
+}
+
+export function saveMyChannel({ name, bio }) {
+  return apiFetch('/api/channels/mine', { method: 'POST', body: { name, bio }, skipCache: true });
+}
+
+export function publishChannelPost({ body, imageUrl }) {
+  return apiFetch('/api/channels/posts', { method: 'POST', body: { body, imageUrl }, skipCache: true });
+}
+
+export function deleteChannelPost(postId) {
+  return apiFetch(`/api/channels/posts/${encodeURIComponent(postId)}/delete`, { method: 'POST', skipCache: true });
+}
+
+export function browseChannelsList() {
+  return apiFetch('/api/channels', { skipCache: true });
+}
+
+export function getChannelFeed() {
+  return apiFetch('/api/channels/feed', { skipCache: true });
+}
+
+export function getChannel(channelId) {
+  return apiFetch(`/api/channels/${encodeURIComponent(channelId)}`, { skipCache: true });
+}
+
+export function followChannel(channelId, follow = true) {
+  return apiFetch(`/api/channels/${encodeURIComponent(channelId)}/follow`, {
+    method: 'POST',
+    body: { follow },
+    skipCache: true,
+  });
+}

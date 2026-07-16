@@ -1240,3 +1240,41 @@ model UserPollVote {
   @@unique([pollId, userId])
   @@index([pollId])
 }
+
+/** Channels — WeChat-style: each account can create exactly ONE channel;
+ * others follow it and watch what it posts. */
+model Channel {
+  id        String   @id @default(cuid())
+  ownerId   String   @unique
+  name      String
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts     ChannelPost[]
+  followers ChannelFollow[]
+}
+
+model ChannelPost {
+  id        String   @id @default(cuid())
+  channelId String
+  body      String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+}
+
+model ChannelFollow {
+  id        String   @id @default(cuid())
+  channelId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([userId])
+}

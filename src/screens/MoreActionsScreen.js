@@ -36,6 +36,7 @@ const SECTIONS = [
     label: 'Communauté',
     tiles: [
       { key: 'friends', icon: '🧑‍🤝‍🧑', title: 'Contacts', route: 'Friends', tint: 'rgba(26,240,96,0.14)' },
+      { key: 'channels', icon: '📣', title: 'Chaînes', route: 'Channels', tint: 'rgba(250,216,54,0.18)' },
       { key: 'charts', icon: '🎶', title: 'Wey yu 221 bëgg', route: 'Charts', tint: 'rgba(250,216,54,0.18)' },
       { key: 'notifs', icon: '🔔', title: 'Notifications', route: 'Notifications', tint: 'rgba(232,92,26,0.14)' },
     ],

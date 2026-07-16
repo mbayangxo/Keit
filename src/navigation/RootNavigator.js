@@ -25,6 +25,7 @@ import QrScanScreen from '../screens/QrScanScreen';
 import MyQrScreen from '../screens/MyQrScreen';
 import ChartsScreen from '../screens/ChartsScreen';
 import PublicProfileScreen from '../screens/PublicProfileScreen';
+import ChannelsScreen from '../screens/ChannelsScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import StudentPassScreen from '../screens/StudentPassScreen';
 import PinGateScreen from '../screens/PinGateScreen';
@@ -170,6 +171,7 @@ export default function RootNavigator() {
       <Stack.Screen name="MyQr" component={MyQrScreen} />
       <Stack.Screen name="Charts" component={ChartsScreen} />
       <Stack.Screen name="UserProfile" component={PublicProfileScreen} />
+      <Stack.Screen name="Channels" component={ChannelsScreen} />
       <Stack.Screen name="StudentPass" component={StudentPassScreen} />
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="Info" component={ComingSoonScreen} />
