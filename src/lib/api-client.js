@@ -539,10 +539,23 @@ export function getFriends() {
   return apiFetch('/api/friends', { skipCache: true });
 }
 
-export function addFriend(handle) {
+/** Sends a friend REQUEST (the other person must accept) — WeChat model. */
+export function addFriend(handle, message) {
   return apiFetch('/api/friends', {
     method: 'POST',
-    body: { handle: String(handle).replace(/^@/, '') },
+    body: { handle: String(handle).replace(/^@/, ''), ...(message ? { message } : {}) },
+    skipCache: true,
+  });
+}
+
+export function getFriendRequests() {
+  return apiFetch('/api/friends/requests', { skipCache: true });
+}
+
+export function respondFriendRequest(requestId, accept) {
+  return apiFetch(`/api/friends/requests/${encodeURIComponent(requestId)}/respond`, {
+    method: 'POST',
+    body: { accept: accept !== false },
     skipCache: true,
   });
 }

@@ -101,6 +101,8 @@ model User {
   offlineSyncItems      OfflineSyncQueue[]
   friendsInitiated      UserFriend[]           @relation("FriendUser")
   friendsReceived       UserFriend[]           @relation("FriendTarget")
+  friendRequestsSent     FriendRequest[]       @relation("FriendRequestFrom")
+  friendRequestsReceived FriendRequest[]       @relation("FriendRequestTo")
 
   @@index([phone])
   @@index([afriId])
@@ -1134,6 +1136,27 @@ model UserFriend {
   @@unique([userId, friendId])
   @@index([userId])
   @@index([friendId])
+}
+
+/**
+ * WeChat-style friend request: friendship starts as a request the other
+ * person must accept. Accepting is KYC-gated (name + verified phone today,
+ * CNI later via FRIEND_GATE_REQUIRES_CNI).
+ */
+model FriendRequest {
+  id          String    @id @default(cuid())
+  fromId      String
+  toId        String
+  message     String?
+  status      String    @default("pending") // pending | accepted | declined
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+
+  from User @relation("FriendRequestFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to   User @relation("FriendRequestTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId])
+  @@index([toId, status])
 }
 
 /** Offline-first queue — cooperative delivery logs, etc. */

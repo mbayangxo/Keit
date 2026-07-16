@@ -7,7 +7,14 @@ import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import { useToast } from '../components/Toast';
-import { getFriends, addFriend, getMboloThreads, createMboloThread } from '../lib/api-client';
+import {
+  getFriends,
+  addFriend,
+  getFriendRequests,
+  respondFriendRequest,
+  getMboloThreads,
+  createMboloThread,
+} from '../lib/api-client';
 import { findDirectThreadForUser, navigateToMboloChat } from '../lib/mbolo-social';
 import ProfileShareButtons from '../components/ProfileShareButtons';
 import { useAppState } from '../state/AppState';
@@ -37,9 +44,11 @@ export default function FriendsScreen({ navigation, route }) {
   const showToast = useToast();
   const open = (name, params) => navigateFromRoot(navigation, name, params);
   const [friends, setFriends] = useState([]);
+  const [requests, setRequests] = useState({ incoming: [], outgoing: [] });
   const [loading, setLoading] = useState(true);
   const [handle, setHandle] = useState('');
   const [adding, setAdding] = useState(false);
+  const [respondingId, setRespondingId] = useState(null);
 
   useEffect(() => {
     const incoming = route.params?.addHandle;
@@ -51,8 +60,12 @@ export default function FriendsScreen({ navigation, route }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await getFriends();
+      const [list, reqs] = await Promise.all([getFriends(), getFriendRequests()]);
       setFriends(Array.isArray(list) ? list : []);
+      setRequests({
+        incoming: Array.isArray(reqs?.incoming) ? reqs.incoming : [],
+        outgoing: Array.isArray(reqs?.outgoing) ? reqs.outgoing : [],
+      });
     } catch (err) {
       showToast(err.message ?? 'Impossible de charger les amis');
     } finally {
@@ -71,14 +84,34 @@ export default function FriendsScreen({ navigation, route }) {
     if (h.length < 3) return;
     setAdding(true);
     try {
-      await addFriend(h);
-      showToast('Ami ajouté ✓');
+      const result = await addFriend(h);
+      if (result?.alreadyFriends) showToast('Vous êtes déjà amis');
+      else if (result?.autoAccepted || result?.accepted) showToast('Vous êtes amis ✓');
+      else showToast('Demande envoyée ✓ — en attente de sa réponse');
       setHandle('');
       await load();
     } catch (err) {
       showToast(err.message ?? 'Ajout impossible');
     } finally {
       setAdding(false);
+    }
+  };
+
+  const respond = async (request, accept) => {
+    setRespondingId(request.id);
+    try {
+      const result = await respondFriendRequest(request.id, accept);
+      if (result?.accepted) showToast(`${request.user?.name ?? 'Nouvel ami'} ajouté ✓`);
+      else showToast('Demande refusée');
+      await load();
+    } catch (err) {
+      if (err?.code === 'verification_required' || err?.status === 403) {
+        showToast(err.message ?? 'Vérifie ton profil pour accepter des demandes');
+      } else {
+        showToast(err.message ?? 'Réponse impossible');
+      }
+    } finally {
+      setRespondingId(null);
     }
   };
 
@@ -137,10 +170,64 @@ export default function FriendsScreen({ navigation, route }) {
             <Text style={styles.scanLinkText}>📷 Scanner un QR pour ajouter</Text>
           </PressScale>
 
+          {requests.incoming.length > 0 ? (
+            <View style={styles.requestsBlock}>
+              <Text style={styles.sectionLabel}>Demandes reçues</Text>
+              {requests.incoming.map((r) => (
+                <View key={r.id} style={styles.requestRow}>
+                  <View style={styles.ava}>
+                    <Text style={{ fontSize: 22 }}>{r.user?.avatarEmoji ?? '🧑🏾'}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rowName}>{r.user?.name ?? 'Membre K21'}</Text>
+                    <Text style={styles.rowMeta}>@{String(r.user?.handle ?? '').replace(/^@+/, '')}</Text>
+                    {r.message ? <Text style={styles.requestMsg}>“{r.message}”</Text> : null}
+                  </View>
+                  <PressScale
+                    scaleTo={0.92}
+                    onPress={() => respond(r, true)}
+                    style={[styles.acceptBtn, respondingId === r.id && { opacity: 0.5 }]}
+                  >
+                    <Text style={styles.acceptBtnText}>Accepter</Text>
+                  </PressScale>
+                  <PressScale
+                    scaleTo={0.92}
+                    onPress={() => respond(r, false)}
+                    style={[styles.declineBtn, respondingId === r.id && { opacity: 0.5 }]}
+                  >
+                    <Text style={styles.declineBtnText}>✕</Text>
+                  </PressScale>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {requests.outgoing.length > 0 ? (
+            <View style={styles.requestsBlock}>
+              <Text style={styles.sectionLabel}>En attente de réponse</Text>
+              {requests.outgoing.map((r) => (
+                <View key={r.id} style={styles.requestRow}>
+                  <View style={styles.ava}>
+                    <Text style={{ fontSize: 22 }}>{r.user?.avatarEmoji ?? '🧑🏾'}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rowName}>{r.user?.name ?? 'Membre K21'}</Text>
+                    <Text style={styles.rowMeta}>@{String(r.user?.handle ?? '').replace(/^@+/, '')}</Text>
+                  </View>
+                  <Text style={styles.pendingTag}>⏳ Envoyée</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
           {loading ? (
             <ActivityIndicator color={colors.green} style={{ marginTop: spacing.xxl }} />
           ) : friends.length === 0 ? (
-            <Text style={styles.empty}>Pas encore d'amis — ajoute quelqu'un par @handle ou QR.</Text>
+            <Text style={styles.empty}>
+              {requests.outgoing.length > 0
+                ? 'Ta demande est envoyée — dès qu’elle est acceptée, ton ami apparaît ici.'
+                : "Pas encore d'amis — envoie une demande par @handle ou QR."}
+            </Text>
           ) : (
             <View style={styles.list}>
               {friends.map((f) => (
@@ -193,6 +280,47 @@ const styles = StyleSheet.create({
   addBtn: { width: 112 },
   scanLink: { alignSelf: 'center', marginBottom: spacing.xxl },
   scanLinkText: { fontSize: 12, color: colors.greenDark, fontFamily: fontFamily.bodyBold },
+  requestsBlock: { marginBottom: spacing.xxl, gap: spacing.sm },
+  sectionLabel: {
+    fontFamily: fontFamily.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: 'rgba(5,8,5,0.45)',
+    marginBottom: spacing.xs,
+  },
+  requestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: 'rgba(250,216,54,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,146,10,0.25)',
+    borderRadius: radius.lg,
+    borderBottomRightRadius: 8,
+    padding: spacing.lg,
+  },
+  requestMsg: { fontSize: 11, color: 'rgba(5,8,5,0.6)', fontStyle: 'italic', marginTop: 2 },
+  acceptBtn: {
+    backgroundColor: colors.greenDark,
+    borderRadius: radius.lg,
+    borderBottomRightRadius: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  acceptBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: '#ffffff' },
+  declineBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(5,8,5,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  declineBtnText: { fontSize: 13, color: 'rgba(5,8,5,0.55)' },
+  pendingTag: { fontSize: 11, color: colors.goldDark, fontFamily: fontFamily.bodyBold },
   empty: { textAlign: 'center', color: 'rgba(5,8,5,0.45)', fontSize: 12, marginTop: spacing.xxl },
   list: { gap: spacing.sm },
   row: {

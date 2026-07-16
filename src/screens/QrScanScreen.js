@@ -47,7 +47,13 @@ export default function QrScanScreen({ navigation, route }) {
 
       if (parsed.kind === 'add_user' || mode === 'friend') {
         const result = await addFriend(parsed.handle);
-        showToast(result.alreadyFriends ? 'Déjà dans tes amis ✓' : `${result.friend.name} ajouté ✓`);
+        showToast(
+          result.alreadyFriends
+            ? 'Déjà dans tes amis ✓'
+            : result.autoAccepted || result.accepted
+              ? `${result.friend?.name ?? 'Nouvel ami'} ajouté ✓`
+              : 'Demande envoyée ✓ — en attente de sa réponse',
+        );
         navigation.goBack();
         return;
       }
