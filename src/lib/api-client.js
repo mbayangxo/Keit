@@ -560,6 +560,19 @@ export function respondFriendRequest(requestId, accept) {
   });
 }
 
+export function getVouchStatus() {
+  return apiFetch('/api/trust/vouch', { skipCache: true });
+}
+
+/** Confirm another member after scanning their QR (6-month+ accounts only). */
+export function vouchForUser(handle) {
+  return apiFetch('/api/trust/vouch', {
+    method: 'POST',
+    body: { handle: String(handle).replace(/^@/, '') },
+    skipCache: true,
+  });
+}
+
 export function removeFriend(friendUserId) {
   return apiFetch(`/api/friends/${encodeURIComponent(friendUserId)}`, { method: 'DELETE', skipCache: true });
 }

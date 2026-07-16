@@ -83,6 +83,11 @@ export default function PublicProfileScreen({ navigation, route }) {
                   ) : null}
                 </View>
                 <Text style={styles.handle}>@{cleanHandle}</Text>
+                {profile.communityConfirmed ? (
+                  <View style={styles.confirmedPill}>
+                    <Text style={styles.confirmedPillText}>🛡️ Confirmé par la communauté</Text>
+                  </View>
+                ) : null}
                 {profile.arrondissement?.name ? (
                   <Text style={styles.location}>📍 {profile.arrondissement.name}</Text>
                 ) : null}
@@ -202,6 +207,17 @@ const styles = StyleSheet.create({
   },
   verifiedTick: { fontSize: 11, fontWeight: '900', color: colors.ink },
   handle: { fontSize: 13, color: colors.greenDark, marginTop: 3 },
+  confirmedPill: {
+    marginTop: spacing.sm,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(26,240,96,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(15,188,72,0.3)',
+    borderRadius: 999,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 4,
+  },
+  confirmedPillText: { fontSize: 11, color: colors.greenDark, fontFamily: fontFamily.bodyBold },
   location: { fontSize: 11, color: 'rgba(5,8,5,0.55)', marginTop: 4 },
 
   pillsRow: { gap: spacing.sm, marginBottom: spacing.xl },

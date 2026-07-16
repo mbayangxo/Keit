@@ -14,6 +14,7 @@ import {
   respondFriendRequest,
   getMboloThreads,
   createMboloThread,
+  getVouchStatus,
 } from '../lib/api-client';
 import { findDirectThreadForUser, navigateToMboloChat } from '../lib/mbolo-social';
 import ProfileShareButtons from '../components/ProfileShareButtons';
@@ -49,6 +50,7 @@ export default function FriendsScreen({ navigation, route }) {
   const [handle, setHandle] = useState('');
   const [adding, setAdding] = useState(false);
   const [respondingId, setRespondingId] = useState(null);
+  const [vouch, setVouch] = useState(null);
 
   useEffect(() => {
     const incoming = route.params?.addHandle;
@@ -60,12 +62,17 @@ export default function FriendsScreen({ navigation, route }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [list, reqs] = await Promise.all([getFriends(), getFriendRequests()]);
+      const [list, reqs, vouchInfo] = await Promise.all([
+        getFriends(),
+        getFriendRequests(),
+        getVouchStatus().catch(() => null),
+      ]);
       setFriends(Array.isArray(list) ? list : []);
       setRequests({
         incoming: Array.isArray(reqs?.incoming) ? reqs.incoming : [],
         outgoing: Array.isArray(reqs?.outgoing) ? reqs.outgoing : [],
       });
+      setVouch(vouchInfo);
     } catch (err) {
       showToast(err.message ?? 'Impossible de charger les amis');
     } finally {
@@ -169,6 +176,34 @@ export default function FriendsScreen({ navigation, route }) {
           <PressScale scaleTo={0.97} onPress={() => open('QrScan', { mode: 'friend' })} style={styles.scanLink}>
             <Text style={styles.scanLinkText}>📷 Scanner un QR pour ajouter</Text>
           </PressScale>
+
+          {vouch ? (
+            <View style={styles.vouchCard}>
+              {vouch.confirmed ? (
+                <Text style={styles.vouchConfirmed}>🛡️ Confirmé par la communauté ✓</Text>
+              ) : (
+                <>
+                  <Text style={styles.vouchTitle}>🛡️ Pas encore confirmé</Text>
+                  <Text style={styles.vouchMeta}>
+                    Demande à un membre K21 depuis 6 mois+ de scanner ton QR pour prouver que tu n'es pas
+                    un spammeur.
+                  </Text>
+                  <PressScale scaleTo={0.96} onPress={() => open('MyQr')} style={styles.vouchAction}>
+                    <Text style={styles.vouchActionText}>📲 Montrer mon QR</Text>
+                  </PressScale>
+                </>
+              )}
+              {vouch.canVouch ? (
+                <PressScale
+                  scaleTo={0.96}
+                  onPress={() => open('QrScan', { mode: 'vouch' })}
+                  style={styles.vouchAction}
+                >
+                  <Text style={styles.vouchActionText}>🛡️ Confirmer un ami (scanner son QR)</Text>
+                </PressScale>
+              ) : null}
+            </View>
+          ) : null}
 
           {requests.incoming.length > 0 ? (
             <View style={styles.requestsBlock}>
@@ -280,6 +315,21 @@ const styles = StyleSheet.create({
   addBtn: { width: 112 },
   scanLink: { alignSelf: 'center', marginBottom: spacing.xxl },
   scanLinkText: { fontSize: 12, color: colors.greenDark, fontFamily: fontFamily.bodyBold },
+  vouchCard: {
+    backgroundColor: 'rgba(232,92,26,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,92,26,0.22)',
+    borderRadius: radius.xl,
+    borderBottomRightRadius: 10,
+    padding: spacing.xl,
+    marginBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+  vouchTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
+  vouchConfirmed: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.greenDark },
+  vouchMeta: { fontSize: 12, color: 'rgba(5,8,5,0.6)', lineHeight: 17 },
+  vouchAction: { alignSelf: 'flex-start' },
+  vouchActionText: { fontSize: 12, color: colors.orange, fontFamily: fontFamily.bodyBold },
   requestsBlock: { marginBottom: spacing.xxl, gap: spacing.sm },
   sectionLabel: {
     fontFamily: fontFamily.bodyBold,

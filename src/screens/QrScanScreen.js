@@ -7,7 +7,7 @@ import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import { useToast } from '../components/Toast';
 import { parseK21Qr } from '../lib/k21-qr';
-import { addFriend, lookupUser, getBusinesses } from '../lib/api-client';
+import { addFriend, lookupUser, getBusinesses, vouchForUser } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing } from '../theme';
 
 export default function QrScanScreen({ navigation, route }) {
@@ -42,6 +42,18 @@ export default function QrScanScreen({ navigation, route }) {
           merchantId: businessId,
           merchantName: merchant?.name,
         });
+        return;
+      }
+
+      if (mode === 'vouch') {
+        const handle = parsed?.handle ?? raw.replace(/^@/, '').trim();
+        const result = await vouchForUser(handle);
+        showToast(
+          result.newlyConfirmed
+            ? `${result.target?.name ?? 'Membre'} confirmé 🛡️`
+            : `${result.target?.name ?? 'Membre'} était déjà confirmé ✓`,
+        );
+        navigation.goBack();
         return;
       }
 

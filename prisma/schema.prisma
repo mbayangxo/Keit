@@ -103,6 +103,8 @@ model User {
   friendsReceived       UserFriend[]           @relation("FriendTarget")
   friendRequestsSent     FriendRequest[]       @relation("FriendRequestFrom")
   friendRequestsReceived FriendRequest[]       @relation("FriendRequestTo")
+  vouchesReceived        UserVouch[]           @relation("VouchReceived")
+  vouchesGiven           UserVouch[]           @relation("VouchGiven")
 
   @@index([phone])
   @@index([afriId])
@@ -1157,6 +1159,23 @@ model FriendRequest {
 
   @@unique([fromId, toId])
   @@index([toId, status])
+}
+
+/**
+ * Community anti-spam vouch: a member whose account is 6+ months old scans
+ * your QR to confirm you're a real person. One vouch = "confirmé" badge.
+ */
+model UserVouch {
+  id        String   @id @default(cuid())
+  userId    String // the person being confirmed
+  voucherId String // the 6-month+ member who scanned them
+  createdAt DateTime @default(now())
+
+  user    User @relation("VouchReceived", fields: [userId], references: [id], onDelete: Cascade)
+  voucher User @relation("VouchGiven", fields: [voucherId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, voucherId])
+  @@index([userId])
 }
 
 /** Offline-first queue — cooperative delivery logs, etc. */
