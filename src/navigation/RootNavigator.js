@@ -2,10 +2,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AppLoadingScreen from '../screens/AppLoadingScreen';
 import SplashScreen from '../screens/SplashScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
-import AccountTypeScreen from '../screens/AccountTypeScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import SignUpScreen from '../screens/SignUpScreen';
-import BusinessSignUpScreen from '../screens/BusinessSignUpScreen';
 import WelcomeCelebrationScreen from '../screens/WelcomeCelebrationScreen';
 import BusinessHubScreen from '../screens/BusinessHubScreen';
 import AccessibilityScreen from '../screens/AccessibilityScreen';
@@ -40,7 +38,7 @@ const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {
   const { bootstrapped, hasSession, markSignedIn } = useSession();
-  const { profile, initAccount, initBusinessAccount, hydrateFromApi } = useAppState();
+  const { profile, initAccount, hydrateFromApi } = useAppState();
 
   const mainRouteFor = (accountType) => (accountType === 'business' ? 'BusinessMain' : 'Main');
 
@@ -72,19 +70,17 @@ export default function RootNavigator() {
         )}
       </Stack.Screen>
       <Stack.Screen name="Welcome">
-        {({ navigation }) => <WelcomeScreen onComplete={() => navigation.navigate('AccountType')} />}
-      </Stack.Screen>
-      <Stack.Screen name="AccountType">
         {({ navigation }) => (
-          <AccountTypeScreen onSelect={(accountType) => navigation.navigate('Onboarding', { accountType })} />
+          <WelcomeScreen
+            onComplete={() => navigation.navigate('Onboarding')}
+            onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Splash'))}
+          />
         )}
       </Stack.Screen>
       <Stack.Screen name="Onboarding">
-        {({ navigation, route }) => (
+        {({ navigation }) => (
           <OnboardingScreen
-            onComplete={() =>
-              route.params?.accountType === 'business' ? navigation.navigate('BusinessSignUp') : navigation.navigate('SignUp', { mode: 'signup' })
-            }
+            onComplete={() => navigation.navigate('SignUp', { mode: 'signup' })}
             onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Welcome'))}
           />
         )}
@@ -119,18 +115,6 @@ export default function RootNavigator() {
               hydrateFromApi(payload);
               markSignedIn();
               navigation.replace('PinSetup');
-            }}
-          />
-        )}
-      </Stack.Screen>
-      <Stack.Screen name="BusinessSignUp">
-        {({ navigation }) => (
-          <BusinessSignUpScreen
-            onCancel={() => navigation.goBack()}
-            onComplete={(signupProfile) => {
-              initBusinessAccount(signupProfile);
-              markSignedIn();
-              navigation.replace('Celebration', { ...signupProfile, accountType: 'business', businessName: signupProfile.businessName });
             }}
           />
         )}

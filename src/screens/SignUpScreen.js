@@ -314,15 +314,15 @@ function IntentStep({ lang, intent, setIntent, onNext, onBack }) {
   );
 }
 
-function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext, onSkip }) {
+function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext, onSkip, onBack }) {
   const entrance = useEntrance(0, 350, 8);
   const m = FUND_METHOD;
   return (
     <Animated.View style={[styles.body, entrance]}>
       <View style={styles.headRow}>
-        <View style={[styles.backBtn, { opacity: 0.3 }]}>
+        <PressScale scaleTo={0.9} onPress={onBack} style={styles.backBtn}>
           <Text style={{ fontSize: 14, color: ob.ink }}>←</Text>
-        </View>
+        </PressScale>
         <Text style={styles.headTitle}>Alimenter mon compte</Text>
       </View>
       <Text style={[styles.headline, { fontSize: 18, marginBottom: spacing.sm }]}>
@@ -581,6 +581,7 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
             loading={loading}
             onNext={() => finishSignup(fundAmount)}
             onSkip={() => finishSignup(0)}
+            onBack={back}
           />
         )}
     </OnboardingShell>

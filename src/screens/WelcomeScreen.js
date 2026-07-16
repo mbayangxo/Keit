@@ -278,7 +278,7 @@ const SLIDES = [
   },
 ];
 
-export default function WelcomeScreen({ onComplete }) {
+export default function WelcomeScreen({ onComplete, onBack }) {
   const { langCode } = useLocale();
   const [index, setIndex] = useState(0);
   const enter = useRef(new Animated.Value(0)).current;
@@ -353,7 +353,14 @@ export default function WelcomeScreen({ onComplete }) {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.frame}>
           <View style={styles.topBar}>
-            <Text style={[styles.brandMark, { color: colors.greenDark }]}>K21</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
+              {onBack ? (
+                <PressScale scaleTo={0.9} onPress={onBack} style={styles.topBackBtn}>
+                  <Text style={{ fontSize: 14, color: colors.ink }}>←</Text>
+                </PressScale>
+              ) : null}
+              <Text style={[styles.brandMark, { color: colors.greenDark }]}>K21</Text>
+            </View>
             <PressScale scaleTo={0.94} onPress={onComplete}>
               <Text style={[styles.skipText, { color: 'rgba(5,8,5,0.55)' }]}>{t(langCode, 'welcomeSkip')}</Text>
             </PressScale>
@@ -396,6 +403,16 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.appCanvas.base },
   frame: { flex: 1, width: '100%', maxWidth: 420, alignSelf: 'center' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xxl, paddingTop: spacing.lg },
+  topBackBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(5,8,5,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   brandMark: { fontFamily: fontFamily.displayBlack, fontSize: 17, letterSpacing: -0.5 },
   skipText: { fontFamily: fontFamily.bodyBold, fontSize: 12, textDecorationLine: 'underline' },
 

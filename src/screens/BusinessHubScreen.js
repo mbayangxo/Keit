@@ -45,6 +45,13 @@ const NEW_BIZ_CATEGORIES = [
   { key: 'autre', icon: '✦', name: 'Autre' },
 ];
 
+const NEW_BIZ_PERKS = [
+  { icon: '🆔', title: 'Ton KEBU ID', sub: 'L’identité officielle de ton commerce sur K21 — créée instantanément.' },
+  { icon: '📲', title: 'QR d’encaissement', sub: 'Tes clients paient en scannant — l’argent arrive sur le compte du commerce.' },
+  { icon: '⚡', title: 'Offres flash', sub: 'Publie des promos à durée réelle, visibles dans Découvrir.' },
+  { icon: '🧑‍🤝‍🧑', title: 'Équipe & paie', sub: 'Ajoute des employés et paie-les depuis le tableau de bord.' },
+];
+
 function formatAmount(n) {
   return Math.round(n ?? 0).toLocaleString('fr-FR').replace(/ /g, ' ');
 }
@@ -333,7 +340,8 @@ export default function BusinessHubScreen({ navigation }) {
             </View>
             <Text style={styles.emptyTitle}>Crée ton business</Text>
             <Text style={styles.emptySub}>
-              Ton compte K21 reste personnel — le commerce reçoit son propre KEBU ID pour encaisser.
+              Un seul compte K21 par personne (ton AFRI ID) — chaque commerce que tu crées reçoit son
+              propre KEBU ID, avec sa caisse séparée de ton argent personnel.
             </Text>
 
             <Text style={styles.createLabel}>Nom du commerce</Text>
@@ -360,12 +368,30 @@ export default function BusinessHubScreen({ navigation }) {
               ))}
             </View>
 
+            <Text style={styles.createLabel}>Ce que ton KEBU t'apporte</Text>
+            <View style={styles.perksList}>
+              {NEW_BIZ_PERKS.map((p) => (
+                <View key={p.title} style={styles.perkRow}>
+                  <View style={styles.perkIcon}>
+                    <Text style={{ fontSize: 18 }}>{p.icon}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.perkTitle}>{p.title}</Text>
+                    <Text style={styles.perkSub}>{p.sub}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+
             <GlowButton
               label={creatingBiz ? 'Création…' : '🏪 Créer mon business'}
               onPress={submitNewBusiness}
               disabled={creatingBiz || newBizName.trim().length < 2}
               style={{ marginTop: spacing.xl }}
             />
+            <Text style={styles.createFootnote}>
+              Gratuit · Ton KEBU ID est attribué immédiatement · Tu peux gérer plusieurs commerces
+            </Text>
           </ScrollView>
         </SafeAreaView>
       </View>
@@ -613,6 +639,22 @@ const styles = StyleSheet.create({
   },
   createCatOn: { backgroundColor: 'rgba(26,240,96,0.14)', borderColor: 'rgba(15,188,72,0.4)' },
   createCatText: { fontSize: 12, color: colors.ink, fontFamily: fontFamily.bodyBold },
+  perksList: { gap: spacing.sm },
+  perkRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.65)',
+    borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)',
+    borderRadius: radius.lg, borderBottomRightRadius: 8,
+    padding: spacing.lg,
+  },
+  perkIcon: {
+    width: 40, height: 40, borderRadius: 13, borderBottomRightRadius: 7,
+    backgroundColor: 'rgba(250,216,54,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  perkTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12.5, color: colors.ink },
+  perkSub: { fontSize: 11, color: 'rgba(5,8,5,0.55)', lineHeight: 15, marginTop: 1 },
+  createFootnote: { fontSize: 10.5, color: 'rgba(5,8,5,0.45)', textAlign: 'center', marginTop: spacing.lg },
   hero: { padding: spacing.xxl, backgroundColor: colors.goldA10, borderBottomWidth: 1, borderBottomColor: colors.goldA20 },
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   bizName: { fontFamily: fontFamily.displayBold, fontSize: 16, color: colors.ink },

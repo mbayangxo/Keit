@@ -15,6 +15,7 @@ import { colors, fontFamily, radius, spacing } from '../theme';
 import { useFillIn, useScalePulse } from '../hooks/animations';
 
 const SETTINGS = [
+  { key: 'business', icon: '🏪', title: 'Mon business (KEBU)', subtitle: 'Crée ou gère ton commerce — caisse séparée' },
   { key: 'accessibility', icon: '👁️', title: 'Accessibilité', subtitle: 'Mode données réduites, grand texte' },
   { key: 'account', icon: '🔐', title: 'Compte & Sécurité', subtitle: 'CNI, biométrie, 2FA pour gros montants' },
   { key: 'wallet', icon: '💳', title: 'Portefeuille', subtitle: 'Comptes liés, historique, limites' },
@@ -400,6 +401,10 @@ export default function MoiScreen({ navigation }) {
                 key={s.key}
                 item={s}
                 onPress={() => {
+                  if (s.key === 'business') {
+                    open('BusinessMain');
+                    return;
+                  }
                   if (s.key === 'account') {
                     open('EditProfile');
                     return;
