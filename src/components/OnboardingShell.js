@@ -1,16 +1,16 @@
 import { StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import WaxPattern from '../components/WaxPattern';
-import { colors } from '../theme';
+import ScreenBackground from './ScreenBackground';
 
-/** Shared warm-orange background for signup / onboarding — no black screens. */
+/**
+ * Shared canvas for splash-side screens (onboarding, signup, PIN, recovery):
+ * one continuous bright color with faint sunrise light — no texture, no
+ * pattern lines. Same base as the rest of the app, calmer treatment.
+ */
 export default function OnboardingShell({ children, edges = ['top'] }) {
-  const ob = colors.onboarding;
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[ob.bg, ob.bgDeep, ob.bg]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      <WaxPattern color="rgba(232,92,26,0.05)" size={20} durationMs={32000} />
+      <ScreenBackground soft />
       <SafeAreaView style={{ flex: 1 }} edges={edges}>
         {children}
       </SafeAreaView>
@@ -19,5 +19,5 @@ export default function OnboardingShell({ children, edges = ['top'] }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.onboarding.bg },
+  root: { flex: 1, backgroundColor: '#f2f8ec' },
 });

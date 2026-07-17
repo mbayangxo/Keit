@@ -137,7 +137,7 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
 
   return (
     <View style={styles.root}>
-      <ScreenBackground />
+      <ScreenBackground soft />
 
       <SafeAreaView style={{ flex: 1, width: '100%' }}>
         <View style={styles.frame}>
@@ -184,14 +184,19 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
               style={[
                 styles.sunriseArc,
                 {
-                  opacity: sunrise.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 0, 0.55] }),
+                  opacity: sunrise.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 0, 0.5] }),
                   transform: [
                     { translateY: sunrise.interpolate({ inputRange: [0, 1], outputRange: [70, 18] }) },
                     { scaleX: 1.35 },
                   ],
                 },
               ]}
-            />
+            >
+              <LinearGradient
+                colors={['rgba(250,216,54,0.35)', 'rgba(250,216,54,0.12)', 'rgba(250,216,54,0)']}
+                style={{ flex: 1, borderTopLeftRadius: 150, borderTopRightRadius: 150 }}
+              />
+            </Animated.View>
             <Animated.View style={[styles.ringOuter, ringPulse(1, 1.07)]}>
               <Animated.View style={[styles.ringMid, ringPulse(1.04, 1)]}>
                 <Animated.View
@@ -350,7 +355,7 @@ const styles = StyleSheet.create({
   sunriseArc: {
     position: 'absolute', alignSelf: 'center', top: 60,
     width: 300, height: 150, borderTopLeftRadius: 150, borderTopRightRadius: 150,
-    backgroundColor: 'rgba(250,216,54,0.28)',
+    overflow: 'hidden',
   },
   ringOuter: {
     width: RING_OUTER, height: RING_OUTER, borderRadius: RING_OUTER / 2,

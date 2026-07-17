@@ -348,7 +348,7 @@ export default function WelcomeScreen({ onComplete, onBack }) {
 
   return (
     <View style={styles.root}>
-      <ScreenBackground />
+      <ScreenBackground soft />
 
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.frame}>
