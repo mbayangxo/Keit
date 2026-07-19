@@ -56,28 +56,32 @@ export async function getUserIdFromRequest(req) {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) return null;
 
+  let userId;
   try {
-    const token = header.slice('Bearer '.length);
-    const userId = verifyAccessToken(token);
-    if (!userId) return null;
-
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) return null;
-
-    await assertAccountAccessible(user);
-    await touchActivity(userId);
-    return userId;
-  } catch (error) {
-    if (error.code === 'account_locked' || error.code === 'session_inactive' || error.code === 'account_frozen') {
-      req._authError = error;
-    }
+    userId = verifyAccessToken(header.slice('Bearer '.length));
+  } catch {
     return null;
   }
-}
-
-export async function getAuthContext(req) {
-  const userId = await getUserIdFromRequest(req);
   if (!userId) return null;
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  return user ? { userId, user } : null;
+
+  // Narrow select: only the fields the access check needs. A full-row read
+  // here made EVERY authenticated call fail as a fake "invalid session"
+  // whenever the production DB lagged one column behind the schema.
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, frozenByAdminAt: true, accountLockedAt: true, lastActivityAt: true },
+  });
+  if (!user) return null;
+
+  try {
+    await assertAccountAccessible(user);
+  } catch (error) {
+    req._authError = error;
+    return null;
+  }
+
+  // Real DB errors (missing table/column, connection loss) propagate to the
+  // router's error handler, which reports them honestly — never as a 401.
+  await touchActivity(userId);
+  return userId;
 }
