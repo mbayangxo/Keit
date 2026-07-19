@@ -91,9 +91,11 @@ export default function RootNavigator() {
           <SignUpScreen
             key={route.params?.mode ?? 'signup'}
             mode={route.params?.mode ?? 'signup'}
+            initialEmail={route.params?.email}
             onCancel={() => navigation.goBack()}
             onForgot={() => navigation.navigate('ForgotAccess')}
             onSwitchToSignup={() => navigation.replace('SignUp', { mode: 'signup' })}
+            onSwitchToLogin={(email) => navigation.replace('SignUp', { mode: 'login', email })}
             onLoginComplete={async () => {
               const payload = await fetchSessionPayload();
               hydrateFromApi(payload);

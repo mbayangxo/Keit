@@ -4,32 +4,27 @@
  * prisma/schema.prisma on every Vercel deploy, so new tables/columns can
  * never be missing behind freshly deployed code.
  *
- * - No DATABASE_URL (e.g., a preview build without env) → skip quietly.
- * - Push fails → FAIL THE BUILD. Deploying code against a stale schema
- *   is how "error" screens happen; better to see it red in Vercel.
+ * This step NEVER fails the build. A deploy that ships bug fixes with a
+ * lagging schema beats no deploy at all — the API already reports schema
+ * drift honestly at runtime (503 db_schema_outdated), and /api/health
+ * shows loginSchemaOk + the live commit for diagnosis.
  *
- * Unlike db-setup.mjs (the interactive first-time script), this never
- * passes --accept-data-loss: a destructive change must be run manually
- * and on purpose.
+ * Prefers DIRECT_DATABASE_URL when set: Supabase's transaction pooler
+ * (port 6543) can refuse DDL — schema changes want the direct connection
+ * (port 5432).
  */
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const url = process.env.DATABASE_URL?.trim();
+const url = (process.env.DIRECT_DATABASE_URL ?? process.env.DIRECT_URL ?? process.env.DATABASE_URL)?.trim();
 
 if (!url || !/^postgres(ql)?:\/\//i.test(url)) {
-  if (process.env.VERCEL_ENV === 'production') {
-    console.error(
-      '\n[db-sync] ❌ DATABASE_URL is not available to the PRODUCTION build.\n' +
-        'The app would deploy against a database missing new tables/columns.\n' +
-        'Fix: Vercel → Settings → Environment Variables → DATABASE_URL →\n' +
-        'make sure "Production" is checked (build + runtime), then redeploy.\n',
-    );
-    process.exit(1);
-  }
-  console.log('[db-sync] DATABASE_URL not set for this build — skipping schema sync.');
+  console.warn(
+    '[db-sync] ⚠️  No database URL available to this build — schema NOT synced.\n' +
+      '[db-sync]     Vercel → Settings → Environment Variables → DATABASE_URL → enable for Production.',
+  );
   process.exit(0);
 }
 
@@ -38,17 +33,17 @@ const prismaBin = join(root, 'node_modules', '.bin', 'prisma');
 const push = spawnSync(prismaBin, ['db', 'push', '--skip-generate'], {
   cwd: root,
   stdio: 'inherit',
-  env: process.env,
+  env: { ...process.env, DATABASE_URL: url },
 });
 
 if (push.status !== 0) {
-  console.error(
-    '\n[db-sync] ❌ Schema sync failed — the build stops here on purpose.\n' +
-      'The deployed app would crash against an out-of-date database.\n' +
-      'If Prisma reported possible data loss, run the change manually:\n' +
-      '  npm run db:push\n',
+  console.warn(
+    '\n[db-sync] ⚠️  Schema sync FAILED — deploying anyway so fixes still ship.\n' +
+      '[db-sync]     The app will answer "Mise à jour en cours" on features whose tables are missing.\n' +
+      '[db-sync]     Fix now: run `npm run db:push` from your laptop, or set DIRECT_DATABASE_URL\n' +
+      '[db-sync]     in Vercel to the Supabase DIRECT connection string (port 5432, not 6543).\n',
   );
-  process.exit(1);
+  process.exit(0);
 }
 
 console.log('[db-sync] ✓ Database schema is in sync.');

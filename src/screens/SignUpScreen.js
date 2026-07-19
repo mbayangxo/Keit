@@ -364,11 +364,11 @@ function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext,
   );
 }
 
-export default function SignUpScreen({ mode = 'signup', onComplete, onLoginComplete, onCancel, onForgot, onSwitchToSignup }) {
+export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete, onLoginComplete, onCancel, onForgot, onSwitchToSignup, onSwitchToLogin }) {
   const { country, region, langCode, setOnboardingIntent } = useLocale();
   const showToast = useToast();
   const [step, setStep] = useState('phone');
-  const [authEmailAddress, setAuthEmailAddress] = useState('');
+  const [authEmailAddress, setAuthEmailAddress] = useState(initialEmail ?? '');
   const [otp, setOtp] = useState('');
   const [devOtpHint, setDevOtpHint] = useState(null);
   const [otpViaEmail, setOtpViaEmail] = useState(false);
@@ -403,6 +403,13 @@ export default function SignUpScreen({ mode = 'signup', onComplete, onLoginCompl
       }
       goTo('otp');
     } catch (err) {
+      // Existing account on the signup path → flip straight into login with
+      // the email kept, instead of stranding the user on a toast.
+      if (err.status === 409 && mode === 'signup' && onSwitchToLogin) {
+        showToast('Ce compte existe déjà — connecte-toi ici ✓');
+        onSwitchToLogin(authEmailAddress);
+        return;
+      }
       const msg =
         err.status === 404 || err.status === 409
           ? (err.message ?? t(langCode, 'signupNoAccountEmail'))
