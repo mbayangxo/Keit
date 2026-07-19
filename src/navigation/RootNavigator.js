@@ -13,6 +13,7 @@ import PayMerchantScreen from '../screens/PayMerchantScreen';
 import CashScreen from '../screens/CashScreen';
 import MoreActionsScreen from '../screens/MoreActionsScreen';
 import MovementScreen from '../screens/MovementScreen';
+import WorkerProfileScreen from '../screens/WorkerProfileScreen';
 import NuLekkScreen from '../screens/NuLekkScreen';
 import ReceiveScreen from '../screens/ReceiveScreen';
 import TontineScreen from '../screens/TontineScreen';
@@ -147,6 +148,7 @@ export default function RootNavigator() {
       <Stack.Screen name="Cash" component={CashScreen} />
       <Stack.Screen name="MoreActions" component={MoreActionsScreen} />
       <Stack.Screen name="Movement" component={MovementScreen} />
+      <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
       <Stack.Screen name="NuLekk" component={NuLekkScreen} />
       <Stack.Screen name="Receive" component={ReceiveScreen} />
       <Stack.Screen name="Tontine" component={TontineScreen} />

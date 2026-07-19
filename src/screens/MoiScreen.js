@@ -49,7 +49,7 @@ function HighlightRing({ item, onPress }) {
 
 function highlightNavigation(item, open) {
   if (item.type === 'event') {
-    open('DiscoverTab', { initialTab: 'Events' });
+    open('DiscoverTab', { screen: 'Discover', params: { initialTab: 'Events' } });
     return;
   }
   if (item.type === 'tontine') {
@@ -394,6 +394,21 @@ export default function MoiScreen({ navigation }) {
             <K21PassCard pass={pass} verifiedTier={verifiedTier} onPress={() => open('StudentPass')} />
           </View>
 
+          {profile.accountType === 'personal' ? (
+            <View style={{ paddingHorizontal: spacing.huge, marginBottom: spacing.xxl }}>
+              <PressScale scaleTo={0.98} onPress={() => open('WorkerProfile')} style={styles.workerCard}>
+                <Text style={{ fontSize: 24 }}>🛵</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.workerTitle}>Profil travailleur</Text>
+                  <Text style={styles.workerSub}>
+                    Livraison, gigs, vente — reçus vérifiables et dossier crédit pour les prêts
+                  </Text>
+                </View>
+                <Text style={styles.workerArrow}>→</Text>
+              </PressScale>
+            </View>
+          ) : null}
+
           <View style={[styles.settingsBlock, { paddingBottom: spacing.lg }]}>
             <Text style={styles.sectionLabel}>Paramètres</Text>
             {SETTINGS.map((s) => (
@@ -497,6 +512,19 @@ const styles = StyleSheet.create({
   passScanMuted: { backgroundColor: 'rgba(5,8,5,0.12)' },
 
   settingsBlock: { paddingHorizontal: spacing.huge, gap: spacing.sm },
+  workerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    backgroundColor: colors.appCanvas.surface,
+    borderWidth: 1.5,
+    borderColor: colors.appCanvas.border,
+    borderRadius: radius.xxl,
+    padding: spacing.xl,
+  },
+  workerTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.appCanvas.text },
+  workerSub: { fontSize: 10, color: colors.appCanvas.textMuted, marginTop: 3, lineHeight: 14 },
+  workerArrow: { fontSize: 14, color: colors.greenDark },
   settingsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, backgroundColor: colors.appCanvas.surface, borderWidth: 1, borderColor: colors.appCanvas.border, borderRadius: radius.lg, padding: spacing.xl },
   settingsIcon: { width: 38, height: 38, borderRadius: radius.md, backgroundColor: colors.greenA08, alignItems: 'center', justifyContent: 'center' },
   settingsTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.appCanvas.text },

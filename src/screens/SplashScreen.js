@@ -143,7 +143,6 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
         <View style={styles.frame}>
           {/* Top bar — language switch left, sign-in right (Sendwave-style "Log in") */}
           <View style={styles.topBar}>
-            {/* One quiet dropdown instead of a row of pills */}
             <View style={styles.langWrap}>
               <PressScale scaleTo={0.94} onPress={() => setLangOpen((o) => !o)} style={styles.langBtn}>
                 <Text style={styles.langBtnText}>🌍 {lang}</Text>
@@ -167,7 +166,9 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
                 </View>
               )}
             </View>
-            <View />
+            <PressScale scaleTo={0.94} onPress={onHaveAccount} style={styles.signInBtn}>
+              <Text style={styles.signInText}>{t(langCode, 'splashSignIn')}</Text>
+            </PressScale>
           </View>
 
           {/* Sunrise hero — concentric rings breaking the top of the layout */}
@@ -266,45 +267,41 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
           </Animated.View>
 
           <Animated.View style={[styles.ctaBlock, lineStyle(ctas)]}>
-            <PressScale scaleTo={0.97} onPress={onCreateAccount} style={styles.primaryBtn}>
-              <LinearGradient
-                colors={['#ffe45c', colors.flagGold, colors.goldDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <Animated.View
-                style={[
-                  styles.primaryBtnSheen,
-                  {
-                    transform: [
-                      { translateX: sheen.interpolate({ inputRange: [0, 1], outputRange: [-220, 380] }) },
-                      { rotate: '18deg' },
-                    ],
-                  },
-                ]}
-              />
-              <Text style={styles.primaryBtnText}>{t(langCode, 'splashCreate')}</Text>
-              <Animated.View
-                style={[
-                  styles.primaryBtnBadge,
-                  { transform: [{ translateX: goldPulse.interpolate({ inputRange: [0, 1], outputRange: [0, 3] }) }] },
-                ]}
-              >
-                <Text style={styles.primaryBtnBadgeArrow}>→</Text>
-              </Animated.View>
-              <View style={styles.primaryBtnStripe}>
-                <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
-                <View style={[styles.flagSeg, { backgroundColor: colors.ink }]} />
-                <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
-              </View>
-            </PressScale>
+            <View style={styles.ctaRow}>
+              <PressScale scaleTo={0.97} onPress={onCreateAccount} style={[styles.primaryBtn, styles.ctaHalf]}>
+                <LinearGradient
+                  colors={['#ffe45c', colors.flagGold, colors.goldDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <Animated.View
+                  style={[
+                    styles.primaryBtnSheen,
+                    {
+                      transform: [
+                        { translateX: sheen.interpolate({ inputRange: [0, 1], outputRange: [-220, 380] }) },
+                        { rotate: '18deg' },
+                      ],
+                    },
+                  ]}
+                />
+                <Text style={styles.primaryBtnText} numberOfLines={2}>
+                  {t(langCode, 'splashCreate')}
+                </Text>
+                <View style={styles.primaryBtnStripe}>
+                  <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
+                  <View style={[styles.flagSeg, { backgroundColor: colors.ink }]} />
+                  <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
+                </View>
+              </PressScale>
 
-            <PressScale scaleTo={0.97} onPress={onHaveAccount} style={styles.secondaryBtn}>
-              <Text style={styles.secondaryBtnText}>
-                {t(langCode, 'splashHaveAccount')} <Text style={styles.secondaryBtnBold}>{t(langCode, 'splashSignInAction')}</Text>
-              </Text>
-            </PressScale>
+              <PressScale scaleTo={0.97} onPress={onHaveAccount} style={[styles.secondaryBtn, styles.ctaHalf]}>
+                <Text style={styles.secondaryBtnText} numberOfLines={2}>
+                  {t(langCode, 'splashAlreadyMember')}
+                </Text>
+              </PressScale>
+            </View>
 
             <Text style={styles.caption}>{t(langCode, 'splashCaption')}</Text>
           </Animated.View>
@@ -330,7 +327,6 @@ const styles = StyleSheet.create({
   frame: { flex: 1, width: '100%', maxWidth: 420, alignSelf: 'center', paddingHorizontal: spacing.giant },
 
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: spacing.lg, zIndex: 30 },
-  langRow: { flexDirection: 'row', gap: spacing.xs },
   langWrap: { position: 'relative', zIndex: 20 },
   langBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -348,6 +344,15 @@ const styles = StyleSheet.create({
   },
   langItem: { paddingVertical: 6, paddingHorizontal: spacing.lg },
   langItemText: { fontFamily: fontFamily.bodySemiBold, fontSize: 11.5, color: colors.ink },
+  signInBtn: {
+    borderRadius: radius.round,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderWidth: 1,
+    borderColor: 'rgba(5,8,5,0.1)',
+  },
+  signInText: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.greenDark },
   loginLink: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: 'rgba(5,8,5,0.75)', textDecorationLine: 'underline' },
 
   hero: { alignItems: 'center', marginTop: spacing.giant },
@@ -392,14 +397,14 @@ const styles = StyleSheet.create({
   flagSeg: { flex: 1 },
   brandLine: { fontFamily: fontFamily.bodyBold, fontSize: 10, letterSpacing: 3, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginTop: spacing.xl },
 
-  headline: { marginTop: 'auto', paddingTop: spacing.giant, paddingBottom: spacing.xl },
+  headline: { marginTop: spacing.xl, marginBottom: spacing.lg, paddingVertical: spacing.md },
   headLine: { fontFamily: fontFamily.displayBlack, fontSize: 37, lineHeight: 46, letterSpacing: -1.6, color: colors.ink },
   headIndent: { marginLeft: 34 },
   headAccent: { color: colors.goldDark, textShadowColor: 'rgba(232,146,10,0.25)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10 },
 
   tickerWrap: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
-    alignSelf: 'flex-start', marginTop: spacing.lg, marginBottom: 'auto',
+    alignSelf: 'flex-start', marginTop: spacing.lg, marginBottom: spacing.md,
     backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)',
     borderRadius: radius.round, borderBottomRightRadius: 8,
     paddingVertical: 7, paddingHorizontal: spacing.lg, maxWidth: '100%',
@@ -407,36 +412,51 @@ const styles = StyleSheet.create({
   tickerDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.greenDark },
   tickerText: { fontFamily: fontFamily.bodySemiBold, fontSize: 12, color: 'rgba(5,8,5,0.7)', flexShrink: 1 },
 
-  ctaBlock: { marginTop: 'auto', paddingBottom: spacing.xl },
-  // K21 signature button: pill with one "cut" corner (bottom-right), an ink
-  // arrow badge, and the flag micro-stripe — no other app has this shape.
+  ctaBlock: { marginTop: spacing.md, paddingBottom: spacing.xl },
+  ctaRow: { flexDirection: 'row', alignItems: 'stretch', gap: spacing.md },
+  ctaHalf: { flex: 1, minHeight: 52 },
   primaryBtn: {
-    height: 58, borderRadius: radius.round, borderBottomRightRadius: 10,
-    backgroundColor: colors.flagGold, overflow: 'hidden',
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.goldDark, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.45, shadowRadius: 20, elevation: 8,
+    borderRadius: radius.round,
+    borderBottomRightRadius: 10,
+    backgroundColor: colors.flagGold,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.lg,
+    shadowColor: colors.goldDark,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    elevation: 8,
   },
   primaryBtnSheen: {
     position: 'absolute', top: -20, bottom: -20, width: 46,
     backgroundColor: 'rgba(255,255,255,0.35)',
   },
-  primaryBtnText: { fontFamily: fontFamily.displayBlack, fontSize: 13, letterSpacing: 0.4, color: colors.ink },
-  primaryBtnBadge: {
-    position: 'absolute', right: 10, width: 38, height: 38, borderRadius: 19, borderBottomRightRadius: 7,
-    backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center',
+  primaryBtnText: { fontFamily: fontFamily.displayBlack, fontSize: 12.5, letterSpacing: 0.2, color: colors.ink, textAlign: 'center', lineHeight: 16 },
+  primaryBtnStripe: {
+    position: 'absolute',
+    bottom: 0,
+    left: '22%',
+    right: '22%',
+    height: 3,
+    flexDirection: 'row',
+    borderRadius: 2,
+    overflow: 'hidden',
   },
-  primaryBtnBadgeArrow: { fontSize: 16, color: colors.flagGold },
-  primaryBtnStripe: { position: 'absolute', bottom: 0, left: '38%', right: '38%', height: 3, flexDirection: 'row', borderRadius: 2, overflow: 'hidden' },
-
-
-
   secondaryBtn: {
-    marginTop: spacing.md, height: 46, borderRadius: radius.round, borderBottomRightRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.12)',
-    alignItems: 'center', justifyContent: 'center',
+    borderRadius: radius.round,
+    borderBottomRightRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(5,8,5,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.lg,
   },
-  secondaryBtnText: { fontFamily: fontFamily.bodyMedium, fontSize: 13, color: 'rgba(5,8,5,0.6)' },
-  secondaryBtnBold: { fontFamily: fontFamily.bodyBold, color: colors.greenDark },
+  secondaryBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 12.5, color: colors.ink, textAlign: 'center', lineHeight: 16 },
 
   caption: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: 'rgba(5,8,5,0.5)', textAlign: 'center', marginTop: spacing.md, letterSpacing: 0.4 },
 });

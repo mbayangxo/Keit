@@ -63,6 +63,7 @@ model User {
   ledgerEntries         LedgerEntry[]
   sellerProfile         SellerProfile?
   driverProfile         DriverProfile?
+  workerProfile         WorkerProfile?
   businessMemberships   BusinessMember[]
   ownedBusinesses       Business[]             @relation("BusinessOwner")
   sentMessages          MboloMessage[]
@@ -105,6 +106,7 @@ model User {
   friendRequestsReceived FriendRequest[]       @relation("FriendRequestTo")
   vouchesReceived        UserVouch[]           @relation("VouchReceived")
   vouchesGiven           UserVouch[]           @relation("VouchGiven")
+  alertReads             AlertRead[]
 
   @@index([phone])
   @@index([afriId])
@@ -288,6 +290,49 @@ model DriverProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([status, lastActiveAt])
+}
+
+/** Worker mode — only activatable from a personal K21 account (not business signup). */
+model WorkerProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  workerId            String   @unique
+  modes               String   @default("")
+  status              String   @default("active")
+  reputationScore     Int      @default(0)
+  totalEarnedNational Int      @default(0)
+  completedJobs       Int      @default(0)
+  activatedAt         DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  receipts WorkerReceipt[]
+
+  @@index([workerId])
+  @@index([status])
+}
+
+/** Verifiable proof of completed platform work — for reputation and loan documentation. */
+model WorkerReceipt {
+  id              String   @id @default(cuid())
+  workerProfileId String
+  userId          String
+  reference       String   @unique
+  kind            String
+  sourceId        String?
+  title           String
+  subtitle        String?
+  amountNational  Int
+  koriAmount      Int      @default(0)
+  completedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  worker WorkerProfile @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+
+  @@index([workerProfileId, completedAt])
+  @@index([userId])
+  @@index([kind])
 }
 
 model Product {
@@ -561,17 +606,79 @@ model TontineMembership {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String
-  body      String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  body        String
+  kind        String?
+  refId       String?
+  actionLabel String?
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([userId, kind, refId])
+}
+
+model RegionalAlert {
+  id          String    @id @default(cuid())
+  alertType   String
+  severity    String
+  title       String
+  body        String    @db.Text
+  guidance    String?   @db.Text
+  country     String    @default("SN")
+  regionKeys  String[]
+  regionLabel String
+  source      String
+  sourceUrl   String?
+  validFrom   DateTime  @default(now())
+  validUntil  DateTime?
+  featured    Boolean   @default(false)
+  publishedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  reads AlertRead[]
+
+  @@index([country, publishedAt])
+  @@index([validUntil])
+}
+
+model AlertRead {
+  id      String   @id @default(cuid())
+  userId  String
+  alertId String
+  readAt  DateTime @default(now())
+
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alert RegionalAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, alertId])
+  @@index([alertId])
+}
+
+model TrendingArticle {
+  id              String   @id @default(cuid())
+  category        String
+  title           String
+  excerpt         String
+  body            String?  @db.Text
+  source          String
+  sourceUrl       String?
+  country         String   @default("SN")
+  regionKeys      String[] @default([])
+  signatureTarget Int?
+  signatureCount  Int      @default(0)
+  trendScore      Int      @default(0)
+  publishedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([country, category, publishedAt])
 }
 
 model MoneyRequest {

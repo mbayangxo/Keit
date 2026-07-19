@@ -6,7 +6,7 @@ import { colors, fontFamily, spacing } from '../theme';
 const TAB_ICONS = {
   HomeTab: '🏠',
   MbooloTab: '💬',
-  DiscoverTab: '🔍',
+  DiscoverTab: '📡',
   MovementTab: '🛵',
   MoiTab: '😊',
 };
@@ -14,7 +14,7 @@ const TAB_ICONS = {
 const TAB_LABELS = {
   HomeTab: 'Accueil',
   MbooloTab: 'Mboolo',
-  DiscoverTab: 'Discover',
+  DiscoverTab: 'Tendances',
   MovementTab: 'Mouvement',
   MoiTab: 'Moi',
 };
@@ -38,7 +38,7 @@ export default function TabBar({ state, navigation }) {
           >
             <Text style={styles.navIcon}>{TAB_ICONS[route.name]}</Text>
             {focused && <View style={styles.navDot} />}
-            <Text style={[styles.navLabel, focused && { color: colors.orange }]}>{TAB_LABELS[route.name]}</Text>
+            <Text style={[styles.navLabel, focused && { color: colors.greenDark }]}>{TAB_LABELS[route.name]}</Text>
           </Pressable>
         );
       })}
@@ -50,6 +50,6 @@ const styles = StyleSheet.create({
   bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', paddingTop: spacing.lg, paddingBottom: spacing.xxxl, borderTopWidth: 1, borderTopColor: 'rgba(5,8,5,0.08)', overflow: 'hidden' },
   navItem: { flex: 1, alignItems: 'center', gap: 3 },
   navIcon: { fontSize: 20 },
-  navDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.orange },
+  navDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.greenDark },
   navLabel: { fontFamily: fontFamily.bodyBold, fontSize: 7, color: colors.appCanvas.textFaint },
 });

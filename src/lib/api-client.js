@@ -194,6 +194,24 @@ export function getCultureFeed(country = 'SN', query = '') {
   return apiFetch(`/api/culture/feed?${params.toString()}`, { skipCache: true });
 }
 
+export function getTrendingFeed(tab = 'all', query = '') {
+  const params = new URLSearchParams({ tab });
+  if (query) params.set('q', query);
+  return apiFetch(`/api/trending/feed?${params.toString()}`, { skipCache: true });
+}
+
+export function getTrendingAlert(alertId) {
+  return apiFetch(`/api/trending/alerts/${encodeURIComponent(alertId)}`, { skipCache: true });
+}
+
+export function markTrendingAlertRead(alertId) {
+  return apiFetch(`/api/trending/alerts/${encodeURIComponent(alertId)}/read`, { method: 'POST', skipCache: true });
+}
+
+export function getTrendingAlertShareMessage(alertId) {
+  return apiFetch(`/api/trending/alerts/${encodeURIComponent(alertId)}/share`, { method: 'POST', skipCache: true });
+}
+
 export function authRecover(phone, email) {
   return apiFetch('/api/auth/recover', { method: 'POST', body: { phone, email: email.trim().toLowerCase() }, auth: false, skipCache: true });
 }
@@ -668,6 +686,26 @@ export function registerDriverProfile(body = {}) {
     body,
     skipCache: true,
   });
+}
+
+export function getWorkerProfile() {
+  return apiFetch('/api/workers/profile', { skipCache: true });
+}
+
+export function activateWorkerProfile(modes) {
+  return apiFetch('/api/workers/profile', {
+    method: 'POST',
+    body: { modes },
+    skipCache: true,
+  });
+}
+
+export function getWorkerReceipts(limit = 50) {
+  return apiFetch(`/api/workers/receipts?limit=${limit}`, { skipCache: true });
+}
+
+export function getWorkerCreditSummary() {
+  return apiFetch('/api/workers/credit-summary', { skipCache: true });
 }
 
 export function requestDelivery(body) {

@@ -42,7 +42,8 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
-    "prisma": "^6.19.3"
+    "prisma": "^6.19.3",
+    "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",

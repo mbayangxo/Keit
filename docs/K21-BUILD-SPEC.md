@@ -150,7 +150,18 @@ Family Wallet for mother, child, spouse, etc. Framed as **"Protège ta famille"*
 
 ---
 
-## KORI (₭) — full spec
+## Worker profile (travailleur)
+
+- **Not a signup type** — only **personal** accounts activate worker from **Moi → Profil travailleur** or **Mouvement**
+- **Business accounts** cannot activate worker (separate KEBU business signup)
+- Modes: **delivery**, **seller** (Discover), **gigs**
+- Completed paid jobs → **WorkerReceipt** (`WR-…`) for loan documentation
+- **Credit tier**: starter → building (3+ jobs, 10k+ F) → established (20+ jobs, 100k+ F)
+- APIs: `GET/POST /workers/profile`, `GET /workers/receipts`, `GET /workers/credit-summary`
+
+**Backend today:** ✅ delivery receipts on escrow release; seller/gig receipts on order settlement — planned.
+
+---
 
 - Dual balance: national + ₭ on every wallet
 - Mint on national deposit (10,000 XOF → 10,000 XOF + ₭1,000)

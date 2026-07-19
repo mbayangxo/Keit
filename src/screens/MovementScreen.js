@@ -213,7 +213,12 @@ function DrivePanel({ onRequestCourier, refreshKey }) {
         setOnline(true);
         showToast('Mode livreur activé');
       } catch (err) {
-        showToast(err.message ?? 'Impossible d’activer le mode livreur');
+        const msg = err.message ?? '';
+        if (msg.includes('profil travailleur') || msg.includes('worker')) {
+          navigation.navigate('WorkerProfile');
+        } else {
+          showToast(msg || 'Impossible d’activer le mode livreur');
+        }
       } finally {
         setActivating(false);
       }
@@ -311,8 +316,13 @@ export default function MovementScreen({ navigation, route }) {
   const ensureSeller = async () => {
     try {
       await registerSellerProfile({ shopName: profile.name || 'Mon shop' });
-    } catch {
-      /* profile may already exist */
+    } catch (err) {
+      const msg = err.message ?? '';
+      if (msg.includes('profil travailleur') || msg.includes('worker')) {
+        navigation.navigate('WorkerProfile');
+        throw err;
+      }
+      /* seller profile may already exist */
     }
   };
 
@@ -336,7 +346,12 @@ export default function MovementScreen({ navigation, route }) {
       setGigSheetOpen(false);
       bump();
     } catch (err) {
-      showToast(err.message ?? 'Publication impossible');
+      const msg = err.message ?? '';
+      if (msg.includes('profil travailleur') || msg.includes('worker')) {
+        navigation.navigate('WorkerProfile');
+      } else {
+        showToast(msg || 'Publication impossible');
+      }
     } finally {
       setSubmitting(false);
     }

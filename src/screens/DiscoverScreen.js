@@ -704,9 +704,9 @@ const styles = StyleSheet.create({
   pillsRow: { gap: 7, paddingBottom: spacing.xl },
 
   pill: { height: 32, paddingHorizontal: spacing.xxl, borderRadius: radius.round, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
-  pillOn: { backgroundColor: colors.terracotta },
+  pillOn: { backgroundColor: colors.ink },
   pillText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: 'rgba(5,8,5,0.55)' },
-  pillTextOn: { color: colors.ink },
+  pillTextOn: { color: colors.green },
 
   discGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.xxl, paddingTop: spacing.lg, gap: spacing.md },
   dgItem: { width: '48.5%', aspectRatio: 1, borderRadius: radius.xxl, overflow: 'hidden', justifyContent: 'flex-end', position: 'relative' },

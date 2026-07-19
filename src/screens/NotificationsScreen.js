@@ -10,6 +10,7 @@ import { getNotifications, markNotificationRead } from '../lib/api-client';
 const ACCENT_COLORS = { g: colors.green, o: colors.terracotta, r: colors.terracotta, y: colors.flagGold };
 
 function inferKind(notification) {
+  if (notification.kind === 'alert') return 'alert';
   const t = `${notification.title} ${notification.body}`.toLowerCase();
   if (t.includes('demande')) return 'money';
   if (t.includes('mboolo') || t.includes('message')) return 'mboolo';
@@ -21,8 +22,8 @@ function inferKind(notification) {
 
 function mapNotification(n) {
   const kind = inferKind(n);
-  const icons = { money: '💸', mboolo: '💬', event: '🎉', tontine: '🏦', ngor: '✦', generic: '🔔' };
-  const accents = { money: 'g', mboolo: 'r', event: 'o', tontine: 'y', ngor: 'g', generic: 'g' };
+  const icons = { money: '💸', mboolo: '💬', event: '🎉', tontine: '🏦', ngor: '✦', alert: '🌊', generic: '🔔' };
+  const accents = { money: 'g', mboolo: 'r', event: 'o', tontine: 'y', ngor: 'g', alert: 'o', generic: 'g' };
   const time = new Date(n.createdAt).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   return {
     id: n.id,
@@ -34,8 +35,10 @@ function mapNotification(n) {
     iconBg: colors.greenA10,
     text: n.body || n.title,
     time,
-    action: kind === 'money' ? '✓' : kind === 'mboolo' ? 'Répondre' : kind === 'event' ? 'Voir' : null,
+    action: kind === 'money' ? '✓' : kind === 'mboolo' ? 'Répondre' : kind === 'event' || kind === 'alert' ? 'Voir' : null,
     actionStyle: kind === 'money' ? 'g' : 'o',
+    refId: n.refId ?? null,
+    read: n.read,
   };
 }
 
@@ -98,7 +101,20 @@ export default function NotificationsScreen({ navigation }) {
         navigation.navigate('Main', { screen: 'MbooloTab' });
         break;
       case 'event':
-        navigation.navigate('Main', { screen: 'DiscoverTab', params: { initialTab: 'Events' } });
+        navigation.navigate('Main', {
+          screen: 'DiscoverTab',
+          params: { screen: 'Discover', params: { initialTab: 'Events' } },
+        });
+        break;
+      case 'alert':
+        if (item.refId) {
+          navigation.navigate('Main', {
+            screen: 'DiscoverTab',
+            params: { screen: 'AlertDetail', params: { alertId: item.refId } },
+          });
+        } else {
+          navigation.navigate('Main', { screen: 'DiscoverTab', params: { screen: 'Trending', params: { initialTab: 'alerts' } } });
+        }
         break;
       case 'money':
         navigation.navigate('Receive');
