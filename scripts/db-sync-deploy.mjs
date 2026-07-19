@@ -20,6 +20,15 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const url = process.env.DATABASE_URL?.trim();
 
 if (!url || !/^postgres(ql)?:\/\//i.test(url)) {
+  if (process.env.VERCEL_ENV === 'production') {
+    console.error(
+      '\n[db-sync] ❌ DATABASE_URL is not available to the PRODUCTION build.\n' +
+        'The app would deploy against a database missing new tables/columns.\n' +
+        'Fix: Vercel → Settings → Environment Variables → DATABASE_URL →\n' +
+        'make sure "Production" is checked (build + runtime), then redeploy.\n',
+    );
+    process.exit(1);
+  }
   console.log('[db-sync] DATABASE_URL not set for this build — skipping schema sync.');
   process.exit(0);
 }
