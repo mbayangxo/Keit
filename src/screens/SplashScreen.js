@@ -171,79 +171,7 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
             </PressScale>
           </View>
 
-          {/* Sunrise hero — concentric rings breaking the top of the layout */}
-          <Animated.View
-            style={[
-              styles.hero,
-              {
-                opacity: sunrise,
-                transform: [{ scale: sunrise.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }],
-              },
-            ]}
-          >
-            <Animated.View
-              style={[
-                styles.sunriseArc,
-                {
-                  opacity: sunrise.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 0, 0.5] }),
-                  transform: [
-                    { translateY: sunrise.interpolate({ inputRange: [0, 1], outputRange: [70, 18] }) },
-                    { scaleX: 1.35 },
-                  ],
-                },
-              ]}
-            >
-              <LinearGradient
-                colors={['rgba(250,216,54,0.35)', 'rgba(250,216,54,0.12)', 'rgba(250,216,54,0)']}
-                style={{ flex: 1, borderTopLeftRadius: 150, borderTopRightRadius: 150 }}
-              />
-            </Animated.View>
-            <Animated.View style={[styles.ringOuter, ringPulse(1, 1.07)]}>
-              <Animated.View style={[styles.ringMid, ringPulse(1.04, 1)]}>
-                <Animated.View
-                  style={[
-                    styles.dashRing,
-                    { transform: [{ rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] },
-                  ]}
-                >
-                  {ORBITERS.map((o) => (
-                    <View key={o.icon} style={[styles.orbiter, o.pos]}>
-                      <Animated.Text
-                        style={{
-                          fontSize: 15,
-                          transform: [{ rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-360deg'] }) }],
-                        }}
-                      >
-                        {o.icon}
-                      </Animated.Text>
-                    </View>
-                  ))}
-                </Animated.View>
-                <View style={styles.sun}>
-                  <Animated.View
-                    style={[
-                      styles.sunSheen,
-                      {
-                        transform: [
-                          { translateX: sheen.interpolate({ inputRange: [0, 1], outputRange: [-SUN, SUN] }) },
-                          { rotate: '22deg' },
-                        ],
-                      },
-                    ]}
-                  />
-                  <Text style={styles.wordmark}>K21</Text>
-                  <View style={styles.flagStripe}>
-                    <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
-                    <View style={[styles.flagSeg, { backgroundColor: colors.flagGold }]} />
-                    <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
-                  </View>
-                </View>
-              </Animated.View>
-            </Animated.View>
-            <Text style={styles.brandLine}>{t(langCode, 'splashBrandLine')}</Text>
-          </Animated.View>
-
-          {/* Editorial stacked headline */}
+          {/* Headline + CTAs first — visible without scrolling on phone */}
           <View style={styles.headline}>
             {renderStagger(t(langCode, 'splashHead1'), lines[0], styles.headLine)}
             <View style={styles.headIndent}>
@@ -268,17 +196,6 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
                   end={{ x: 0, y: 1 }}
                   style={StyleSheet.absoluteFill}
                 />
-                <Animated.View
-                  style={[
-                    styles.primaryBtnSheen,
-                    {
-                      transform: [
-                        { translateX: sheen.interpolate({ inputRange: [0, 1], outputRange: [-220, 380] }) },
-                        { rotate: '18deg' },
-                      ],
-                    },
-                  ]}
-                />
                 <Text style={styles.primaryBtnText} numberOfLines={2}>
                   {t(langCode, 'splashJoinNow')}
                 </Text>
@@ -295,7 +212,6 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
                 </Text>
               </PressScale>
             </View>
-
             <Text style={styles.caption}>{t(langCode, 'splashCaption')}</Text>
           </Animated.View>
 
@@ -304,6 +220,31 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
             <Text style={styles.tickerText} numberOfLines={1}>
               {t(langCode, `splashTicker${tickerIx + 1}`)}
             </Text>
+          </Animated.View>
+
+          {/* Compact sunrise mark — decorative, below the action row */}
+          <Animated.View
+            style={[
+              styles.hero,
+              {
+                opacity: sunrise,
+                transform: [{ scale: sunrise.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }],
+              },
+            ]}
+          >
+            <Animated.View style={[styles.ringOuter, ringPulse(1, 1.07)]}>
+              <Animated.View style={[styles.ringMid, ringPulse(1.04, 1)]}>
+                <View style={styles.sun}>
+                  <Text style={styles.wordmark}>K21</Text>
+                  <View style={styles.flagStripe}>
+                    <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
+                    <View style={[styles.flagSeg, { backgroundColor: colors.flagGold }]} />
+                    <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
+                  </View>
+                </View>
+              </Animated.View>
+            </Animated.View>
+            <Text style={styles.brandLine}>{t(langCode, 'splashBrandLine')}</Text>
           </Animated.View>
         </View>
       </SafeAreaView>
@@ -318,9 +259,9 @@ const ORBITERS = [
   { icon: '💬', pos: { bottom: 6, left: -ORB / 4 } },
 ];
 
-const RING_OUTER = 196;
-const RING_MID = 160;
-const SUN = 122;
+const RING_OUTER = 148;
+const RING_MID = 122;
+const SUN = 96;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f2f8ec' },
@@ -355,7 +296,7 @@ const styles = StyleSheet.create({
   signInText: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.greenDark },
   loginLink: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: 'rgba(5,8,5,0.75)', textDecorationLine: 'underline' },
 
-  hero: { alignItems: 'center', marginTop: spacing.lg, marginBottom: spacing.md },
+  hero: { alignItems: 'center', marginTop: spacing.lg, marginBottom: spacing.md, opacity: 0.92 },
   // Warm gold half-glow rising behind the mark on first load — the sunrise.
   sunriseArc: {
     position: 'absolute', alignSelf: 'center', top: 60,
@@ -392,14 +333,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.14)',
   },
   // Crisp wordmark — no text shadow (it read as blur), pure sharp letterforms.
-  wordmark: { fontFamily: fontFamily.displayBlack, fontSize: 46, letterSpacing: -2, color: colors.green },
-  flagStripe: { flexDirection: 'row', height: 3, borderRadius: 2, overflow: 'hidden', width: 44, marginTop: spacing.sm },
+  wordmark: { fontFamily: fontFamily.displayBlack, fontSize: 34, letterSpacing: -1.5, color: colors.green },
+  flagStripe: { flexDirection: 'row', height: 3, borderRadius: 2, overflow: 'hidden', width: 36, marginTop: spacing.xs },
   flagSeg: { flex: 1 },
-  brandLine: { fontFamily: fontFamily.bodyBold, fontSize: 10, letterSpacing: 3, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginTop: spacing.xl },
+  brandLine: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 2.5, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginTop: spacing.md },
 
-  headline: { marginTop: spacing.sm, marginBottom: spacing.sm, paddingVertical: spacing.xs },
-  headLine: { fontFamily: fontFamily.displayBlack, fontSize: 32, lineHeight: 40, letterSpacing: -1.4, color: colors.ink },
-  headIndent: { marginLeft: 34 },
+  headline: { marginTop: spacing.md, marginBottom: spacing.sm, paddingVertical: 0 },
+  headLine: { fontFamily: fontFamily.displayBlack, fontSize: 28, lineHeight: 34, letterSpacing: -1.2, color: colors.ink },
+  headIndent: { marginLeft: 28 },
   headAccent: { color: colors.goldDark, textShadowColor: 'rgba(232,146,10,0.25)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10 },
 
   tickerWrap: {
@@ -412,9 +353,9 @@ const styles = StyleSheet.create({
   tickerDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.greenDark },
   tickerText: { fontFamily: fontFamily.bodySemiBold, fontSize: 12, color: 'rgba(5,8,5,0.7)', flexShrink: 1 },
 
-  ctaBlock: { marginTop: spacing.xs, marginBottom: spacing.sm },
+  ctaBlock: { marginTop: spacing.sm, marginBottom: spacing.md },
   ctaRow: { flexDirection: 'row', alignItems: 'stretch', gap: spacing.md },
-  ctaHalf: { flex: 1, minHeight: 50 },
+  ctaHalf: { flex: 1, minHeight: 54 },
   primaryBtn: {
     borderRadius: radius.round,
     borderBottomRightRadius: 10,

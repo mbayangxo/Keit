@@ -466,27 +466,24 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
           goTo('profile');
           return;
         }
-        try {
-          const me = await getMe(freshToken);
-          if (!(me.name?.length >= 2) || !(me.handle?.length >= 3)) {
-            goTo('profile');
-            return;
-          }
-        } catch (meErr) {
-          if (meErr.code === 'db_schema_outdated' || meErr.code === 'db_unavailable' || meErr.code === 'auth_not_configured') {
-            showToast(meErr.message ?? t(langCode, 'signupDbUnavailable'));
-            return;
-          }
-          throw meErr;
+        const snap = res.profile;
+        if (!(snap?.name?.length >= 2) || !(snap?.handle?.length >= 3)) {
+          goTo('profile');
+          return;
         }
-        await onLoginComplete?.({ accessToken: freshToken, refreshToken: res.refreshToken });
+        await onLoginComplete?.({ accessToken: freshToken, refreshToken: res.refreshToken, profile: snap });
         return;
       }
       if (!res.isNewUser) {
+        const snap = res.profile;
+        if (snap?.name?.length >= 2 && snap?.handle?.length >= 3) {
+          await onLoginComplete?.({ accessToken: freshToken, refreshToken: res.refreshToken, profile: snap });
+          return;
+        }
         try {
           const me = await getMe(freshToken);
           if (me.name?.length >= 2 && me.handle?.length >= 3) {
-            await onLoginComplete?.({ accessToken: freshToken, refreshToken: res.refreshToken });
+            await onLoginComplete?.({ accessToken: freshToken, refreshToken: res.refreshToken, profile: me });
             return;
           }
         } catch {

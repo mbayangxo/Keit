@@ -1,9 +1,13 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { getAccessToken, getOrCreateDeviceId, getRefreshToken, saveSessionTokens, clearSession, touchActivity } from './secure-storage.js';
 import { captureApiError } from './sentry.js';
 import { loadPreferences } from './preferences-storage.js';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? '';
+const API_BASE =
+  process.env.EXPO_PUBLIC_API_URL ??
+  Constants.expoConfig?.extra?.apiUrl ??
+  'https://keit-six.vercel.app';
 const GET_CACHE = new Map();
 const CACHE_TTL_MS = 45_000;
 

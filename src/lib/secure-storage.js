@@ -9,6 +9,10 @@ const KEYS = {
   PIN_CONFIGURED: 'k21_pin_configured',
 };
 
+/** Immediate read-after-write cache — iOS SecureStore can lag one tick after login. */
+let memoryAccessToken = null;
+let memoryRefreshToken = null;
+
 async function setItem(key, value) {
   if (Platform.OS === 'web') {
     try {
@@ -55,20 +59,34 @@ export async function getOrCreateDeviceId() {
 }
 
 export async function saveSessionTokens({ accessToken, refreshToken }) {
-  if (accessToken) await setItem(KEYS.ACCESS_TOKEN, accessToken);
-  if (refreshToken) await setItem(KEYS.REFRESH_TOKEN, refreshToken);
+  if (accessToken) {
+    memoryAccessToken = accessToken;
+    await setItem(KEYS.ACCESS_TOKEN, accessToken);
+  }
+  if (refreshToken) {
+    memoryRefreshToken = refreshToken;
+    await setItem(KEYS.REFRESH_TOKEN, refreshToken);
+  }
   await touchActivity();
 }
 
 export async function getAccessToken() {
-  return getItem(KEYS.ACCESS_TOKEN);
+  if (memoryAccessToken) return memoryAccessToken;
+  const stored = await getItem(KEYS.ACCESS_TOKEN);
+  if (stored) memoryAccessToken = stored;
+  return stored;
 }
 
 export async function getRefreshToken() {
-  return getItem(KEYS.REFRESH_TOKEN);
+  if (memoryRefreshToken) return memoryRefreshToken;
+  const stored = await getItem(KEYS.REFRESH_TOKEN);
+  if (stored) memoryRefreshToken = stored;
+  return stored;
 }
 
 export async function clearSession() {
+  memoryAccessToken = null;
+  memoryRefreshToken = null;
   await deleteItem(KEYS.ACCESS_TOKEN);
   await deleteItem(KEYS.REFRESH_TOKEN);
   await deleteItem(KEYS.LAST_ACTIVITY);

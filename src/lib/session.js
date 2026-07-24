@@ -1,8 +1,8 @@
 import { getAccessToken, getRefreshToken, saveSessionTokens, clearSession } from './secure-storage.js';
 import { getMe, getWallet, getTransactions, authRefreshToken } from './api-client.js';
 
-export async function fetchSessionPayload({ accessToken } = {}) {
-  const profile = await getMe(accessToken);
+export async function fetchSessionPayload({ accessToken, profile: profileSnapshot } = {}) {
+  const profile = profileSnapshot ?? (await getMe(accessToken));
   let wallet = { nationalBalance: 0, balance: 0 };
   let transactions = [];
   try {
