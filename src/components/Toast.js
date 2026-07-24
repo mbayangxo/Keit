@@ -19,9 +19,12 @@ export function ToastProvider({ children }) {
       if (hideTimer.current) clearTimeout(hideTimer.current);
       setMessage(text);
       Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 8 }).start();
+      // Longer messages (error explanations, debug-tagged auth failures)
+      // need more than a beat to read — and to screenshot.
+      const visibleMs = Math.min(2200 + Math.max(0, String(text).length - 30) * 60, 6000);
       hideTimer.current = setTimeout(() => {
         Animated.timing(anim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => setMessage(null));
-      }, 2200);
+      }, visibleMs);
     },
     [anim]
   );
