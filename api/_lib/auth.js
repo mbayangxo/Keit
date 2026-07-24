@@ -85,7 +85,13 @@ export async function getUserIdFromRequest(req) {
   // whenever the production DB lagged one column behind the schema.
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, frozenByAdminAt: true, accountLockedAt: true, lastActivityAt: true },
+    select: {
+      id: true,
+      frozenByAdminAt: true,
+      accountLockedAt: true,
+      lastActivityAt: true,
+      otpVerifiedAt: true,
+    },
   });
   if (!user) {
     return authFail(req, 'user_not_found', 'Valid token but no matching user row', `uid:${userId}`);

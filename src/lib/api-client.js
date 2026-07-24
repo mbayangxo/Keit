@@ -78,7 +78,7 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   }
 }
 
-export async function apiFetch(path, { method = 'GET', body, stepUpToken, auth = true, skipCache = false, _retry401 = true } = {}) {
+export async function apiFetch(path, { method = 'GET', body, stepUpToken, auth = true, skipCache = false, _retry401 = true, accessToken: accessTokenOverride } = {}) {
   const url = resolveUrl(path);
   assertHttps(url);
   const prefs = await getNetworkPrefs();
@@ -95,7 +95,7 @@ export async function apiFetch(path, { method = 'GET', body, stepUpToken, auth =
   headers['X-Device-Id'] = deviceId;
   if (prefs.lowDataMode) headers['X-Low-Data'] = '1';
   if (auth) {
-    const token = await getAccessToken();
+    const token = accessTokenOverride ?? (await getAccessToken());
     if (token) headers.Authorization = `Bearer ${token}`;
   }
   if (stepUpToken) headers['X-Step-Up-Token'] = stepUpToken;
@@ -119,7 +119,7 @@ export async function apiFetch(path, { method = 'GET', body, stepUpToken, auth =
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        if (response.status === 401 && auth && _retry401 && path !== '/api/auth/refresh') {
+        if (response.status === 401 && auth && _retry401 && path !== '/api/auth/refresh' && !accessTokenOverride) {
           const refreshToken = await getRefreshToken();
           if (refreshToken) {
             try {
@@ -128,7 +128,7 @@ export async function apiFetch(path, { method = 'GET', body, stepUpToken, auth =
                 accessToken: refreshed.accessToken,
                 refreshToken: refreshed.refreshToken,
               });
-              return apiFetch(path, { method, body, stepUpToken, auth, skipCache, _retry401: false });
+              return apiFetch(path, { method, body, stepUpToken, auth, skipCache, _retry401: false, accessToken: accessTokenOverride });
             } catch {
               await clearSession();
             }
@@ -248,8 +248,8 @@ export function authRefreshToken(refreshToken) {
   return apiFetch('/api/auth/refresh', { method: 'POST', body: { refreshToken }, auth: false, skipCache: true, _retry401: false });
 }
 
-export function getMe() {
-  return apiFetch('/api/me', { skipCache: true });
+export function getMe(accessToken) {
+  return apiFetch('/api/me', { skipCache: true, accessToken, _retry401: !accessToken });
 }
 
 export function getMeSummary() {
@@ -280,12 +280,12 @@ export function mePhoneConfirm(phone, otp) {
   return apiFetch('/api/me/phone/confirm', { method: 'POST', body: { phone, otp: String(otp).trim() }, skipCache: true });
 }
 
-export function getWallet() {
-  return apiFetch('/api/wallet', { skipCache: true });
+export function getWallet(accessToken) {
+  return apiFetch('/api/wallet', { skipCache: true, accessToken, _retry401: !accessToken });
 }
 
-export function getTransactions(limit = 20) {
-  return apiFetch(`/api/transactions?limit=${limit}`, { skipCache: true });
+export function getTransactions(limit = 20, accessToken) {
+  return apiFetch(`/api/transactions?limit=${limit}`, { skipCache: true, accessToken, _retry401: !accessToken });
 }
 
 export function transferSend({ recipientHandle, amount, currency = 'national', note, stepUpToken }) {

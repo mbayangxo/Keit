@@ -96,8 +96,8 @@ export default function RootNavigator() {
             onForgot={() => navigation.navigate('ForgotAccess')}
             onSwitchToSignup={() => navigation.replace('SignUp', { mode: 'signup' })}
             onSwitchToLogin={(email) => navigation.replace('SignUp', { mode: 'login', email })}
-            onLoginComplete={async () => {
-              const payload = await fetchSessionPayload();
+            onLoginComplete={async (sessionTokens) => {
+              const payload = await fetchSessionPayload(sessionTokens ?? {});
               hydrateFromApi(payload);
               await enterApp(navigation, payload.profile?.accountType);
             }}

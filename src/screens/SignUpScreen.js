@@ -460,13 +460,14 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
         return;
       }
       await saveSessionTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+      const freshToken = res.accessToken;
       if (mode === 'login') {
         if (res.isNewUser) {
           goTo('profile');
           return;
         }
         try {
-          const me = await getMe();
+          const me = await getMe(freshToken);
           if (!(me.name?.length >= 2) || !(me.handle?.length >= 3)) {
             goTo('profile');
             return;
@@ -476,15 +477,16 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
             showToast(meErr.message ?? t(langCode, 'signupDbUnavailable'));
             return;
           }
+          throw meErr;
         }
-        await onLoginComplete?.();
+        await onLoginComplete?.({ accessToken: freshToken, refreshToken: res.refreshToken });
         return;
       }
       if (!res.isNewUser) {
         try {
-          const me = await getMe();
+          const me = await getMe(freshToken);
           if (me.name?.length >= 2 && me.handle?.length >= 3) {
-            await onLoginComplete?.();
+            await onLoginComplete?.({ accessToken: freshToken, refreshToken: res.refreshToken });
             return;
           }
         } catch {
@@ -495,7 +497,7 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
     } catch (err) {
       const hint = err.data?.hint;
       let msg = err.message ?? t(langCode, 'signupInvalidOtp');
-      if (err.status === 401 && !hint) msg = t(langCode, 'signupInvalidOtp');
+      if (err.status === 401 && !hint && err.code === 'invalid_otp') msg = t(langCode, 'signupInvalidOtp');
       if (err.code === 'db_schema_outdated' || err.code === 'db_unavailable') {
         msg = err.message ?? t(langCode, 'signupDbUnavailable');
       }
