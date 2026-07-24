@@ -445,36 +445,62 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
   const verifyOtp = async () => {
     setLoading(true);
     try {
+      const code = otp.replace(/\D/g, '');
+      if (code.length !== 6) {
+        showToast(t(langCode, 'signupInvalidOtp'));
+        return;
+      }
       const res = await authVerify({
         email: otpDestination,
-        otp: otp.replace(/\D/g, ''),
+        otp: code,
         intent: authIntent,
       });
+      if (!res?.accessToken || !res?.refreshToken) {
+        showToast(t(langCode, 'signupInvalidOtp'));
+        return;
+      }
       await saveSessionTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
       if (mode === 'login') {
         if (res.isNewUser) {
           goTo('profile');
           return;
         }
-        const me = await getMe();
-        if (!(me.name?.length >= 2) || !(me.handle?.length >= 3)) {
-          goTo('profile');
-          return;
+        try {
+          const me = await getMe();
+          if (!(me.name?.length >= 2) || !(me.handle?.length >= 3)) {
+            goTo('profile');
+            return;
+          }
+        } catch (meErr) {
+          if (meErr.code === 'db_schema_outdated' || meErr.code === 'db_unavailable' || meErr.code === 'auth_not_configured') {
+            showToast(meErr.message ?? t(langCode, 'signupDbUnavailable'));
+            return;
+          }
         }
         await onLoginComplete?.();
         return;
       }
       if (!res.isNewUser) {
-        const me = await getMe();
-        if (me.name?.length >= 2 && me.handle?.length >= 3) {
-          await onLoginComplete?.();
-          return;
+        try {
+          const me = await getMe();
+          if (me.name?.length >= 2 && me.handle?.length >= 3) {
+            await onLoginComplete?.();
+            return;
+          }
+        } catch {
+          /* fall through to profile step */
         }
       }
       goTo('profile');
     } catch (err) {
       const hint = err.data?.hint;
-      const msg = hint ? `${err.message ?? t(langCode, 'signupInvalidOtp')} — ${hint}` : (err.message ?? t(langCode, 'signupInvalidOtp'));
+      let msg = err.message ?? t(langCode, 'signupInvalidOtp');
+      if (err.status === 401 && !hint) msg = t(langCode, 'signupInvalidOtp');
+      if (err.code === 'db_schema_outdated' || err.code === 'db_unavailable') {
+        msg = err.message ?? t(langCode, 'signupDbUnavailable');
+      }
+      if (err.code === 'auth_not_configured') msg = err.message ?? t(langCode, 'signupDbUnavailable');
+      if (hint) msg = `${msg} — ${hint}`;
       showToast(msg);
     } finally {
       setLoading(false);

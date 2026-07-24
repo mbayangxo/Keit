@@ -2,11 +2,19 @@ import { getAccessToken, getRefreshToken, saveSessionTokens, clearSession } from
 import { getMe, getWallet, getTransactions, authRefreshToken } from './api-client.js';
 
 export async function fetchSessionPayload() {
-  const [profile, wallet, transactions] = await Promise.all([
-    getMe(),
-    getWallet(),
-    getTransactions(),
-  ]);
+  const profile = await getMe();
+  let wallet = { nationalBalance: 0, balance: 0 };
+  let transactions = [];
+  try {
+    wallet = await getWallet();
+  } catch (error) {
+    console.warn('[session] wallet fetch failed after login', error?.message ?? error);
+  }
+  try {
+    transactions = await getTransactions();
+  } catch (error) {
+    console.warn('[session] transactions fetch failed after login', error?.message ?? error);
+  }
   return {
     profile: {
       name: profile.name,

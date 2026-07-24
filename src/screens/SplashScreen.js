@@ -259,13 +259,6 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
             </Animated.View>
           </View>
 
-          <Animated.View style={[styles.tickerWrap, { opacity: tickerFade }]}>
-            <View style={styles.tickerDot} />
-            <Text style={styles.tickerText} numberOfLines={1}>
-              {t(langCode, `splashTicker${tickerIx + 1}`)}
-            </Text>
-          </Animated.View>
-
           <Animated.View style={[styles.ctaBlock, lineStyle(ctas)]}>
             <View style={styles.ctaRow}>
               <PressScale scaleTo={0.97} onPress={onCreateAccount} style={[styles.primaryBtn, styles.ctaHalf]}>
@@ -287,7 +280,7 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
                   ]}
                 />
                 <Text style={styles.primaryBtnText} numberOfLines={2}>
-                  {t(langCode, 'splashCreate')}
+                  {t(langCode, 'splashJoinNow')}
                 </Text>
                 <View style={styles.primaryBtnStripe}>
                   <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
@@ -298,12 +291,19 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
 
               <PressScale scaleTo={0.97} onPress={onHaveAccount} style={[styles.secondaryBtn, styles.ctaHalf]}>
                 <Text style={styles.secondaryBtnText} numberOfLines={2}>
-                  {t(langCode, 'splashAlreadyMember')}
+                  {t(langCode, 'splashLogIn')}
                 </Text>
               </PressScale>
             </View>
 
             <Text style={styles.caption}>{t(langCode, 'splashCaption')}</Text>
+          </Animated.View>
+
+          <Animated.View style={[styles.tickerWrap, { opacity: tickerFade }]}>
+            <View style={styles.tickerDot} />
+            <Text style={styles.tickerText} numberOfLines={1}>
+              {t(langCode, `splashTicker${tickerIx + 1}`)}
+            </Text>
           </Animated.View>
         </View>
       </SafeAreaView>
@@ -313,14 +313,14 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
 
 const ORB = 34;
 const ORBITERS = [
-  { icon: '💸', pos: { top: -ORB / 2, left: ((168 + 24) - ORB) / 2 } },
+  { icon: '💸', pos: { top: -ORB / 2, left: ((SUN + 24) - ORB) / 2 } },
   { icon: '🛵', pos: { bottom: 6, right: -ORB / 4 } },
   { icon: '💬', pos: { bottom: 6, left: -ORB / 4 } },
 ];
 
-const RING_OUTER = 260;
-const RING_MID = 214;
-const SUN = 168;
+const RING_OUTER = 196;
+const RING_MID = 160;
+const SUN = 122;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f2f8ec' },
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   signInText: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.greenDark },
   loginLink: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: 'rgba(5,8,5,0.75)', textDecorationLine: 'underline' },
 
-  hero: { alignItems: 'center', marginTop: spacing.giant },
+  hero: { alignItems: 'center', marginTop: spacing.lg, marginBottom: spacing.md },
   // Warm gold half-glow rising behind the mark on first load — the sunrise.
   sunriseArc: {
     position: 'absolute', alignSelf: 'center', top: 60,
@@ -397,14 +397,14 @@ const styles = StyleSheet.create({
   flagSeg: { flex: 1 },
   brandLine: { fontFamily: fontFamily.bodyBold, fontSize: 10, letterSpacing: 3, color: 'rgba(5,8,5,0.45)', textTransform: 'uppercase', marginTop: spacing.xl },
 
-  headline: { marginTop: spacing.xl, marginBottom: spacing.lg, paddingVertical: spacing.md },
-  headLine: { fontFamily: fontFamily.displayBlack, fontSize: 37, lineHeight: 46, letterSpacing: -1.6, color: colors.ink },
+  headline: { marginTop: spacing.sm, marginBottom: spacing.sm, paddingVertical: spacing.xs },
+  headLine: { fontFamily: fontFamily.displayBlack, fontSize: 32, lineHeight: 40, letterSpacing: -1.4, color: colors.ink },
   headIndent: { marginLeft: 34 },
   headAccent: { color: colors.goldDark, textShadowColor: 'rgba(232,146,10,0.25)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10 },
 
   tickerWrap: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
-    alignSelf: 'flex-start', marginTop: spacing.lg, marginBottom: spacing.md,
+    alignSelf: 'flex-start', marginTop: spacing.lg,
     backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)',
     borderRadius: radius.round, borderBottomRightRadius: 8,
     paddingVertical: 7, paddingHorizontal: spacing.lg, maxWidth: '100%',
@@ -412,9 +412,9 @@ const styles = StyleSheet.create({
   tickerDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.greenDark },
   tickerText: { fontFamily: fontFamily.bodySemiBold, fontSize: 12, color: 'rgba(5,8,5,0.7)', flexShrink: 1 },
 
-  ctaBlock: { marginTop: spacing.md, paddingBottom: spacing.xl },
+  ctaBlock: { marginTop: spacing.xs, marginBottom: spacing.sm },
   ctaRow: { flexDirection: 'row', alignItems: 'stretch', gap: spacing.md },
-  ctaHalf: { flex: 1, minHeight: 52 },
+  ctaHalf: { flex: 1, minHeight: 50 },
   primaryBtn: {
     borderRadius: radius.round,
     borderBottomRightRadius: 10,
