@@ -134,11 +134,14 @@ export async function apiFetch(path, { method = 'GET', body, stepUpToken, auth =
             }
           }
         }
-        const msg =
+        const baseMsg =
           data.error ??
           (data.details ? 'Validation failed — check your input' : null) ??
           (response.status === 405 ? 'Server misconfigured — API route not found' : null) ??
           `Request failed (${response.status})`;
+        // Beta only: the server tags 401s with a `debug` reason — show it
+        // inline so a screenshot is enough to diagnose, no logs needed.
+        const msg = data.debug ? `${baseMsg} [${data.debug}]` : baseMsg;
         const error = new Error(msg);
         error.status = response.status;
         error.code = data.code;

@@ -52,17 +52,33 @@ export function verifyAccessToken(token) {
   return payload.sub;
 }
 
+function authFail(req, code, message, debug) {
+  req._authError = { code, message, debug };
+  return null;
+}
+
+/**
+ * Every exit path tags req._authError with a distinct code + a `debug`
+ * string. This turns "session invalide" from an unexplained dead end into
+ * something a screenshot can diagnose in one look — the router echoes
+ * `debug` on the response while the app is in beta (see api-router.js).
+ */
 export async function getUserIdFromRequest(req) {
   const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) return null;
+  if (!header?.startsWith('Bearer ')) {
+    return authFail(req, 'no_token', 'No Authorization header', 'missing_bearer_header');
+  }
 
   let userId;
   try {
     userId = verifyAccessToken(header.slice('Bearer '.length));
-  } catch {
-    return null;
+  } catch (err) {
+    const code = err.name === 'TokenExpiredError' ? 'token_expired' : 'token_invalid';
+    return authFail(req, code, err.message, `jwt:${err.name}`);
   }
-  if (!userId) return null;
+  if (!userId) {
+    return authFail(req, 'token_invalid', 'Token payload missing sub/type', 'jwt:bad_payload');
+  }
 
   // Narrow select: only the fields the access check needs. A full-row read
   // here made EVERY authenticated call fail as a fake "invalid session"
@@ -71,13 +87,14 @@ export async function getUserIdFromRequest(req) {
     where: { id: userId },
     select: { id: true, frozenByAdminAt: true, accountLockedAt: true, lastActivityAt: true },
   });
-  if (!user) return null;
+  if (!user) {
+    return authFail(req, 'user_not_found', 'Valid token but no matching user row', `uid:${userId}`);
+  }
 
   try {
     await assertAccountAccessible(user);
   } catch (error) {
-    req._authError = error;
-    return null;
+    return authFail(req, error.code, error.message, `account:${error.code}`);
   }
 
   // Real DB errors (missing table/column, connection loss) propagate to the
