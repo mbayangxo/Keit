@@ -15,6 +15,7 @@ import { useBlink, useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '.
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { useToast } from '../components/Toast';
 import { cashIn, cashOut, depositNational } from '../lib/api-client';
+import { formatKori, formatNationalEquivalent } from '../lib/kori.js';
 
 const BETA_DEPOSITS = process.env.EXPO_PUBLIC_ALLOW_BETA_DEPOSITS === 'true';
 
@@ -92,7 +93,7 @@ function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onB
 
           <AmountChips options={QUICK_AMOUNTS} value={amount} onChange={setAmount} style={styles.quickRow} />
 
-          {mode === 'out' && <Text style={styles.balanceNote}>Solde disponible : {formatAmount(balance)} F</Text>}
+          {mode === 'out' && <Text style={styles.balanceNote}>Solde disponible : {formatKori(balance)} · retrait en F CFA</Text>}
 
           <View style={styles.keypadWrap}>
             <Keypad onDigit={pressDigit} onBackspace={pressBackspace} />
@@ -122,7 +123,7 @@ function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onB
             style={{ marginBottom: spacing.md }}
           />
         )}
-        <GlowButton label="Choisir un agent →" onPress={onContinue} disabled={amount <= 0 || (mode === 'out' && amount > balance)} />
+        <GlowButton label="Choisir un agent →" onPress={onContinue} disabled={amount <= 0 || (mode === 'out' && Math.floor(amount / 10) > balance)} />
       </View>
     </View>
   );
@@ -235,7 +236,8 @@ function SuccessStep({ mode, amount, agent, oldBalance, newBalance, onDone }) {
             { key: 'agent', label: agent?.name ? 'Agent' : 'Source', value: agentName },
             { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.greenDark },
             ...(agent ? [{ key: 'fee', label: 'Frais agent', value: `${formatAmount(fee)} F` }] : []),
-            { key: 'balance', label: 'Nouveau solde', value: `${formatAmount(balanceCount)} F` },
+            { key: 'kori', label: 'Crédité en Kori', value: formatKori(Math.floor(amount / 10)), color: colors.greenDark },
+            { key: 'balance', label: 'Nouveau solde', value: formatKori(balanceCount) },
           ]}
         />
       </Animated.View>
@@ -276,7 +278,7 @@ export default function CashScreen({ navigation }) {
         await cashOut({ amount, operator });
       }
       const wallet = await refreshWallet();
-      setNewBalance(wallet.nationalBalance ?? wallet.balance ?? balance);
+      setNewBalance(wallet.balance ?? wallet.koriBalance ?? balance);
       setStep('success');
     } catch (err) {
       showToast(err.message ?? 'Opération impossible');
@@ -291,7 +293,7 @@ export default function CashScreen({ navigation }) {
     try {
       await depositNational({ amount, source: 'cash_screen' });
       const wallet = await refreshWallet();
-      setNewBalance(wallet.nationalBalance ?? wallet.balance ?? balance);
+      setNewBalance(wallet.balance ?? wallet.koriBalance ?? balance);
       setStep('success');
     } catch (err) {
       showToast(err.message ?? 'Crédit test indisponible');

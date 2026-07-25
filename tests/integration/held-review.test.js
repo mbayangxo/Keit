@@ -39,8 +39,8 @@ test('held → admin approve → funds move exactly once, user notified', async 
 
   const senderWallet = await prisma.wallet.findUnique({ where: { id: sender.wallet.id } });
   const recipientWallet = await prisma.wallet.findUnique({ where: { id: recipient.wallet.id } });
-  assert.equal(senderWallet.balance, 80_000);
-  assert.equal(recipientWallet.balance, 20_000);
+  assert.equal(senderWallet.koriBalance, 98_002);
+  assert.equal(recipientWallet.koriBalance, 2_000);
 
   // Approving again must fail — no double execution.
   await assert.rejects(approveHeldTransaction(heldId, 'admin-1'), (e) => e.code === 'invalid_state');
@@ -62,8 +62,8 @@ test('held → admin reject → no money moves, user notified', async () => {
 
   const senderWallet = await prisma.wallet.findUnique({ where: { id: sender.wallet.id } });
   const recipientWallet = await prisma.wallet.findUnique({ where: { id: recipient.wallet.id } });
-  assert.equal(senderWallet.balance, 100_000, 'sender keeps their money on rejection');
-  assert.equal(recipientWallet.balance, 0);
+  assert.equal(senderWallet.koriBalance, 100_000, 'sender keeps their money on rejection');
+  assert.equal(recipientWallet.koriBalance, 0);
 
   await assert.rejects(rejectHeldTransaction(heldId, 'admin-1'), (e) => e.code === 'invalid_state');
 });

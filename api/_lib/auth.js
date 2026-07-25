@@ -71,7 +71,7 @@ export async function getUserIdFromRequest(req) {
 
   let userId;
   try {
-    userId = verifyAccessToken(header.slice('Bearer '.length));
+    userId = verifyAccessToken(header.slice('Bearer '.length).trim());
   } catch (err) {
     const code = err.name === 'TokenExpiredError' ? 'token_expired' : 'token_invalid';
     return authFail(req, code, err.message, `jwt:${err.name}`);
@@ -80,31 +80,46 @@ export async function getUserIdFromRequest(req) {
     return authFail(req, 'token_invalid', 'Token payload missing sub/type', 'jwt:bad_payload');
   }
 
-  // Narrow select: only the fields the access check needs. A full-row read
-  // here made EVERY authenticated call fail as a fake "invalid session"
-  // whenever the production DB lagged one column behind the schema.
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      frozenByAdminAt: true,
-      accountLockedAt: true,
-      lastActivityAt: true,
-      otpVerifiedAt: true,
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        frozenByAdminAt: true,
+        accountLockedAt: true,
+        lastActivityAt: true,
+        otpVerifiedAt: true,
+      },
+    });
+  } catch (err) {
+    if (err?.code === 'P2022') {
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, frozenByAdminAt: true, accountLockedAt: true, lastActivityAt: true },
+      });
+    } else {
+      throw err;
+    }
+  }
   if (!user) {
     return authFail(req, 'user_not_found', 'Valid token but no matching user row', `uid:${userId}`);
   }
 
+  // Refresh activity before the idle check — returning users were getting
+  // "session invalide" on the first call right after a successful OTP login.
+  await touchActivity(userId).catch((err) => {
+    console.error('[auth] touchActivity failed', err);
+  });
+
   try {
-    await assertAccountAccessible(user);
+    await assertAccountAccessible({ ...user, lastActivityAt: new Date() });
   } catch (error) {
-    return authFail(req, error.code, error.message, `account:${error.code}`);
+    if (error.code === 'account_frozen' || error.code === 'account_locked') {
+      return authFail(req, error.code, error.message, `account:${error.code}`);
+    }
+    // Ignore session_inactive — client PIN gate handles idle lock locally.
   }
 
-  // Real DB errors (missing table/column, connection loss) propagate to the
-  // router's error handler, which reports them honestly — never as a 401.
-  await touchActivity(userId);
   return userId;
 }

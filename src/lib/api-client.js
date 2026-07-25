@@ -244,6 +244,28 @@ export function authVerify(phoneOrOpts, otp, intent = 'signup') {
   return apiFetch('/api/auth/verify', { method: 'POST', body, auth: false, skipCache: true });
 }
 
+export function authPasswordLogin(email, password) {
+  return apiFetch('/api/auth/password/login', {
+    method: 'POST',
+    body: { email: String(email).trim().toLowerCase(), password },
+    auth: false,
+    skipCache: true,
+  });
+}
+
+export function authPasswordSet(password) {
+  return apiFetch('/api/auth/password/set', { method: 'POST', body: { password }, skipCache: true });
+}
+
+export function authPasswordSetWithOtp(email, password, otp) {
+  return apiFetch('/api/auth/password/set-with-otp', {
+    method: 'POST',
+    body: { email: String(email).trim().toLowerCase(), password, otp: String(otp).trim() },
+    auth: false,
+    skipCache: true,
+  });
+}
+
 export function authCompleteProfile(body) {
   return apiFetch('/api/auth/complete-profile', { method: 'POST', body, skipCache: true });
 }
@@ -292,7 +314,7 @@ export function getTransactions(limit = 20, accessToken) {
   return apiFetch(`/api/transactions?limit=${limit}`, { skipCache: true, accessToken, _retry401: !accessToken });
 }
 
-export function transferSend({ recipientHandle, amount, currency = 'national', note, stepUpToken }) {
+export function transferSend({ recipientHandle, amount, currency = 'kori', note, stepUpToken }) {
   const handle = String(recipientHandle).replace(/^@/, '');
   return apiFetch('/api/transfers/send', {
     method: 'POST',
@@ -302,7 +324,7 @@ export function transferSend({ recipientHandle, amount, currency = 'national', n
   });
 }
 
-export function merchantPay(businessId, { amount, currency = 'national', stepUpToken }) {
+export function merchantPay(businessId, { amount, currency = 'kori', stepUpToken }) {
   return apiFetch(`/api/merchants/${encodeURIComponent(businessId)}/pay`, {
     method: 'POST',
     body: { amount, currency },
@@ -405,6 +427,34 @@ export function getMyBusinesses() {
 
 export function getBusiness(id) {
   return apiFetch(`/api/businesses/${encodeURIComponent(id)}`, { skipCache: true });
+}
+
+export function getBusinessWallet(businessId, limit = 30) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/wallet?limit=${limit}`, { skipCache: true });
+}
+
+export function getBusinessCreditSummary(businessId) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/credit-summary`, { skipCache: true });
+}
+
+export function transferBusinessFunds(businessId, body) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/transfer`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function getBusinessMembers(businessId) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/members`, { skipCache: true });
+}
+
+export function inviteBusinessMember(businessId, body) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/members`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
 }
 
 export function getPayrollGroups(businessId) {
@@ -623,7 +673,7 @@ export function transferRequest({ recipientHandle, amount, note }) {
   const handle = String(recipientHandle).replace(/^@/, '');
   return apiFetch('/api/transfers/request', {
     method: 'POST',
-    body: { recipientHandle: handle, amount, currency: 'national', note },
+    body: { recipientHandle: handle, amount, currency: 'kori', note },
     skipCache: true,
   });
 }

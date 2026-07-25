@@ -41,7 +41,7 @@ test('minting from a national deposit raises circulation AND reserve together', 
   assert.equal(afterState.totalReserveHeldXof, afterState.totalKoriInCirculation * 10);
 
   const wallet = await prisma.wallet.findUnique({ where: { id: user.wallet.id } });
-  assert.equal(wallet.balance, 10_000);
+  assert.equal(wallet.balance, 0);
   assert.equal(wallet.koriBalance, 1_000);
 });
 

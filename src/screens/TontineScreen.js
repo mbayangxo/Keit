@@ -13,6 +13,7 @@ import AmountChips from '../components/AmountChips';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { createTontineGroup, getTontineGroups, lookupUser, releaseTontinePot } from '../lib/api-client';
+import { formatKori } from '../lib/kori.js';
 import { parseK21Qr } from '../lib/k21-qr';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useEntrance, useFillIn, usePopIn } from '../hooks/animations';
@@ -56,7 +57,7 @@ function GroupItem({ item, delay, onPress }) {
             </View>
           </View>
           <View style={styles.groupAmountBox}>
-            <Text style={[styles.groupAmount, { color: item.totalColor }]}>{formatAmount(item.total)}</Text>
+            <Text style={[styles.groupAmount, { color: item.totalColor }]}>{formatKori(item.total)}</Text>
             <Text style={styles.groupAmountLabel}>{item.totalLabel}</Text>
           </View>
         </View>
@@ -134,7 +135,7 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
                 members: g.memberCount,
                 perMonth: g.amountPerMember,
                 total: g.potBalance || g.expectedPot,
-                totalLabel: g.potBalance > 0 ? 'F dans le pot' : 'F attendus',
+                totalLabel: g.potBalance > 0 ? 'dans le pot' : 'attendus',
                 totalColor: g.isMyTurn ? colors.terracotta : colors.green,
                 progress: g.expectedPot ? Math.round((g.potBalance / g.expectedPot) * 100) : 0,
                 progressColor: g.isMyTurn ? colors.terracotta : colors.green,
@@ -516,7 +517,7 @@ function ReleaseStep({ group, onBack, onReceive, receiving }) {
             </View>
             <Text style={styles.releaseName}>{group?.name}</Text>
             <Text style={styles.releaseAmount}>
-              {formatAmount(potAmount)} <Text style={styles.releaseCurr}>F</Text>
+              {formatKori(potAmount)}
             </Text>
             <Text style={styles.releaseRecipient}>Pot collecté · Versement automatique</Text>
           </Animated.View>
@@ -612,7 +613,7 @@ export default function TontineScreen({ navigation, route }) {
       const result = await releaseTontinePot(activeGroup.id);
       await refreshWallet();
       if (result.payoutAmount > 0) {
-        showToast(`Pot reçu · ${formatAmount(result.payoutAmount)} F ✓`);
+        showToast(`Pot reçu · ${formatKori(result.payoutAmount)} ✓`);
       } else if (result.partial) {
         showToast('Collecte partielle — certains membres n\'ont pas assez de solde');
       } else {

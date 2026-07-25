@@ -37,15 +37,18 @@ test('Tier 1 cannot use international transfers or create businesses', async () 
 });
 
 test('Tier 1 wallet cannot receive past 50,000 XOF / ₭5,000 caps', async () => {
-  const user = await createUserWithWallet({ tier: 1, balance: 45_000, koriBalance: 4_900 });
+  const underCap = await createUserWithWallet({ tier: 1, koriBalance: 4_500 });
+  await assert.doesNotReject(assertWalletWithinCaps(underCap, underCap.wallet, { incomingNational: 5_000 }));
 
-  await assert.doesNotReject(assertWalletWithinCaps(user, user.wallet, { incomingNational: 5_000 }));
+  const atEdge = await createUserWithWallet({ tier: 1, koriBalance: 4_501 });
   await assert.rejects(
-    assertWalletWithinCaps(user, user.wallet, { incomingNational: 5_001 }),
+    assertWalletWithinCaps(atEdge, atEdge.wallet, { incomingNational: 5_001 }),
     (e) => e.code === 'tier_balance_cap',
   );
+
+  const nearCap = await createUserWithWallet({ tier: 1, koriBalance: 4_900 });
   await assert.rejects(
-    assertWalletWithinCaps(user, user.wallet, { incomingKori: 101 }),
+    assertWalletWithinCaps(nearCap, nearCap.wallet, { incomingKori: 101 }),
     (e) => e.code === 'tier_balance_cap',
   );
 });

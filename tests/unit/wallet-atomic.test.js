@@ -37,8 +37,8 @@ test('transfer debits sender and credits recipient atomically with both ledger r
 
   const s = await prisma.wallet.findUnique({ where: { id: sender.wallet.id } });
   const r = await prisma.wallet.findUnique({ where: { id: recipient.wallet.id } });
-  assert.equal(s.balance, 7_000);
-  assert.equal(r.balance, 3_500);
+  assert.equal(s.koriBalance, 7_000);
+  assert.equal(r.koriBalance, 3_500);
 
   const entries = await prisma.ledgerEntry.findMany({ where: { reference: { startsWith: ref } } });
   assert.equal(entries.length, 2);
@@ -58,8 +58,8 @@ test('balance cannot go below zero — insufficient transfer rolls back entirely
 
   const s = await prisma.wallet.findUnique({ where: { id: sender.wallet.id } });
   const r = await prisma.wallet.findUnique({ where: { id: recipient.wallet.id } });
-  assert.equal(s.balance, 1_000, 'sender keeps their money');
-  assert.equal(r.balance, 0, 'recipient receives nothing');
+  assert.equal(s.koriBalance, 1_000, 'sender keeps their money');
+  assert.equal(r.koriBalance, 0, 'recipient receives nothing');
   assert.equal(await prisma.ledgerEntry.count({ where: { reference: { startsWith: ref } } }), 0);
 });
 
@@ -72,7 +72,7 @@ test('exact-balance transfer succeeds and lands on zero, not below', async () =>
   );
 
   const s = await prisma.wallet.findUnique({ where: { id: sender.wallet.id } });
-  assert.equal(s.balance, 0);
+  assert.equal(s.koriBalance, 0);
 
   await assert.rejects(
     runMoneyTransaction(prisma, (tx) => transferNational(tx, transferParams(sender, recipient, 1, uniqueRef('TX')))),
@@ -121,7 +121,7 @@ test('failure AFTER debit rolls back the debit (crash mid-transaction)', async (
   );
 
   const w = await prisma.wallet.findUnique({ where: { id: user.wallet.id } });
-  assert.equal(w.balance, 5_000, 'debit must be rolled back');
+  assert.equal(w.koriBalance, 5_000, 'debit must be rolled back');
   assert.equal(await prisma.ledgerEntry.count({ where: { reference: ref } }), 0);
 });
 
@@ -140,7 +140,7 @@ test('creditNational is idempotent by reference — no double credit', async () 
   await runMoneyTransaction(prisma, (tx) => creditNational(tx, params));
 
   const w = await prisma.wallet.findUnique({ where: { id: user.wallet.id } });
-  assert.equal(w.balance, 2_000, 'replayed credit with same reference must be a no-op');
+  assert.equal(w.koriBalance, 2_000, 'replayed credit with same reference must be a no-op');
   assert.equal(await prisma.ledgerEntry.count({ where: { reference: ref } }), 1);
 });
 

@@ -36,21 +36,21 @@ async function sendVia(user, deviceId, body) {
 }
 
 test('ATTACK: send money with insufficient balance → rejected, nothing moves', async () => {
-  const attacker = await createUserWithWallet({ balance: 100 });
-  const victim = await createUserWithWallet({ balance: 0 });
+  const attacker = await createUserWithWallet({ koriBalance: 100 });
+  const victim = await createUserWithWallet({ koriBalance: 0 });
   const deviceId = await createVerifiedDevice(attacker.id);
 
   const res = await sendVia(attacker, deviceId, {
     recipientHandle: victim.handle,
-    amount: 1_000,
+    amount: 1_010,
     currency: 'national',
   });
 
   assert.equal(res.statusCode, 400);
   const a = await prisma.wallet.findUnique({ where: { id: attacker.wallet.id } });
   const v = await prisma.wallet.findUnique({ where: { id: victim.wallet.id } });
-  assert.equal(a.balance, 100);
-  assert.equal(v.balance, 0);
+  assert.equal(a.koriBalance, 100);
+  assert.equal(v.koriBalance, 0);
 });
 
 test('ATTACK: negative or fractional amounts rejected by validation', async () => {
@@ -68,7 +68,7 @@ test('ATTACK: negative or fractional amounts rejected by validation', async () =
   }
 
   const v = await prisma.wallet.findUnique({ where: { id: victim.wallet.id } });
-  assert.equal(v.balance, 5_000, 'victim balance untouched by negative-amount attack');
+  assert.equal(v.koriBalance, 5_000, 'victim balance untouched by negative-amount attack');
 });
 
 test('ATTACK: access another user\'s account with a forged token → 401', async () => {
@@ -132,11 +132,11 @@ test('sender identity comes from the token, not the request body', async () => {
   assert.equal(res.statusCode, 201);
   const victimWallet = await prisma.wallet.findUnique({ where: { id: richVictim.wallet.id } });
   const attackerWallet = await prisma.wallet.findUnique({ where: { id: attacker.wallet.id } });
-  assert.equal(victimWallet.balance, 1_000_000, 'victim never debited');
-  assert.equal(attackerWallet.balance, 3_000, 'attacker pays from their own wallet');
+  assert.equal(victimWallet.koriBalance, 1_000_000, 'victim never debited');
+  assert.equal(attackerWallet.koriBalance, 4_802, 'attacker pays from their own wallet (200 ₭ send + 2 ₭ earn)');
 });
 
-test('ATTACK: session expired after 30 minutes of inactivity → 401', async () => {
+test('ATTACK: session expired after 30 minutes of inactivity → API refreshes activity (client PIN gate)', async () => {
   const user = await createUserWithWallet();
   await prisma.user.update({
     where: { id: user.id },
@@ -148,8 +148,9 @@ test('ATTACK: session expired after 30 minutes of inactivity → 401', async () 
     mockReq({ method: 'GET', headers: { authorization: `Bearer ${signAccessToken(user.id)}` } }),
     res,
   );
-  assert.equal(res.statusCode, 401);
-  assert.equal(res.body.code, 'session_inactive');
+  assert.equal(res.statusCode, 200, 'API layer refreshes lastActivityAt; idle lock is client-side');
+  const refreshed = await prisma.user.findUnique({ where: { id: user.id }, select: { lastActivityAt: true } });
+  assert.ok(Date.now() - refreshed.lastActivityAt.getTime() < 5_000);
 });
 
 test('ATTACK: brute-force PIN — locked after 5 wrong attempts, CNI required to unlock', async () => {
@@ -243,7 +244,7 @@ test('ATTACK: SQL injection in every input field is stored/compared literally', 
   const [{ users }] = await prisma.$queryRaw`SELECT COUNT(*)::int AS users FROM "User"`;
   assert.ok(users >= 2, 'User table intact');
   const recipientWallet = await prisma.wallet.findUnique({ where: { id: recipient.wallet.id } });
-  assert.equal(recipientWallet.balance, 1_000, 'only the legitimate 1,000 XOF arrived');
+  assert.equal(recipientWallet.koriBalance, 100, 'only the legitimate 100 ₭ arrived');
 });
 
 test('ATTACK: intercept API calls — plain HTTP refused in production, HSTS always on', async (t) => {
@@ -291,7 +292,7 @@ test('suspicious transaction is HELD (202), not executed — unknown device', as
 
   assert.equal(res.statusCode, 202, 'held for review, not rejected, not processed');
   const wallet = await prisma.wallet.findUnique({ where: { id: user.wallet.id } });
-  assert.equal(wallet.balance, 100_000, 'no money moved while under review');
+  assert.equal(wallet.koriBalance, 100_000, 'no money moved while under review');
 
   const held = await prisma.heldTransaction.findFirst({ where: { userId: user.id } });
   assert.equal(held.status, 'pending_review');

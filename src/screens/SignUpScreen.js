@@ -8,7 +8,7 @@ import { colors, fontFamily, radius, spacing } from '../theme';
 import { ob } from '../theme/onboarding';
 import { useEntrance } from '../hooks/animations';
 import { useLocale } from '../context/LocaleContext';
-import { authEmail, authVerify, authCompleteProfile, getMe, getWallet, depositNational } from '../lib/api-client';
+import { authEmail, authVerify, authPasswordLogin, authCompleteProfile, getMe, getWallet, depositNational } from '../lib/api-client';
 import { saveSessionTokens } from '../lib/secure-storage';
 import { pickProfilePhoto } from '../lib/profile-photo';
 import ProfileAvatar from '../components/ProfileAvatar';
@@ -72,8 +72,11 @@ function EmailStep({
   mode,
   email,
   setEmail,
+  password,
+  setPassword,
   loading,
   onNext,
+  onPasswordLogin,
   onBack,
   onForgot,
   onSwitchToSignup,
@@ -81,6 +84,7 @@ function EmailStep({
   const entrance = useEntrance(0, 350, 8);
   const validEmail = isValidEmail(email);
   const isLogin = mode === 'login';
+  const validPassword = String(password ?? '').length >= 8;
 
   return (
     <Animated.View style={[styles.body, entrance]}>
@@ -104,7 +108,7 @@ function EmailStep({
         </Text>
       </Text>
       <Text style={styles.sub}>
-        {isLogin ? t(lang, 'signupSignInEmailSub') : t(lang, 'signupEmailSub')}
+        {isLogin ? t(lang, 'signupSignInPasswordSub') : t(lang, 'signupEmailSub')}
       </Text>
 
       <TextInput
@@ -118,8 +122,36 @@ function EmailStep({
         onChangeText={setEmail}
       />
 
+      {isLogin ? (
+        <TextInput
+          style={[styles.emailField, styles.passwordField, validPassword && styles.phoneFieldFilled]}
+          placeholder={t(lang, 'signupPasswordPlaceholder')}
+          placeholderTextColor={ob.faint}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          value={password}
+          onChangeText={setPassword}
+        />
+      ) : null}
+
       <View style={{ flex: 1 }} />
-      <GlowButton label={loading ? t(lang, 'signupSending') : t(lang, 'signupSendCode')} onPress={onNext} disabled={!validEmail || loading} />
+      {isLogin ? (
+        <>
+          <GlowButton
+            label={loading ? t(lang, 'signupSigningIn') : t(lang, 'signupSignInWithPassword')}
+            onPress={onPasswordLogin}
+            disabled={!validEmail || !validPassword || loading}
+          />
+          <PressScale scaleTo={0.95} onPress={onNext} style={{ alignSelf: 'center', marginTop: spacing.lg }}>
+            <Text style={{ fontSize: 12, color: colors.green, fontFamily: fontFamily.bodyBold }}>
+              {t(lang, 'signupUseEmailCode')}
+            </Text>
+          </PressScale>
+        </>
+      ) : (
+        <GlowButton label={loading ? t(lang, 'signupSending') : t(lang, 'signupSendCode')} onPress={onNext} disabled={!validEmail || loading} />
+      )}
       {isLogin && onForgot ? (
         <PressScale scaleTo={0.95} onPress={onForgot} style={{ alignSelf: 'center', marginTop: spacing.lg }}>
           <Text style={{ fontSize: 12, color: ob.orange, fontFamily: fontFamily.bodyBold }}>{t(lang, 'signupForgotAccess')}</Text>
@@ -157,13 +189,11 @@ function OtpStep({ lang, mode, displayPhone, otp, setOtp, loading, devHint, emai
         <Text style={{ fontFamily: fontFamily.bodyBold, color: ob.ink }}>{displayPhone}</Text>
         {'\n'}{t(lang, 'signupOtpValidEmail')}
       </Text>
-      {devHint ? (
+      {devHint && !emailOnly ? (
         <View style={styles.devOtpBox}>
           <Text style={styles.devOtpLabel}>{t(lang, 'forgotBetaCode')}</Text>
           <Text style={styles.devOtpHint}>{devHint}</Text>
-          <Text style={styles.devOtpNote}>
-            {emailOnly ? t(lang, 'signupOtpSameAsEmail') : t(lang, 'signupOtpUseLatest')}
-          </Text>
+          <Text style={styles.devOtpNote}>{t(lang, 'signupOtpUseLatest')}</Text>
         </View>
       ) : emailOnly ? (
         <View style={styles.devOtpBox}>
@@ -369,6 +399,7 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
   const showToast = useToast();
   const [step, setStep] = useState('phone');
   const [authEmailAddress, setAuthEmailAddress] = useState(initialEmail ?? '');
+  const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [devOtpHint, setDevOtpHint] = useState(null);
   const [otpViaEmail, setOtpViaEmail] = useState(false);
@@ -394,13 +425,9 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
     setOtp('');
     try {
       const res = await authEmail(otpDestination, authIntent);
-      if (res.otp) {
-        setDevOtpHint(String(res.otp));
-        setOtpViaEmail(Boolean(res.emailSent));
-      } else {
-        setDevOtpHint(null);
-        setOtpViaEmail(Boolean(res.emailSent ?? res.sent));
-      }
+      const emailSent = Boolean(res.emailSent ?? res.sent);
+      setOtpViaEmail(emailSent);
+      setDevOtpHint(emailSent ? null : res.otp ? String(res.otp) : null);
       goTo('otp');
     } catch (err) {
       // Existing account on the signup path → flip straight into login with
@@ -422,18 +449,60 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
     }
   };
 
+  const loginWithPassword = async () => {
+    setLoading(true);
+    try {
+      const res = await authPasswordLogin(otpDestination, password);
+      if (!res?.accessToken || !res?.refreshToken) {
+        showToast(t(langCode, 'signupSignInFailed'));
+        return;
+      }
+      await saveSessionTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+      const freshToken = res.accessToken;
+      let snap = res.profile;
+      const profileComplete = (p) => p?.name?.length >= 2 && p?.handle?.length >= 3;
+      if (!profileComplete(snap)) {
+        try {
+          snap = await getMe(freshToken);
+        } catch {
+          await onLoginComplete?.({
+            accessToken: freshToken,
+            refreshToken: res.refreshToken,
+            email: otpDestination,
+          });
+          return;
+        }
+      }
+      if (!profileComplete(snap)) {
+        goTo('profile');
+        return;
+      }
+      await onLoginComplete?.({
+        accessToken: freshToken,
+        refreshToken: res.refreshToken,
+        profile: snap,
+        email: otpDestination,
+      });
+    } catch (err) {
+      if (err.code === 'password_not_set') {
+        showToast(t(langCode, 'signupPasswordNotSet'));
+        await requestOtp();
+        return;
+      }
+      showToast(err.message ?? t(langCode, 'signupSignInFailed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resendOtp = async () => {
     setLoading(true);
     setOtp('');
     try {
       const res = await authEmail(otpDestination, authIntent);
-      if (res.otp) {
-        setDevOtpHint(String(res.otp));
-        setOtpViaEmail(Boolean(res.emailSent));
-      } else {
-        setDevOtpHint(null);
-        setOtpViaEmail(Boolean(res.emailSent ?? res.sent));
-      }
+      const emailSent = Boolean(res.emailSent ?? res.sent);
+      setOtpViaEmail(emailSent);
+      setDevOtpHint(emailSent ? null : res.otp ? String(res.otp) : null);
       showToast('Code renvoyé ✓');
     } catch (err) {
       showToast(err.message ?? t(langCode, 'signupResendFailed'));
@@ -466,24 +535,52 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
           goTo('profile');
           return;
         }
-        const snap = res.profile;
-        if (!(snap?.name?.length >= 2) || !(snap?.handle?.length >= 3)) {
+        let snap = res.profile;
+        const profileComplete = (p) => p?.name?.length >= 2 && p?.handle?.length >= 3;
+        if (!profileComplete(snap)) {
+          try {
+            snap = await getMe(freshToken);
+          } catch {
+            await onLoginComplete?.({
+              accessToken: freshToken,
+              refreshToken: res.refreshToken,
+              email: otpDestination,
+            });
+            return;
+          }
+        }
+        if (!profileComplete(snap)) {
           goTo('profile');
           return;
         }
-        await onLoginComplete?.({ accessToken: freshToken, refreshToken: res.refreshToken, profile: snap });
+        await onLoginComplete?.({
+          accessToken: freshToken,
+          refreshToken: res.refreshToken,
+          profile: snap,
+          email: otpDestination,
+        });
         return;
       }
       if (!res.isNewUser) {
         const snap = res.profile;
         if (snap?.name?.length >= 2 && snap?.handle?.length >= 3) {
-          await onLoginComplete?.({ accessToken: freshToken, refreshToken: res.refreshToken, profile: snap });
+          await onLoginComplete?.({
+            accessToken: freshToken,
+            refreshToken: res.refreshToken,
+            profile: snap,
+            email: otpDestination,
+          });
           return;
         }
         try {
           const me = await getMe(freshToken);
           if (me.name?.length >= 2 && me.handle?.length >= 3) {
-            await onLoginComplete?.({ accessToken: freshToken, refreshToken: res.refreshToken, profile: me });
+            await onLoginComplete?.({
+              accessToken: freshToken,
+              refreshToken: res.refreshToken,
+              profile: me,
+              email: otpDestination,
+            });
             return;
           }
         } catch {
@@ -539,7 +636,7 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
         }
       }
 
-      const balance = wallet.nationalBalance ?? wallet.balance ?? 0;
+      const balance = wallet.balance ?? wallet.koriBalance ?? 0;
       onComplete?.({
         email: otpDestination,
         name,
@@ -566,8 +663,11 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
             mode={mode}
             email={authEmailAddress}
             setEmail={setAuthEmailAddress}
+            password={password}
+            setPassword={setPassword}
             loading={loading}
             onNext={requestOtp}
+            onPasswordLogin={loginWithPassword}
             onBack={onCancel}
             onForgot={onForgot}
             onSwitchToSignup={onSwitchToSignup}
@@ -664,7 +764,8 @@ const styles = StyleSheet.create({
   modalClose: { marginTop: spacing.lg, alignItems: 'center', paddingVertical: spacing.lg },
   modalCloseText: { fontSize: 13, fontWeight: '700', color: ob.muted },
   phoneField: { flex: 1, height: 52, borderRadius: radius.lg, backgroundColor: ob.surface, borderWidth: 1, borderColor: ob.border, paddingHorizontal: spacing.xxxl, fontSize: 16, fontWeight: '600', letterSpacing: 0.5, color: ob.ink },
-  emailField: { height: 52, borderRadius: radius.lg, backgroundColor: ob.surface, borderWidth: 1, borderColor: ob.border, paddingHorizontal: spacing.xxxl, fontSize: 16, fontWeight: '600', color: ob.ink, marginBottom: spacing.giant },
+  emailField: { height: 52, borderRadius: radius.lg, backgroundColor: ob.surface, borderWidth: 1, borderColor: ob.border, paddingHorizontal: spacing.xxxl, fontSize: 16, fontWeight: '600', color: ob.ink, marginBottom: spacing.lg },
+  passwordField: { marginBottom: spacing.giant },
   channelRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xxl },
   channelPill: { flex: 1, height: 40, borderRadius: radius.lg, backgroundColor: ob.surface, borderWidth: 1, borderColor: ob.border, alignItems: 'center', justifyContent: 'center' },
   channelPillOn: { backgroundColor: ob.orangeSoft, borderColor: ob.orangeBorder },

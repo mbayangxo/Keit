@@ -17,9 +17,7 @@ const BUSINESS_STEPS = [
   { key: 'stats', icon: '📊', label: 'Stats' },
 ];
 
-function formatAmount(n) {
-  return n.toLocaleString('fr-FR').replace(/ /g, ' ');
-}
+import { formatKori } from '../lib/kori.js';
 
 export default function WelcomeCelebrationScreen({ accountType = 'personal', name, businessName, afriId, keboId, arrondissement, fundAmount, onEnter }) {
   useSuccessHaptic();
@@ -69,7 +67,7 @@ export default function WelcomeCelebrationScreen({ accountType = 'personal', nam
               {isBusiness ? 'Solde de ton commerce' : 'Ton solde K21'}
             </Text>
             <Text style={[styles.balanceAmount, { color: accent }]}>
-              {formatAmount(fundAmount ?? 0)} <Text style={[styles.balanceCurrency, { color: ob.muted }]}>F CFA</Text>
+              {formatKori(fundAmount ?? 0)}
             </Text>
             <Text style={[styles.balanceNote, { color: ob.muted }]}>
               {isBusiness ? '✦ Zéro frais sur tes paiements reçus' : '✦ Zéro frais sur tous tes envois'}

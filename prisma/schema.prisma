@@ -25,6 +25,7 @@ model User {
   identityChoice         String?
   otpVerifiedAt          DateTime?
   pinHash                String?
+  passwordHash           String?
   pinFailedAttempts      Int       @default(0)
   accountLockedAt        DateTime?
   accountLockReason      String?
@@ -107,6 +108,7 @@ model User {
   vouchesReceived        UserVouch[]           @relation("VouchReceived")
   vouchesGiven           UserVouch[]           @relation("VouchGiven")
   alertReads             AlertRead[]
+  businessLedgerHits     BusinessLedgerEntry[]  @relation("BusinessLedgerUserCounterparty")
 
   @@index([phone])
   @@index([afriId])
@@ -244,6 +246,9 @@ model Business {
   deliveryLogs     FarmerDeliveryLog[]
   contentReports   ContentReport[]
   blocksReceived   UserBlock[]
+  wallet           BusinessWallet?
+  businessLedger   BusinessLedgerEntry[]
+  ledgerCounterparty BusinessLedgerEntry[] @relation("BusinessLedgerCounterparty")
 
   @@index([ownerId])
   @@index([category])
@@ -263,6 +268,46 @@ model BusinessMember {
 
   @@unique([businessId, userId, role])
   @@index([userId])
+}
+
+/** KEBU business wallet — separate from owner personal AFRI wallet. */
+model BusinessWallet {
+  id         String   @id @default(cuid())
+  businessId String   @unique
+  balance    Int      @default(0)
+  currency   String   @default("XOF")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business      Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  ledgerEntries BusinessLedgerEntry[]
+
+  @@index([businessId])
+}
+
+/** Ledger for KEBU wallet — payroll, B2B, owner draw, capital in. */
+model BusinessLedgerEntry {
+  id                     String   @id @default(cuid())
+  businessWalletId       String
+  businessId             String
+  type                   String
+  amount                 Int
+  counterpartyBusinessId String?
+  counterpartyUserId     String?
+  counterpartyName       String?
+  counterpartyKebuId     String?
+  note                   String?
+  reference              String   @unique
+  createdAt              DateTime @default(now())
+
+  businessWallet       BusinessWallet @relation(fields: [businessWalletId], references: [id], onDelete: Cascade)
+  business             Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  counterpartyBusiness Business?      @relation("BusinessLedgerCounterparty", fields: [counterpartyBusinessId], references: [id], onDelete: SetNull)
+  counterpartyUser     User?          @relation("BusinessLedgerUserCounterparty", fields: [counterpartyUserId], references: [id], onDelete: SetNull)
+
+  @@index([businessWalletId, createdAt])
+  @@index([businessId, createdAt])
+  @@index([type])
 }
 
 model SellerProfile {

@@ -12,6 +12,7 @@ import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { getFriends, getMboloThreads, getMe, getTontineGroups, getTransactions } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing, type, motion } from '../theme';
 import { navigateFromRoot } from '../lib/root-navigation';
+import { formatKori } from '../lib/kori.js';
 import {
   useFloatLoop,
   useBlink,
@@ -274,8 +275,7 @@ function SpendingRing({ spending }) {
         </Svg>
         <View style={styles.spendCenter}>
           <Text style={styles.spendMonth}>{spending.monthLabel}</Text>
-          <Text style={styles.spendTotal}>{formatAmount(spending.total)}</Text>
-          <Text style={styles.spendCurrency}>FCFA</Text>
+          <Text style={styles.spendTotal}>{formatKori(spending.total)}</Text>
         </View>
       </View>
       <View style={styles.spendLegend}>
@@ -311,8 +311,7 @@ function TontineGoalCard({ group, open }) {
         </View>
       </View>
       <View style={styles.goalAmount}>
-        <Text style={styles.goalAmountText}>{formatAmount(group.potBalance || group.expectedPot)}</Text>
-        <Text style={styles.goalAmountF}>F</Text>
+        <Text style={styles.goalAmountText}>{formatKori(group.potBalance || group.expectedPot)}</Text>
       </View>
     </PressScale>
   );
@@ -410,7 +409,7 @@ export default function HomeScreen({ navigation }) {
               <View style={styles.balanceDisplay}>
                 <Text style={styles.balanceEye}>👁 Solde</Text>
                 <Animated.Text style={[styles.balanceAmount, balanceEntrance]}>
-                  {formatAmount(balance)} <Text style={styles.balanceCurrency}>F</Text>
+                  {formatKori(balance)}
                 </Animated.Text>
                 <View style={styles.zeroFeesPill}>
                   <Text style={styles.zeroFeesText}>✦ Zéro frais sur tous tes envois</Text>
@@ -468,7 +467,7 @@ export default function HomeScreen({ navigation }) {
                     iconBg={tx.iconBg}
                     title={tx.title}
                     subtitle={tx.subtitle}
-                    amount={`${tx.amount > 0 ? '+' : ''}${formatAmount(tx.amount)} F`}
+                    amount={`${tx.amount > 0 ? '+' : ''}${formatKori(Math.abs(tx.amount))}`}
                     amountColor={tx.amount > 0 ? colors.greenDark : colors.terracottaDark}
                   />
                 ))}

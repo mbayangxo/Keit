@@ -10,6 +10,7 @@ import {
   koriToNationalAfterFee,
   nationalToKori,
 } from '../../lib/kori.js';
+import { normalizeAmountToKori } from '../../lib/kori-primary.js';
 import {
   ReserveInvariantError,
   assertReserveInvariant,
@@ -18,6 +19,11 @@ import {
 
 test('national → Kori: 10,000 XOF mints exactly 1,000 ₭', () => {
   assert.equal(nationalToKori(10_000, 'SN'), 1_000);
+});
+
+test('legacy national currency on API converts XOF → ₭ (never treats XOF as ₭)', () => {
+  assert.equal(normalizeAmountToKori(20_000, 'national', 'SN'), 2_000);
+  assert.equal(normalizeAmountToKori(500, 'kori', 'SN'), 500);
 });
 
 test('national → Kori floors partial units (never over-mint)', () => {

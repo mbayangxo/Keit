@@ -32,7 +32,7 @@ import PinGateScreen from '../screens/PinGateScreen';
 import ForgotAccessScreen from '../screens/ForgotAccessScreen';
 import { useAppState } from '../state/AppState';
 import { useSession } from '../context/SessionContext';
-import { fetchSessionPayload } from '../lib/session';
+import { fetchSessionPayload, sessionPayloadFromVerify } from '../lib/session';
 import { isPinConfigured } from '../lib/secure-storage';
 
 const Stack = createNativeStackNavigator();
@@ -44,24 +44,23 @@ export default function RootNavigator() {
   const mainRouteFor = (accountType) => (accountType === 'business' ? 'BusinessMain' : 'Main');
 
   const enterApp = async (navigation, accountType = profile.accountType) => {
-    markSignedIn();
     const pin = await isPinConfigured();
     const mainRoute = mainRouteFor(accountType);
     navigation.reset({
       index: 0,
       routes: [{ name: pin ? mainRoute : 'PinSetup' }],
     });
+    markSignedIn();
   };
 
   if (!bootstrapped) {
     return <AppLoadingScreen />;
   }
 
-  const stackKey = hasSession ? 'session' : 'guest';
   const initialRoute = hasSession ? mainRouteFor(profile.accountType) : 'Splash';
 
   return (
-    <Stack.Navigator key={stackKey} screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
       <Stack.Screen name="Splash">
         {({ navigation }) => (
           <SplashScreen
@@ -97,7 +96,29 @@ export default function RootNavigator() {
             onSwitchToSignup={() => navigation.replace('SignUp', { mode: 'signup' })}
             onSwitchToLogin={(email) => navigation.replace('SignUp', { mode: 'login', email })}
             onLoginComplete={async (sessionTokens) => {
-              const payload = await fetchSessionPayload(sessionTokens ?? {});
+              let payload = sessionPayloadFromVerify(sessionTokens);
+              if (!payload) {
+                payload = {
+                  profile: {
+                    name: '',
+                    handle: '',
+                    phone: '',
+                    email: sessionTokens?.email ?? '',
+                    arrondissement: { key: '', icon: '📍', name: '' },
+                    accountType: 'personal',
+                    afriId: '',
+                    avatarEmoji: '👤',
+                    avatarUrl: null,
+                  },
+                  balance: 0,
+                  transactions: [],
+                };
+              }
+              try {
+                payload = await fetchSessionPayload(sessionTokens ?? {});
+              } catch (err) {
+                console.warn('[login] session bootstrap partial', err?.message ?? err);
+              }
               hydrateFromApi(payload);
               await enterApp(navigation, payload.profile?.accountType);
             }}

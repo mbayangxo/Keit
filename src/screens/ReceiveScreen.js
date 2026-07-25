@@ -13,12 +13,9 @@ import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 import { useToast } from '../components/Toast';
 import { transferRequest, getTransferRequests, acceptTransferRequest, denyTransferRequest } from '../lib/api-client';
+import { formatKori } from '../lib/kori.js';
 
-const QUICK_AMOUNTS = [1000, 2000, 5000, 10000];
-
-function formatAmount(n) {
-  return n.toLocaleString('fr-FR').replace(/ /g, ' ');
-}
+const QUICK_AMOUNTS = [100, 200, 500, 1000];
 
 function AmountCursor() {
   const blink = useBlink(1000, 0);
@@ -41,7 +38,7 @@ function RequestStep({ amount, setAmount, reason, setReason, handle, setHandle, 
             <PressScale scaleTo={0.98} onPress={() => inputRef.current?.focus()}>
               <Animated.View style={[popIn, styles.ahRow]}>
                 <Text style={styles.ahNum}>
-                  {formatAmount(amount)} <Text style={styles.ahCurr}>F</Text>
+                  {formatKori(amount)}
                 </Text>
                 {!focused && <AmountCursor />}
               </Animated.View>
@@ -95,7 +92,7 @@ function RequestStep({ amount, setAmount, reason, setReason, handle, setHandle, 
 
       <View style={styles.footer}>
         <GlowButton
-          label={loading ? 'Envoi…' : `Demander ${formatAmount(amount)} F →`}
+          label={loading ? 'Envoi…' : `Demander ${formatKori(amount)} →`}
           onPress={onSend}
           disabled={!handle.trim() || amount <= 0 || loading}
         />
@@ -118,7 +115,7 @@ function InboxStep({ requests, loading, onAccept, onDeny, onBack }) {
         {pending.map((req) => (
           <View key={req.id} style={styles.inboxCard}>
             <Text style={styles.inboxTitle}>
-              {req.requester?.name ?? req.requester?.handle} demande {formatAmount(req.amount)} F
+              {req.requester?.name ?? req.requester?.handle} demande {formatKori(req.amount)}
             </Text>
             {req.note ? <Text style={styles.inboxNote}>{req.note}</Text> : null}
             <View style={styles.inboxActions}>
@@ -161,7 +158,7 @@ function SentStep({ amount, reason, handle, name, onDone }) {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.previewText}>
-              <Text style={{ fontFamily: fontFamily.bodyBold }}>{name}</Text> te demande {formatAmount(amount)} F
+              <Text style={{ fontFamily: fontFamily.bodyBold }}>{name}</Text> te demande {formatKori(amount)}
             </Text>
             {reason ? <Text style={styles.previewReason}>{reason}</Text> : null}
           </View>

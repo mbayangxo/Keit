@@ -10,6 +10,7 @@ import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { createBusiness, createFlashDeal } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing } from '../theme';
+import { formatKori, formatNationalEquivalent } from '../lib/kori.js';
 import {
   getMyBusinesses,
   getPayrollEmployees,
@@ -25,6 +26,11 @@ import {
   logCooperativeDelivery,
   verifyCooperativeDelivery,
   payoutCooperativeFarmer,
+  getBusinessWallet,
+  getBusinessCreditSummary,
+  transferBusinessFunds,
+  getBusinessMembers,
+  inviteBusinessMember,
 } from '../lib/api-client';
 
 const TYPE_LABEL = {
@@ -107,6 +113,16 @@ export default function BusinessHubScreen({ navigation }) {
   const [flashHours, setFlashHours] = useState(4);
   const [flashSaving, setFlashSaving] = useState(false);
 
+  const [kebuBalance, setKebuBalance] = useState(0);
+  const [kebuLedger, setKebuLedger] = useState([]);
+  const [creditTier, setCreditTier] = useState('starter');
+  const [members, setMembers] = useState([]);
+  const [memberHandle, setMemberHandle] = useState('');
+  const [memberRole, setMemberRole] = useState('staff');
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferKebu, setTransferKebu] = useState('');
+  const [transferNote, setTransferNote] = useState('');
+
   const publishFlashDeal = async () => {
     const price = Number(flashNormalPrice);
     const deal = Number(flashDealPrice);
@@ -170,10 +186,31 @@ export default function BusinessHubScreen({ navigation }) {
     }
   };
 
+  const loadKebuWallet = useCallback(async () => {
+    if (!business?.id) return;
+    try {
+      const [walletRes, credit] = await Promise.all([
+        getBusinessWallet(business.id),
+        getBusinessCreditSummary(business.id).catch(() => null),
+      ]);
+      setKebuBalance(walletRes.wallet?.balance ?? 0);
+      setKebuLedger(walletRes.ledger ?? []);
+      if (credit?.lifetime?.creditTier) setCreditTier(credit.lifetime.creditTier);
+    } catch {
+      /* non-fatal */
+    }
+  }, [business?.id]);
+
   const loadTabData = useCallback(async () => {
     if (!business?.id) return;
     setLoading(true);
     try {
+      if (tab === 'overview' || tab === 'wallet') {
+        await loadKebuWallet();
+      }
+      if (tab === 'team') {
+        setMembers(await getBusinessMembers(business.id));
+      }
       if (tab === 'payroll' || type === 'employer' || type === 'cooperative') {
         setEmployees(await getPayrollEmployees(business.id));
       }
@@ -192,7 +229,7 @@ export default function BusinessHubScreen({ navigation }) {
     } finally {
       setLoading(false);
     }
-  }, [business?.id, tab, type, periods, showToast]);
+  }, [business?.id, tab, type, periods, showToast, loadKebuWallet]);
 
   useFocusEffect(
     useCallback(() => {
@@ -208,8 +245,14 @@ export default function BusinessHubScreen({ navigation }) {
   );
 
   const tabsForType = () => {
-    const base = [{ key: 'overview', label: 'Aperçu' }];
-    if (type === 'employer' || type === 'cooperative' || type === 'merchant') base.push({ key: 'payroll', label: 'Paie' });
+    const base = [
+      { key: 'overview', label: 'Aperçu' },
+      { key: 'wallet', label: 'KEBU wallet' },
+      { key: 'team', label: 'Équipe' },
+    ];
+    if (type === 'employer' || type === 'cooperative' || type === 'merchant' || type === 'trader' || type === 'aggregator') {
+      base.push({ key: 'payroll', label: 'Paie' });
+    }
     if (type === 'school') base.push({ key: 'school', label: 'École' });
     if (type === 'cooperative') base.push({ key: 'coop', label: 'Livraisons' });
     return base;
@@ -239,7 +282,7 @@ export default function BusinessHubScreen({ navigation }) {
     try {
       await payPayrollEmployee(business.id, { employeeId: emp.id });
       showToast(`Payé ${emp.user?.name ?? ''} ✓`);
-      await refreshWallet();
+      await loadKebuWallet();
     } catch (err) {
       showToast(err.message ?? 'Paiement impossible');
     } finally {
@@ -321,6 +364,77 @@ export default function BusinessHubScreen({ navigation }) {
       setDeliveries(await getCooperativeDeliveries(business.id));
     } catch (err) {
       showToast(err.message ?? 'Log impossible — utilise @handle du paysan');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fundKebuFromPersonal = async () => {
+    const amount = parseInt(transferAmount, 10);
+    if (!amount || amount <= 0) return;
+    setLoading(true);
+    try {
+      await transferBusinessFunds(business.id, { kind: 'capital_in', amount, note: transferNote || undefined });
+      showToast(`${formatKori(amount)} ajoutés au KEBU ✓`);
+      setTransferAmount('');
+      await loadKebuWallet();
+      await refreshWallet();
+    } catch (err) {
+      showToast(err.message ?? 'Transfert impossible');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const drawKebuToPersonal = async () => {
+    const amount = parseInt(transferAmount, 10);
+    if (!amount || amount <= 0) return;
+    setLoading(true);
+    try {
+      await transferBusinessFunds(business.id, { kind: 'owner_draw', amount, note: transferNote || undefined });
+      showToast(`${formatKori(amount)} vers ton wallet AFRI ✓`);
+      setTransferAmount('');
+      await loadKebuWallet();
+      await refreshWallet();
+    } catch (err) {
+      showToast(err.message ?? 'Retrait impossible');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const payKebuB2B = async () => {
+    const amount = parseInt(transferAmount, 10);
+    if (!amount || amount <= 0 || !transferKebu.trim()) return;
+    setLoading(true);
+    try {
+      await transferBusinessFunds(business.id, {
+        kind: 'b2b',
+        amount,
+        recipientKebuId: transferKebu.trim(),
+        note: transferNote || undefined,
+      });
+      showToast(`Paiement B2B ${formatKori(amount)} ✓`);
+      setTransferAmount('');
+      setTransferKebu('');
+      await loadKebuWallet();
+    } catch (err) {
+      showToast(err.message ?? 'Paiement B2B impossible');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inviteMember = async () => {
+    if (!memberHandle.trim()) return;
+    setLoading(true);
+    try {
+      await inviteBusinessMember(business.id, { userHandle: memberHandle.trim(), role: memberRole });
+      showToast('Membre ajouté ✓');
+      setMemberHandle('');
+      setMembers(await getBusinessMembers(business.id));
+    } catch (err) {
+      showToast(err.message ?? 'Invitation impossible');
     } finally {
       setLoading(false);
     }
@@ -424,8 +538,9 @@ export default function BusinessHubScreen({ navigation }) {
                 ))}
               </ScrollView>
             ) : null}
-            <Text style={styles.balance}>{formatAmount(balance)} F</Text>
-            <Text style={styles.balanceLabel}>Solde du commerce</Text>
+            <Text style={styles.balance}>{formatKori(kebuBalance)}</Text>
+            <Text style={styles.balanceLabel}>Solde KEBU · {business.kebuId ?? '—'}</Text>
+            <Text style={styles.creditPill}>Crédit KEBU · {creditTier}</Text>
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabRow}>
@@ -502,15 +617,64 @@ export default function BusinessHubScreen({ navigation }) {
                 </Text>
               </SectionCard>
 
-              <Text style={styles.sectionEyebrow}>Transactions récentes</Text>
-              {transactions.slice(0, 5).map((tx) => (
-                <View key={tx.key} style={styles.txRow}>
-                  <Text style={styles.txTitle}>{tx.title}</Text>
+              <Text style={styles.sectionEyebrow}>Mouvements KEBU récents</Text>
+              {kebuLedger.slice(0, 5).map((tx) => (
+                <View key={tx.reference} style={styles.txRow}>
+                  <Text style={styles.txTitle}>{tx.counterpartyName ?? tx.type}</Text>
                   <Text style={[styles.txAmt, { color: tx.amount > 0 ? colors.flagGold : colors.terracotta }]}>
                     {tx.amount > 0 ? '+' : ''}{formatAmount(tx.amount)} F
                   </Text>
                 </View>
               ))}
+            </View>
+          )}
+
+          {tab === 'wallet' && (
+            <View style={styles.panel}>
+              <SectionCard title="Alimenter depuis ton AFRI">
+                <TextInput style={styles.input} placeholder="Montant ₭" placeholderTextColor={'rgba(5,8,5,0.45)'} keyboardType="number-pad" value={transferAmount} onChangeText={setTransferAmount} />
+                <TextInput style={styles.input} placeholder="Note (optionnel)" placeholderTextColor={'rgba(5,8,5,0.45)'} value={transferNote} onChangeText={setTransferNote} />
+                <GlowButton label="AFRI → KEBU" onPress={fundKebuFromPersonal} disabled={loading} />
+              </SectionCard>
+              <SectionCard title="Retirer vers ton AFRI">
+                <GlowButton tone="gold" label="KEBU → AFRI" onPress={drawKebuToPersonal} disabled={loading} />
+              </SectionCard>
+              <SectionCard title="Payer un autre KEBU (B2B)">
+                <Text style={styles.rowSub}>Ex: laitier → coopérative · KEBU ID destinataire</Text>
+                <TextInput style={styles.input} placeholder="KEBU-XXXXXX" placeholderTextColor={'rgba(5,8,5,0.45)'} autoCapitalize="characters" value={transferKebu} onChangeText={setTransferKebu} />
+                <GlowButton label="Payer B2B" onPress={payKebuB2B} disabled={loading} />
+              </SectionCard>
+              <SectionCard title="Historique KEBU">
+                {kebuLedger.map((tx) => (
+                  <View key={tx.reference} style={styles.listRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowTitle}>{tx.type}</Text>
+                      <Text style={styles.rowSub}>{tx.counterpartyName ?? tx.note ?? tx.reference}</Text>
+                    </View>
+                    <Text style={styles.rowTitle}>{formatAmount(tx.amount)} F</Text>
+                  </View>
+                ))}
+              </SectionCard>
+            </View>
+          )}
+
+          {tab === 'team' && (
+            <View style={styles.panel}>
+              <SectionCard title="Inviter un membre">
+                <TextInput style={styles.input} placeholder="@handle K21" placeholderTextColor={'rgba(5,8,5,0.45)'} value={memberHandle} onChangeText={setMemberHandle} autoCapitalize="none" />
+                <TextInput style={styles.input} placeholder="Rôle (cfo, warehouse, staff…)" placeholderTextColor={'rgba(5,8,5,0.45)'} value={memberRole} onChangeText={setMemberRole} />
+                <GlowButton label="Inviter" onPress={inviteMember} disabled={loading} />
+              </SectionCard>
+              <SectionCard title={`Membres (${members.length})`}>
+                {members.map((m) => (
+                  <View key={m.id} style={styles.listRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowTitle}>{m.user?.name ?? m.user?.handle}</Text>
+                      <Text style={styles.rowSub}>@{m.user?.handle} · {m.role}</Text>
+                    </View>
+                  </View>
+                ))}
+              </SectionCard>
             </View>
           )}
 
@@ -666,6 +830,18 @@ const styles = StyleSheet.create({
   bizChipTextOn: { color: colors.goldDark, fontWeight: '700' },
   balance: { fontFamily: fontFamily.displayBlack, fontSize: 36, color: colors.goldDark, letterSpacing: -1 },
   balanceLabel: { fontSize: 11, color: 'rgba(5,8,5,0.45)' },
+  creditPill: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+    fontFamily: fontFamily.bodyBold,
+    fontSize: 10,
+    color: colors.goldDark,
+    backgroundColor: 'rgba(250,216,54,0.15)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: radius.round,
+    overflow: 'hidden',
+  },
   tabRow: { paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, gap: spacing.sm },
   tab: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.round, backgroundColor: 'rgba(255,255,255,0.7)', marginRight: spacing.sm },
   tabOn: { backgroundColor: colors.goldA20 },

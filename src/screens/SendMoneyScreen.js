@@ -21,6 +21,7 @@ import { useToast } from '../components/Toast';
 import { transferSend, lookupUser } from '../lib/api-client';
 import { useLocale } from '../context/LocaleContext';
 import { toE164, isValidLocalPhone } from '../lib/phone';
+import { formatKori } from '../lib/kori.js';
 
 const RECIPIENT_MODES = [
   { key: 'scan', icon: '📷', label: 'Scanner' },
@@ -33,7 +34,7 @@ const RECIPIENT_MODES = [
 // the brief's §05 requirement (large photo, full name, phone, arrondissement,
 // confirm/cancel) before any money moves.
 
-const QUICK_AMOUNTS = [1000, 5000, 10000, 25000];
+const QUICK_AMOUNTS = [100, 500, 1000, 2500];
 
 function formatPhoneDisplay(phone) {
   if (!phone || String(phone).startsWith('e:')) return '';
@@ -47,10 +48,6 @@ function formatPhoneDisplay(phone) {
 function displayHandle(handle) {
   const h = String(handle).replace(/^@/, '');
   return h ? `@${h}` : '';
-}
-
-function formatAmount(n) {
-  return n.toLocaleString('fr-FR').replace(/ | /g, ' ');
 }
 
 function AmountStep({
@@ -86,7 +83,7 @@ function AmountStep({
             <Text style={styles.ahLbl}>Combien ?</Text>
             <Animated.View style={[popIn, styles.ahRow]}>
               <Text style={styles.ahNum}>
-                {formatAmount(amount)} <Text style={styles.ahCurr}>F</Text>
+                {formatKori(amount)}
               </Text>
             </Animated.View>
           </View>
@@ -229,7 +226,7 @@ function ConfirmStep({ amount, reason, balance, recipientProfile, onConfirm, onC
           </Text>
         ) : null}
         <Text style={styles.csAmount}>
-          {formatAmount(amount)} <Text style={{ fontSize: 20, fontWeight: '400', color: 'rgba(26,240,96,0.4)' }}>F</Text>
+          {formatKori(amount)}
         </Text>
         <View style={styles.csFree}>
           <Text style={styles.csFreeText}>✦ Zéro frais{reason ? ` · ${reason}` : ''}</Text>
@@ -256,20 +253,20 @@ function ConfirmStep({ amount, reason, balance, recipientProfile, onConfirm, onC
         </View>
         <View style={styles.csRow}>
           <Text style={styles.csrL}>Montant</Text>
-          <Text style={[styles.csrR, { color: colors.green }]}>{formatAmount(amount)} F CFA</Text>
+          <Text style={[styles.csrR, { color: colors.green }]}>{formatKori(amount)}</Text>
         </View>
         <View style={styles.csRow}>
           <Text style={styles.csrL}>Frais</Text>
-          <Text style={[styles.csrR, { color: colors.green }]}>0 F ✦</Text>
+          <Text style={[styles.csrR, { color: colors.green }]}>₭0 ✦</Text>
         </View>
         <View style={[styles.csRow, { borderBottomWidth: 0 }]}>
           <Text style={styles.csrL}>Solde après</Text>
-          <Text style={[styles.csrR, { color: 'rgba(5,8,5,0.6)' }]}>{formatAmount(solde)} F</Text>
+          <Text style={[styles.csrR, { color: 'rgba(5,8,5,0.6)' }]}>{formatKori(solde)}</Text>
         </View>
       </View>
 
       <View style={styles.csActions}>
-        <GlowButton label={submitting ? 'Envoi…' : `Oui — Envoyer ${formatAmount(amount)} F →`} onPress={onConfirm} disabled={submitting} />
+        <GlowButton label={submitting ? 'Envoi…' : `Oui — Envoyer ${formatKori(amount)} →`} onPress={onConfirm} disabled={submitting} />
         <PressScale scaleTo={0.96} onPress={onCancel} disabled={submitting}>
           <Text style={styles.csNo}>Ce n'est pas la bonne personne</Text>
         </PressScale>
@@ -310,8 +307,8 @@ function SuccessStep({ amount, reason, reference, recipientProfile, onDone, onMa
             style={{ marginBottom: spacing.lg }}
             rows={[
               { key: 'to', label: 'À', value: label },
-              { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.green },
-              { key: 'fee', label: 'Frais', value: '0 F ✦', color: colors.green },
+              { key: 'amount', label: 'Montant', value: formatKori(amount), color: colors.green },
+              { key: 'fee', label: 'Frais', value: '₭0 ✦', color: colors.green },
               { key: 'reason', label: 'Motif', value: reason || '—' },
               { key: 'ref', label: 'Référence', value: reference, small: true },
             ]}

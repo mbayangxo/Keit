@@ -72,7 +72,7 @@ export function AppStateProvider({ children }) {
 
   const refreshWallet = useCallback(async () => {
     const [wallet, txs] = await Promise.all([getWallet(), getTransactions()]);
-    setBalance(wallet.nationalBalance ?? wallet.balance ?? 0);
+    setBalance(wallet.balance ?? wallet.koriBalance ?? 0);
     setTransactions(txs);
     return wallet;
   }, []);

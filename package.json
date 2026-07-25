@@ -69,7 +69,10 @@
     "test:security": "node --test --test-concurrency=1 \"tests/security/**/*.test.js\"",
     "test:load": "node --test --test-concurrency=1 --test-timeout=600000 \"tests/load/**/*.test.js\"",
     "test:launch-gate": "node --test --test-concurrency=1 --test-timeout=600000 \"tests/unit/**/*.test.js\" \"tests/integration/**/*.test.js\" \"tests/security/**/*.test.js\" \"tests/load/**/*.test.js\"",
-    "test:resend-email": "node scripts/test-resend-email.mjs"
+    "test:resend-email": "node scripts/test-resend-email.mjs",
+    "user:set-password": "node scripts/set-user-password.mjs",
+    "business:backfill-wallets": "node scripts/backfill-business-wallets.mjs",
+    "kori:migrate-primary": "node scripts/migrate-kori-primary.mjs"
   },
   "private": true
 }

@@ -19,15 +19,16 @@ import { useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/an
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { useToast } from '../components/Toast';
 import { merchantPay, getBusinesses } from '../lib/api-client';
+import { formatKori } from '../lib/kori.js';
 
 // design/k21-four-flows.html, FLOW 4 — MERCHANT QR PAYMENT (Screens M1-M3):
 // Scan QR (merchant card + scanner + amount) -> Confirm payment -> Payment done.
 
 const QUICK_AMOUNTS = [
-  { key: '500', value: 500, label: '500 F' },
-  { key: '1k', value: 1000, label: '1k F' },
-  { key: '2500', value: 2500, label: '2 500 F' },
-  { key: '5k', value: 5000, label: '5k F' },
+  { key: '50', value: 50, label: '₭50' },
+  { key: '100', value: 100, label: '₭100' },
+  { key: '250', value: 250, label: '₭250' },
+  { key: '500', value: 500, label: '₭500' },
 ];
 
 const DEFAULT_MERCHANT = {
@@ -120,8 +121,7 @@ function ScanStep({ merchant, merchants, onSelectMerchant, amount, setAmount, on
         <View style={styles.amountSection}>
           <Text style={styles.amountSectionLabel}>Montant à payer</Text>
           <View style={styles.amountDisplay}>
-            <Text style={styles.amountNum}>{formatAmount(amount)}</Text>
-            <Text style={styles.amountCurr}>F CFA</Text>
+            <Text style={styles.amountNum}>{formatKori(amount)}</Text>
           </View>
           <AmountChips options={QUICK_AMOUNTS} value={amount} onChange={setAmount} style={styles.quickRow} />
 
@@ -145,7 +145,7 @@ function ScanStep({ merchant, merchants, onSelectMerchant, amount, setAmount, on
                     <Text style={{ fontSize: 14 }}>{tx.icon}</Text>
                   </View>
                   <Text style={styles.historySub}>{tx.subtitle}</Text>
-                  <Text style={styles.historyAmount}>{formatAmount(Math.abs(tx.amount))} F</Text>
+                  <Text style={styles.historyAmount}>{formatKori(Math.abs(tx.amount))}</Text>
                 </View>
               ))}
             </View>
@@ -175,7 +175,7 @@ function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting })
             <Text style={styles.confirmMerchantName}>{merchant.name}</Text>
             <Text style={styles.confirmMerchantArr}>📍 {merchant.arr} · Marchand vérifié K21</Text>
             <Text style={styles.confirmAmount}>
-              {formatAmount(amount)} <Text style={styles.confirmCurr}>F</Text>
+              {formatKori(amount)}
             </Text>
             <View style={styles.freePill}>
               <Text style={styles.freePillText}>✦ Zéro frais sur ce paiement</Text>
@@ -190,7 +190,7 @@ function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting })
           </View>
           <View style={styles.confirmRow}>
             <Text style={styles.confirmRowLabel}>Montant</Text>
-            <Text style={[styles.confirmRowVal, { color: colors.greenDark }]}>{formatAmount(amount)} F CFA</Text>
+            <Text style={[styles.confirmRowVal, { color: colors.greenDark }]}>{formatKori(amount)}</Text>
           </View>
           <View style={styles.confirmRow}>
             <Text style={styles.confirmRowLabel}>Frais</Text>
@@ -198,7 +198,7 @@ function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting })
           </View>
           <View style={[styles.confirmRow, { borderBottomWidth: 0 }]}>
             <Text style={styles.confirmRowLabel}>Ton solde après</Text>
-            <Text style={styles.confirmRowBal}>{formatAmount(balance - amount)} F</Text>
+            <Text style={styles.confirmRowBal}>{formatKori(balance - amount)}</Text>
           </View>
         </View>
       </ScrollView>
@@ -208,7 +208,7 @@ function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting })
           <Text style={{ fontSize: 13 }}>🔒</Text>
           <Text style={styles.warnText}>Paiement sécurisé K21. Marchand vérifié. Transaction irréversible une fois confirmée.</Text>
         </View>
-        <GlowButton label={submitting ? 'Paiement…' : `Confirmer · Payer ${formatAmount(amount)} F →`} onPress={onPay} disabled={submitting} />
+        <GlowButton label={submitting ? 'Paiement…' : `Confirmer · Payer ${formatKori(amount)} →`} onPress={onPay} disabled={submitting} />
         <PressScale scaleTo={0.96} onPress={onCancel} disabled={submitting} style={styles.cancelBtn}>
           <Text style={styles.cancelBtnText}>Annuler</Text>
         </PressScale>
@@ -244,9 +244,9 @@ function SuccessStep({ merchant, amount, oldBalance, newBalance, reference, onDo
           style={{ marginBottom: spacing.lg }}
           rows={[
             { key: 'merchant', label: 'Marchand', value: merchant.name },
-            { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.greenDark },
-            { key: 'fee', label: 'Frais', value: '0 F ✦', color: colors.greenDark },
-            { key: 'balance', label: 'Nouveau solde', value: `${formatAmount(balanceCount)} F` },
+            { key: 'amount', label: 'Montant', value: formatKori(amount), color: colors.greenDark },
+            { key: 'fee', label: 'Frais', value: '₭0 ✦', color: colors.greenDark },
+            { key: 'balance', label: 'Nouveau solde', value: formatKori(balanceCount) },
             { key: 'ref', label: 'Référence', value: reference, small: true },
           ]}
         />
@@ -329,7 +329,7 @@ export default function PayMerchantScreen({ navigation, route }) {
       setReference(result.reference);
       setUndone(false);
       const wallet = await refreshWallet();
-      setNewBalance(wallet.nationalBalance ?? wallet.balance ?? balance - amount);
+      setNewBalance(wallet.balance ?? wallet.koriBalance ?? balance - amount);
       setStep('success');
     } catch (err) {
       showToast(err.message ?? 'Paiement impossible');
@@ -341,7 +341,7 @@ export default function PayMerchantScreen({ navigation, route }) {
   const handleUndone = async () => {
     setUndone(true);
     const wallet = await refreshWallet();
-    setNewBalance(wallet.nationalBalance ?? wallet.balance ?? oldBalance);
+    setNewBalance(wallet.balance ?? wallet.koriBalance ?? oldBalance);
   };
 
   const shareMbolo = (text) => {

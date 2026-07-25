@@ -22,11 +22,12 @@ export function uniqueRef(prefix = 'TEST') {
  */
 export async function createUserWithWallet({
   balance = 0,
-  koriBalance = 0,
+  koriBalance,
   tier = 2,
   name = 'Test User',
   isDiaspora = false,
 } = {}) {
+  const spendableKori = koriBalance ?? balance;
   const now = new Date();
   const user = await prisma.user.create({
     data: {
@@ -41,7 +42,7 @@ export async function createUserWithWallet({
       cniVerifiedAt: tier >= 2 ? now : null,
       addressVerifiedAt: tier >= 3 ? now : null,
       lastActivityAt: now,
-      wallet: { create: { balance, koriBalance, currency: 'XOF' } },
+      wallet: { create: { balance: 0, koriBalance: spendableKori, currency: 'XOF' } },
     },
     include: { wallet: true },
   });
