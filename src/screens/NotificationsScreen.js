@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import { colors, fontFamily, radius, spacing } from '../theme';
@@ -11,7 +12,13 @@ const ACCENT_COLORS = { g: colors.green, o: colors.terracotta, r: colors.terraco
 
 function inferKind(notification) {
   if (notification.kind === 'alert') return 'alert';
-  const t = `${notification.title} ${notification.body}`.toLowerCase();
+  if (notification.kind === 'friend') return 'friend';
+  if (notification.kind === 'call') return 'call';
+  const t = `${notification.title} ${notification.body}`
+    .toLowerCase()
+    .replace(/[''`´]/g, "'");
+  if (t.includes("demande d'ami") || t.includes('ajouter sur k21')) return 'friend';
+  if (t.includes('appel entrant') || t.includes('appel vidéo') || t.includes('t’appelle sur mboolo')) return 'call';
   if (t.includes('demande')) return 'money';
   if (t.includes('mboolo') || t.includes('message')) return 'mboolo';
   if (t.includes('événement') || t.includes('event') || t.includes('concert')) return 'event';
@@ -22,20 +29,21 @@ function inferKind(notification) {
 
 function mapNotification(n) {
   const kind = inferKind(n);
-  const icons = { money: '💸', mboolo: '💬', event: '🎉', tontine: '🏦', ngor: '✦', alert: '🌊', generic: '🔔' };
-  const accents = { money: 'g', mboolo: 'r', event: 'o', tontine: 'y', ngor: 'g', alert: 'o', generic: 'g' };
+  const icons = { money: '💸', mboolo: '💬', event: '🎉', tontine: '🏦', ngor: '✦', alert: '🌊', friend: '🧑‍🤝‍🧑', call: '📞', generic: '🔔' };
+  const accents = { money: 'g', mboolo: 'r', event: 'o', tontine: 'y', ngor: 'g', alert: 'o', friend: 'g', call: 'o', generic: 'g' };
   const time = new Date(n.createdAt).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   return {
     id: n.id,
     key: n.id,
     kind,
+    title: n.title,
     unread: !n.read,
     accent: accents[kind],
     icon: icons[kind],
     iconBg: colors.greenA10,
     text: n.body || n.title,
     time,
-    action: kind === 'money' ? '✓' : kind === 'mboolo' ? 'Répondre' : kind === 'event' || kind === 'alert' ? 'Voir' : null,
+    action: kind === 'money' ? '✓' : kind === 'friend' ? 'Voir' : kind === 'call' ? 'Rejoindre' : kind === 'mboolo' ? 'Répondre' : kind === 'event' || kind === 'alert' ? 'Voir' : null,
     actionStyle: kind === 'money' ? 'g' : 'o',
     refId: n.refId ?? null,
     read: n.read,
@@ -70,6 +78,8 @@ function NotifItem({ item, delay, onAction }) {
 }
 
 export default function NotificationsScreen({ navigation }) {
+  const route = useRoute();
+  const isTabRoot = route.name === 'NotificationsTab';
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,9 +94,12 @@ export default function NotificationsScreen({ navigation }) {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      load();
+    }, [load]),
+  );
 
   const handleAction = async (item) => {
     try {
@@ -102,22 +115,40 @@ export default function NotificationsScreen({ navigation }) {
         break;
       case 'event':
         navigation.navigate('Main', {
-          screen: 'DiscoverTab',
+          screen: 'MarketplaceTab',
           params: { screen: 'Discover', params: { initialTab: 'Events' } },
         });
         break;
       case 'alert':
         if (item.refId) {
           navigation.navigate('Main', {
-            screen: 'DiscoverTab',
+            screen: 'MarketplaceTab',
             params: { screen: 'AlertDetail', params: { alertId: item.refId } },
           });
         } else {
-          navigation.navigate('Main', { screen: 'DiscoverTab', params: { screen: 'Trending', params: { initialTab: 'alerts' } } });
+          navigation.navigate('Main', {
+            screen: 'MarketplaceTab',
+            params: { screen: 'Trending', params: { initialTab: 'alerts' } },
+          });
         }
         break;
       case 'money':
         navigation.navigate('Receive');
+        break;
+      case 'friend':
+        navigation.navigate('Friends');
+        break;
+      case 'call':
+        if (item.refId) {
+          navigation.navigate('Call', {
+            threadId: item.refId,
+            title: 'Mboolo',
+            video: /vidéo|video/i.test(`${item.title ?? ''} ${item.text ?? ''}`),
+            ring: false,
+          });
+        } else {
+          navigation.navigate('Main', { screen: 'MbooloTab' });
+        }
         break;
       case 'tontine':
         navigation.navigate('Tontine');
@@ -138,9 +169,13 @@ export default function NotificationsScreen({ navigation }) {
       <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.header}>
-          <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={{ fontSize: 14, color: colors.ink }}>←</Text>
-          </PressScale>
+          {!isTabRoot ? (
+            <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Text style={{ fontSize: 14, color: colors.ink }}>←</Text>
+            </PressScale>
+          ) : (
+            <View style={styles.backBtnPlaceholder} />
+          )}
           <Text style={styles.title}>Notifications</Text>
           <View style={styles.countBadge}>
             <Text style={styles.countText}>{items.filter((n) => n.unread).length || items.length}</Text>
@@ -157,7 +192,7 @@ export default function NotificationsScreen({ navigation }) {
           <Text style={styles.empty}>Aucune notification pour l'instant.</Text>
         )}
 
-        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.list, isTabRoot && styles.listTab]} showsVerticalScrollIndicator={false}>
           {items.map((n, i) => (
             <NotifItem key={n.key} item={n} delay={i * 40} onAction={handleAction} />
           ))}
@@ -171,11 +206,13 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f2f8ec' },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.xl, backgroundColor: colors.greenA08, borderBottomWidth: 1, borderBottomColor: colors.greenA10 },
   backBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.75)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', alignItems: 'center', justifyContent: 'center' },
+  backBtnPlaceholder: { width: 36, height: 36 },
   title: { fontFamily: fontFamily.displayBlack, fontSize: 16, color: colors.ink, flex: 1 },
   countBadge: { backgroundColor: colors.terracotta, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3 },
   countText: { fontSize: 10, fontWeight: '700', color: colors.ink },
   empty: { textAlign: 'center', color: 'rgba(5,8,5,0.5)', fontSize: 12, padding: spacing.giant },
   list: { padding: spacing.xxl, gap: spacing.sm },
+  listTab: { paddingBottom: 88 },
   item: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, borderRadius: radius.xl, padding: spacing.xl, position: 'relative', overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.6)' },
   itemCelebrate: { backgroundColor: 'rgba(250,216,54,0.08)', borderWidth: 1.5, borderColor: 'rgba(250,216,54,0.2)' },
   accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },

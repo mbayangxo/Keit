@@ -26,6 +26,9 @@ import ChartsScreen from '../screens/ChartsScreen';
 import PublicProfileScreen from '../screens/PublicProfileScreen';
 import ChannelsScreen from '../screens/ChannelsScreen';
 import CallScreen from '../screens/CallScreen';
+import AgentDepositQrScreen from '../screens/AgentDepositQrScreen';
+import AgentHomeScreen from '../screens/AgentHomeScreen';
+import CniVerificationScreen from '../screens/CniVerificationScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import StudentPassScreen from '../screens/StudentPassScreen';
 import PinGateScreen from '../screens/PinGateScreen';
@@ -122,8 +125,13 @@ export default function RootNavigator() {
               hydrateFromApi(payload);
               await enterApp(navigation, payload.profile?.accountType);
             }}
-            onComplete={(signupProfile) => {
-              initAccount(signupProfile);
+            onComplete={async (signupProfile) => {
+              try {
+                const payload = await fetchSessionPayload();
+                hydrateFromApi(payload);
+              } catch {
+                initAccount(signupProfile);
+              }
               markSignedIn();
               navigation.replace('Celebration', signupProfile);
             }}
@@ -178,6 +186,9 @@ export default function RootNavigator() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Accessibility" component={AccessibilityScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="CniVerification" component={CniVerificationScreen} />
+      <Stack.Screen name="AgentDepositQr" component={AgentDepositQrScreen} />
+      <Stack.Screen name="AgentHome" component={AgentHomeScreen} />
       <Stack.Screen name="QrScan" component={QrScanScreen} />
       <Stack.Screen name="MyQr" component={MyQrScreen} />
       <Stack.Screen name="Charts" component={ChartsScreen} />

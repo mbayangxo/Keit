@@ -6,7 +6,17 @@ import ScreenBackground from '../components/ScreenBackground';
 import ScreenHeader from '../components/ScreenHeader';
 import ProfileAvatar from '../components/ProfileAvatar';
 import PressScale from '../components/PressScale';
-import { getPublicProfile, voteProfilePoll } from '../lib/api-client';
+import { useToast } from '../components/Toast';
+import {
+  addFriend,
+  getMboloThreads,
+  createMboloThread,
+  getPublicProfile,
+  respondFriendRequest,
+  getFriendRequests,
+  voteProfilePoll,
+} from '../lib/api-client';
+import { findDirectThreadForUser, navigateToMboloChat } from '../lib/mbolo-social';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
 // What another member sees when they open your profile — ONLY what you chose
@@ -14,32 +24,100 @@ import { colors, fontFamily, radius, spacing, type } from '../theme';
 // your real Ngor honor score. Never phone, email, AFRI ID, or balances.
 export default function PublicProfileScreen({ navigation, route }) {
   const handle = route.params?.handle ?? '';
+  const showToast = useToast();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [voteError, setVoteError] = useState(null);
+  const [friendBusy, setFriendBusy] = useState(false);
+  const [incomingRequestId, setIncomingRequestId] = useState(null);
+
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const p = await getPublicProfile(handle);
+      setProfile(p);
+      if (p.friendRelation === 'pending_in') {
+        const reqs = await getFriendRequests();
+        const match = (reqs?.incoming ?? []).find(
+          (r) => String(r.user?.handle ?? '').replace(/^@+/, '').toLowerCase() === cleanHandleFrom(p.handle ?? handle),
+        );
+        setIncomingRequestId(match?.id ?? null);
+      } else {
+        setIncomingRequestId(null);
+      }
+    } catch (err) {
+      setError(err.message ?? 'Profil indisponible');
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [handle]);
 
   useFocusEffect(
     useCallback(() => {
-      let cancelled = false;
-      setLoading(true);
-      getPublicProfile(handle)
-        .then((p) => {
-          if (!cancelled) setProfile(p);
-        })
-        .catch((err) => {
-          if (!cancelled) setError(err.message ?? 'Profil indisponible');
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
-      return () => {
-        cancelled = true;
-      };
-    }, [handle]),
+      loadProfile();
+    }, [loadProfile]),
   );
 
   const cleanHandle = String(profile?.handle ?? handle).replace(/^@+/, '');
+
+  function cleanHandleFrom(value) {
+    return String(value ?? '').replace(/^@+/, '').toLowerCase();
+  }
+
+  const addAsFriend = async () => {
+    if (!cleanHandle) return;
+    setFriendBusy(true);
+    try {
+      const result = await addFriend(cleanHandle);
+      if (result?.alreadyFriends || result?.autoAccepted || result?.accepted) {
+        showToast('Vous êtes amis ✓');
+      } else {
+        showToast('Demande envoyée ✓');
+      }
+      await loadProfile();
+    } catch (err) {
+      showToast(err.message ?? 'Ajout impossible');
+    } finally {
+      setFriendBusy(false);
+    }
+  };
+
+  const acceptFriendRequest = async () => {
+    if (!incomingRequestId) {
+      await loadProfile();
+      return;
+    }
+    setFriendBusy(true);
+    try {
+      await respondFriendRequest(incomingRequestId, true);
+      showToast('Ami ajouté ✓');
+      await loadProfile();
+    } catch (err) {
+      showToast(err.message ?? 'Acceptation impossible');
+    } finally {
+      setFriendBusy(false);
+    }
+  };
+
+  const openMboolo = async () => {
+    try {
+      const threads = await getMboloThreads();
+      let thread = findDirectThreadForUser(threads, profile?.id);
+      if (!thread) {
+        thread = await createMboloThread({ memberHandles: [cleanHandle] });
+      }
+      navigateToMboloChat(navigation, {
+        threadId: thread.id,
+        thread,
+        title: profile?.name ?? cleanHandle,
+      });
+    } catch (err) {
+      showToast(err.message ?? 'Mboolo indisponible');
+    }
+  };
 
   const vote = async (optionIx) => {
     setVoteError(null);
@@ -166,6 +244,31 @@ export default function PublicProfileScreen({ navigation, route }) {
               </View>
 
               <View style={styles.actions}>
+                {profile.friendRelation === 'self' ? null : profile.friendRelation === 'friends' ? (
+                  <View style={styles.friendPill}>
+                    <Text style={styles.friendPillText}>✓ Ami</Text>
+                  </View>
+                ) : profile.friendRelation === 'pending_out' ? (
+                  <View style={styles.friendPill}>
+                    <Text style={styles.friendPillText}>⏳ Demande envoyée</Text>
+                  </View>
+                ) : profile.friendRelation === 'pending_in' ? (
+                  <PressScale
+                    scaleTo={0.97}
+                    onPress={acceptFriendRequest}
+                    style={[styles.actionBtn, styles.actionFriend, friendBusy && { opacity: 0.6 }]}
+                  >
+                    <Text style={styles.actionFriendText}>{friendBusy ? '…' : '✓ Accepter la demande'}</Text>
+                  </PressScale>
+                ) : (
+                  <PressScale
+                    scaleTo={0.97}
+                    onPress={addAsFriend}
+                    style={[styles.actionBtn, styles.actionFriend, friendBusy && { opacity: 0.6 }]}
+                  >
+                    <Text style={styles.actionFriendText}>{friendBusy ? '…' : '＋ Ajouter'}</Text>
+                  </PressScale>
+                )}
                 <PressScale
                   scaleTo={0.97}
                   onPress={() => navigation.navigate('SendMoney', { recipientHandle: cleanHandle })}
@@ -175,7 +278,7 @@ export default function PublicProfileScreen({ navigation, route }) {
                 </PressScale>
                 <PressScale
                   scaleTo={0.97}
-                  onPress={() => navigation.navigate('Main', { screen: 'MbooloTab' })}
+                  onPress={openMboolo}
                   style={[styles.actionBtn, styles.actionChat]}
                 >
                   <Text style={styles.actionChatText}>💬 Mboolo</Text>
@@ -269,11 +372,24 @@ const styles = StyleSheet.create({
   ngorSub: { fontSize: 11, color: 'rgba(5,8,5,0.55)', marginTop: 1 },
   ngorStar: { fontSize: 18, color: colors.goldDark },
 
-  actions: { flexDirection: 'row', gap: spacing.md },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  friendPill: {
+    flexBasis: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 44,
+    borderRadius: radius.round,
+    backgroundColor: 'rgba(26,240,96,0.12)',
+    borderWidth: 1,
+    borderColor: colors.greenA25,
+  },
+  friendPillText: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.greenDark },
   actionBtn: {
-    flex: 1, height: 52, borderRadius: radius.round, borderBottomRightRadius: 10,
+    flex: 1, minWidth: '30%', height: 52, borderRadius: radius.round, borderBottomRightRadius: 10,
     alignItems: 'center', justifyContent: 'center',
   },
+  actionFriend: { backgroundColor: 'rgba(250,216,54,0.22)', borderWidth: 1.5, borderColor: 'rgba(232,146,10,0.35)' },
+  actionFriendText: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.goldDark },
   actionSend: { backgroundColor: colors.green },
   actionSendText: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink },
   actionChat: { backgroundColor: 'rgba(255,255,255,0.75)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.12)' },

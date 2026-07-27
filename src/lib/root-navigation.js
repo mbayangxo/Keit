@@ -1,4 +1,4 @@
-const TAB_ROUTES = new Set(['HomeTab', 'MbooloTab', 'DiscoverTab', 'MovementTab', 'MoiTab']);
+const TAB_ROUTES = new Set(['HomeTab', 'MbooloTab', 'MarketplaceTab', 'NotificationsTab', 'MoiTab']);
 
 /** Open a screen from nested tab navigators — walks up to the navigator that owns the route. */
 export function navigateFromRoot(navigation, name, params) {

@@ -102,7 +102,7 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
               </View>
               <View style={styles.statBox}>
                 <Text style={[styles.statNum, { color: colors.terracotta, fontSize: 13 }]}>Ce mois</Text>
-                <Text style={styles.statLabel}>{formatAmount(receivedThisMonth)} F reçu</Text>
+                <Text style={styles.statLabel}>{formatKori(receivedThisMonth)} reçu</Text>
               </View>
               <View style={styles.statBox}>
                 <Text style={styles.statNum}>{totalMembers}</Text>

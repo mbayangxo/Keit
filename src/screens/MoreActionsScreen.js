@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
+import { usePlatformFeatures } from '../lib/platform-features';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
 // "Payer & Services" — the WeChat-style hub: every K21 service in one
@@ -15,7 +16,7 @@ const SECTIONS = [
       { key: 'send', icon: '💸', title: 'Yónnee', route: 'SendMoney', tint: 'rgba(26,240,96,0.14)' },
       { key: 'receive', icon: '📥', title: 'Jël', route: 'Receive', tint: 'rgba(250,216,54,0.18)' },
       { key: 'pay', icon: '🏪', title: 'Fey', route: 'PayMerchant', tint: 'rgba(232,92,26,0.14)' },
-      { key: 'cash', icon: '🏧', title: 'Cash', route: 'Cash', tint: 'rgba(26,240,96,0.14)' },
+      { key: 'cash', icon: '🏧', title: 'Cash', route: 'Cash', feature: ['cash', 'available'], tint: 'rgba(26,240,96,0.14)' },
       { key: 'tontine', icon: '🏦', title: 'Tontine', route: 'Tontine', tint: 'rgba(250,216,54,0.18)' },
       { key: 'scan', icon: '📷', title: 'Scanner', route: 'QrScan', tint: 'rgba(232,92,26,0.14)' },
       { key: 'myqr', icon: '📲', title: 'Mon QR', route: 'MyQr', tint: 'rgba(26,240,96,0.14)' },
@@ -27,9 +28,9 @@ const SECTIONS = [
     label: 'Au quotidien',
     tiles: [
       { key: 'movement', icon: '🛵', title: 'Mouvement', route: 'Movement', tint: 'rgba(26,240,96,0.14)' },
-      { key: 'nulekk', icon: '🍖', title: 'Ñu Lekk', route: 'NuLekk', tint: 'rgba(232,92,26,0.14)' },
-      { key: 'deals', icon: '⚡', title: 'Offres flash', route: 'DiscoverEat', tint: 'rgba(250,216,54,0.18)' },
-      { key: 'events', icon: '🎟️', title: 'Événements', route: 'DiscoverEvents', tint: 'rgba(232,92,26,0.14)' },
+      { key: 'nulekk', icon: '🍖', title: 'Ñu Lekk', route: 'NuLekk', soon: 'nuLekk', tint: 'rgba(232,92,26,0.14)' },
+      { key: 'deals', icon: '⚡', title: 'Offres flash', marketplace: 'Discover', tab: 'Eat', tint: 'rgba(250,216,54,0.18)' },
+      { key: 'events', icon: '🎟️', title: 'Événements', marketplace: 'Discover', tab: 'Events', tint: 'rgba(232,92,26,0.14)' },
     ],
   },
   {
@@ -39,21 +40,26 @@ const SECTIONS = [
       { key: 'friends', icon: '🧑‍🤝‍🧑', title: 'Contacts', route: 'Friends', tint: 'rgba(26,240,96,0.14)' },
       { key: 'channels', icon: '📣', title: 'Chaînes', route: 'Channels', tint: 'rgba(250,216,54,0.18)' },
       { key: 'charts', icon: '🎶', title: 'Wey yu 221 bëgg', route: 'Charts', tint: 'rgba(250,216,54,0.18)' },
-      { key: 'notifs', icon: '🔔', title: 'Notifications', route: 'Notifications', tint: 'rgba(232,92,26,0.14)' },
     ],
   },
 ];
 
 export default function MoreActionsScreen({ navigation }) {
+  const { feature, comingSoon } = usePlatformFeatures();
+
   const openTile = (tile) => {
-    if (tile.route === 'DiscoverEat') {
-      navigation.navigate('Main', { screen: 'DiscoverTab', params: { initialTab: 'Eat' } });
+    if (tile.soon && comingSoon(tile.soon)) {
+      navigation.navigate('Info', { title: tile.title, icon: tile.icon });
       return;
     }
-    if (tile.route === 'DiscoverEvents') {
-      navigation.navigate('Main', { screen: 'DiscoverTab', params: { initialTab: 'Events' } });
+    if (tile.marketplace) {
+      navigation.navigate('Main', {
+        screen: 'MarketplaceTab',
+        params: { screen: tile.marketplace, params: { initialTab: tile.tab } },
+      });
       return;
     }
+    if (tile.feature && !feature(...tile.feature)) return;
     navigation.navigate(tile.route);
   };
 
@@ -76,14 +82,26 @@ export default function MoreActionsScreen({ navigation }) {
             <View key={section.key} style={styles.section}>
               <Text style={styles.sectionLabel}>{section.label}</Text>
               <View style={styles.grid}>
-                {section.tiles.map((tile) => (
-                  <PressScale key={tile.key} scaleTo={0.94} onPress={() => openTile(tile)} style={styles.tile}>
-                    <View style={[styles.tileIcon, { backgroundColor: tile.tint }]}>
-                      <Text style={{ fontSize: 24 }}>{tile.icon}</Text>
-                    </View>
-                    <Text style={styles.tileTitle} numberOfLines={1}>{tile.title}</Text>
-                  </PressScale>
-                ))}
+                {section.tiles.map((tile) => {
+                  const soon = tile.soon ? comingSoon(tile.soon) : false;
+                  const locked = tile.feature ? !feature(...tile.feature) && !soon : soon;
+                  return (
+                    <PressScale
+                      key={tile.key}
+                      scaleTo={locked ? 1 : 0.94}
+                      onPress={locked ? undefined : () => openTile(tile)}
+                      style={[styles.tile, locked && styles.tileLocked]}
+                    >
+                      <View style={[styles.tileIcon, { backgroundColor: locked ? 'rgba(5,8,5,0.06)' : tile.tint }]}>
+                        <Text style={{ fontSize: 24, opacity: locked ? 0.45 : 1 }}>{tile.icon}</Text>
+                      </View>
+                      <Text style={[styles.tileTitle, locked && styles.tileTitleLocked]} numberOfLines={1}>
+                        {tile.title}
+                      </Text>
+                      {soon ? <Text style={styles.soonHint}>Bientôt</Text> : null}
+                    </PressScale>
+                  );
+                })}
               </View>
             </View>
           ))}
@@ -117,6 +135,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: 2,
   },
+  tileLocked: { opacity: 0.72 },
   tileIcon: { width: 44, height: 44, borderRadius: 14, borderBottomRightRadius: 8, alignItems: 'center', justifyContent: 'center' },
   tileTitle: { fontFamily: fontFamily.bodyBold, fontSize: 9.5, color: 'rgba(5,8,5,0.75)', textAlign: 'center' },
+  tileTitleLocked: { color: 'rgba(5,8,5,0.45)' },
+  soonHint: { fontSize: 7, fontFamily: fontFamily.bodyBold, color: colors.goldDark },
 });

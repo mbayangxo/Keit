@@ -168,6 +168,37 @@ function renderDashboard(d) {
       <td>${r.averageRating ?? 'N/A'}${r.ratedCount ? ` (${r.ratedCount})` : ''}</td>
     </tr>`,
   );
+
+  renderAgents(d.agents);
+}
+
+function renderAgents(agentsBlock) {
+  if (!agentsBlock?.summary) {
+    $('agents-stats').innerHTML = '';
+    $('agents-table').innerHTML = '<p style="padding:14px;color:var(--muted)">No agent data</p>';
+    return;
+  }
+  const s = agentsBlock.summary;
+  $('agents-stats').innerHTML = `
+    <div class="stat"><div class="label">Agents</div><div class="value">${s.agentCount}</div></div>
+    <div class="stat"><div class="label">Total float</div><div class="value">${fmtXof(s.totalFloatBalanceXof)}</div></div>
+    <div class="stat"><div class="label">Confirmed deposits</div><div class="value">${fmtXof(s.totalConfirmedDepositsXof)}</div></div>
+    <div class="stat"><div class="label">Implied cash held</div><div class="value">${fmtXof(s.impliedCashHeldXof)}</div></div>
+    <div class="stat"><div class="label">Pending QR sessions</div><div class="value">${s.pendingDepositSessions}</div></div>
+  `;
+
+  $('agents-table').innerHTML = tableHtml(
+    ['Code', 'Name', 'Float', 'Limit', 'Deposits', 'Location'],
+    agentsBlock.agents,
+    (a) => `<tr>
+      <td>${a.agentCode}</td>
+      <td>${a.displayName}<br><small>${a.user?.phone || a.userId}</small></td>
+      <td>${fmtXof(a.floatBalance)}</td>
+      <td>${fmtXof(a.floatLimit)}</td>
+      <td>${a.confirmedDeposits ?? 0}</td>
+      <td>${a.locationLabel || '—'}</td>
+    </tr>`,
+  );
 }
 
 async function loadDashboard() {
@@ -355,6 +386,38 @@ $('refund-btn').addEventListener('click', async () => {
   if (!recipientUserId || !amount || !reason) return alert('All refund fields required');
   await api('/refunds', { method: 'POST', body: { recipientUserId, amount, reason } });
   alert('Refund issued');
+});
+
+$('agent-create-btn')?.addEventListener('click', async () => {
+  try {
+    const body = {
+      userId: $('agent-user-id').value.trim(),
+      displayName: $('agent-display-name').value.trim() || undefined,
+      locationLabel: $('agent-location').value.trim() || undefined,
+      floatLimit: $('agent-float-limit').value ? parseInt($('agent-float-limit').value, 10) : undefined,
+      initialFloat: $('agent-initial-float').value ? parseInt($('agent-initial-float').value, 10) : undefined,
+    };
+    if (!body.userId) return alert('User ID required');
+    const result = await api('/agents', { method: 'POST', body });
+    alert(`Agent created: ${result.agent.agentCode}`);
+    await loadDashboard();
+  } catch (error) {
+    alert(error.message);
+  }
+});
+
+$('agent-topup-btn')?.addEventListener('click', async () => {
+  try {
+    const id = $('agent-topup-id').value.trim();
+    const amountXof = parseInt($('agent-topup-amount').value, 10);
+    const note = $('agent-topup-note').value.trim() || undefined;
+    if (!id || !amountXof) return alert('Agent ID and amount required');
+    await api(`/agents/${encodeURIComponent(id)}/float`, { method: 'POST', body: { amountXof, note } });
+    alert('Float topped up');
+    await loadDashboard();
+  } catch (error) {
+    alert(error.message);
+  }
 });
 
 if (token()) {

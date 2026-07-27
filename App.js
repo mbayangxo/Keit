@@ -18,7 +18,7 @@ import PinGateScreen from './src/screens/PinGateScreen';
 import DeviceSecurityBanner from './src/components/DeviceSecurityBanner';
 import { ToastProvider } from './src/components/Toast';
 import { navigationIntegration, Sentry } from './src/lib/sentry';
-import { useInviteDeepLink } from './src/hooks/useInviteDeepLink';
+import NavSideEffects from './src/hooks/NavSideEffects';
 
 function AppShell() {
   const { locked, pinReady, deviceRisk } = useSecurity();
@@ -47,7 +47,7 @@ export default Sentry.wrap(function App() {
   const navigationRef = useRef(null);
   const [navReady, setNavReady] = useState(false);
 
-  useInviteDeepLink(navigationRef, navReady);
+  // Deep links registered inside NavSideEffects (needs AppState + Toast).
 
   // Web: hide the native splash overlay as soon as JS runs — otherwise a white
   // sheet can sit on top of the app forever if fonts or onLayout are slow.
@@ -92,6 +92,7 @@ export default Sentry.wrap(function App() {
                   <LocaleProvider>
                     <SecurityProvider>
                       <ToastProvider>
+                        <NavSideEffects navigationRef={navigationRef} navReady={navReady} />
                         <AppShell />
                       </ToastProvider>
                     </SecurityProvider>

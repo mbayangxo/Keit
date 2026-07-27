@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Linking, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import OnboardingShell from '../components/OnboardingShell';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
@@ -8,26 +8,54 @@ import { colors, fontFamily, radius, spacing } from '../theme';
 import { ob } from '../theme/onboarding';
 import { useEntrance } from '../hooks/animations';
 import { useLocale } from '../context/LocaleContext';
-import { authEmail, authVerify, authPasswordLogin, authCompleteProfile, getMe, getWallet, depositNational } from '../lib/api-client';
+import { authEmail, authVerify, authPasswordLogin, authCompleteProfile, getMe, getWallet, depositNational, createStripeDepositSession } from '../lib/api-client';
+import { usePlatformFeatures } from '../lib/platform-features';
 import { saveSessionTokens } from '../lib/secure-storage';
 import { pickProfilePhoto } from '../lib/profile-photo';
 import ProfileAvatar from '../components/ProfileAvatar';
 import { t } from '../i18n/translations';
 
-// Backend-driven signup: email → OTP (API) → profile → intent → fund (optional).
-// Country, region & language are set on the unified Onboarding screen.
-const FUND_METHOD = {
-  key: 'mobile_money',
-  icon: '💳',
-  bg: colors.greenA08,
-  name: process.env.EXPO_PUBLIC_ALLOW_BETA_DEPOSITS === 'true' ? 'Crédit test beta' : 'Mobile Money',
-  sub:
-    process.env.EXPO_PUBLIC_ALLOW_BETA_DEPOSITS === 'true'
-      ? 'Ajoute un solde test pour envoyer de l’argent (US / diaspora — pas une vraie carte)'
-      : 'Transfert depuis ton opérateur mobile',
-  badge: 'SÉCURISÉ',
-  badgeStyle: 'free',
-};
+// Backend-driven signup: email only → OTP → profile → intent → fund (optional).
+const STEP_ORDER = ['email', 'otp', 'profile', 'intent', 'fund'];
+const STEP_NUM = { email: 1, otp: 2, profile: 3, intent: 4 };
+
+function fundMethodsFor({ stripeEnabled, betaEnabled, lang }) {
+  const rows = [];
+  if (stripeEnabled) {
+    rows.push({
+      key: 'stripe_card',
+      icon: '💳',
+      bg: 'rgba(250,216,54,0.15)',
+      name: 'Carte bancaire',
+      sub: 'Visa · Mastercard — diaspora (Stripe)',
+      badge: 'STRIPE',
+      badgeStyle: 'stripe',
+    });
+  }
+  if (betaEnabled) {
+    rows.push({
+      key: 'beta',
+      icon: '🧪',
+      bg: colors.greenA08,
+      name: 'Crédit test',
+      sub: t(lang, 'signupFundBetaSub'),
+      badge: 'BETA',
+      badgeStyle: 'free',
+    });
+  }
+  if (!rows.length) {
+    rows.push({
+      key: 'agent_later',
+      icon: '🏧',
+      bg: colors.greenA08,
+      name: 'Agent K21',
+      sub: 'Dépôt cash après inscription — points K21 au Sénégal',
+      badge: 'GRATUIT',
+      badgeStyle: 'free',
+    });
+  }
+  return rows;
+}
 const FUND_AMOUNTS = [5000, 10000, 25000, 50000];
 const INTENTS = [
   { key: 'send_money', icon: '💸', title: 'Envoyer de l\'argent', sub: 'Transfers et paiements' },
@@ -35,8 +63,6 @@ const INTENTS = [
   { key: 'discover', icon: '📍', title: 'Découvrir', sub: 'Événements et vie locale' },
   { key: 'business', icon: '🏪', title: 'Mon business', sub: 'Vendre et être payé' },
 ];
-const STEP_ORDER = ['phone', 'otp', 'profile', 'intent', 'fund'];
-const STEP_NUM = { phone: 1, otp: 2, profile: 3, intent: 4 };
 
 function formatAmount(n) {
   return n.toLocaleString('fr-FR').replace(/ /g, ' ');
@@ -97,7 +123,7 @@ function EmailStep({
       <StepHeader
         lang={lang}
         title={isLogin ? t(lang, 'signupSignIn') : t(lang, 'signupCreateAccount')}
-        step={STEP_NUM.phone}
+        step={STEP_NUM.email}
         total={isLogin ? 2 : 4}
         onBack={onBack}
       />
@@ -110,6 +136,12 @@ function EmailStep({
       <Text style={styles.sub}>
         {isLogin ? t(lang, 'signupSignInPasswordSub') : t(lang, 'signupEmailSub')}
       </Text>
+
+      {!isLogin ? (
+        <View style={styles.emailOnlyPill}>
+          <Text style={styles.emailOnlyText}>✉️ {t(lang, 'signupEmailOnlyBadge')}</Text>
+        </View>
+      ) : null}
 
       <TextInput
         style={[styles.emailField, validEmail && styles.phoneFieldFilled]}
@@ -167,7 +199,7 @@ function EmailStep({
   );
 }
 
-function OtpStep({ lang, mode, displayPhone, otp, setOtp, loading, devHint, emailOnly, onResend, onNext, onBack }) {
+function OtpStep({ lang, mode, displayEmail, otp, setOtp, loading, devHint, emailOnly, onResend, onNext, onBack }) {
   const entrance = useEntrance(0, 350, 8);
   const boxes = [0, 1, 2, 3, 4, 5];
   const isLogin = mode === 'login';
@@ -186,7 +218,7 @@ function OtpStep({ lang, mode, displayPhone, otp, setOtp, loading, devHint, emai
       </Text>
       <Text style={styles.otpSentTo}>
         {t(lang, 'signupOtpSent')}{' '}
-        <Text style={{ fontFamily: fontFamily.bodyBold, color: ob.ink }}>{displayPhone}</Text>
+        <Text style={{ fontFamily: fontFamily.bodyBold, color: ob.ink }}>{displayEmail}</Text>
         {'\n'}{t(lang, 'signupOtpValidEmail')}
       </Text>
       {devHint && !emailOnly ? (
@@ -344,9 +376,16 @@ function IntentStep({ lang, intent, setIntent, onNext, onBack }) {
   );
 }
 
-function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext, onSkip, onBack }) {
+function FundStep({ lang, amount, setAmount, method, setMethod, loading, stripeEnabled, betaEnabled, onNext, onSkip, onBack }) {
   const entrance = useEntrance(0, 350, 8);
-  const m = FUND_METHOD;
+  const methods = fundMethodsFor({ stripeEnabled, betaEnabled, lang });
+  const primaryLabel =
+    method === 'stripe_card'
+      ? `Payer ${formatAmount(amount)} F par carte →`
+      : method === 'agent_later'
+        ? 'Continuer — dépôt agent après inscription →'
+        : `Ajouter ${formatAmount(amount)} F →`;
+
   return (
     <Animated.View style={[styles.body, entrance]}>
       <View style={styles.headRow}>
@@ -358,38 +397,44 @@ function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext,
       <Text style={[styles.headline, { fontSize: 18, marginBottom: spacing.sm }]}>
         Ajoute de <Text style={styles.g}>l'argent</Text>
       </Text>
-      <Text style={[styles.sub, { marginBottom: spacing.xl }]}>{t(lang, 'signupFundSub')}</Text>
+      <Text style={[styles.sub, { marginBottom: spacing.xl }]}>{t(lang, 'signupFundEmailSub')}</Text>
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={{ gap: spacing.sm, marginBottom: spacing.xl }}>
-          <PressScale key={m.key} scaleTo={0.98} onPress={() => setMethod(m.key)} style={[styles.fmItem, method === m.key && styles.fmItemOn]}>
-            <View style={[styles.fmIco, { backgroundColor: m.bg }]}>
-              <Text style={{ fontSize: 20 }}>{m.icon}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fmName}>{m.name}</Text>
-              <Text style={styles.fmSub}>{m.sub}</Text>
-            </View>
-            <View style={[styles.fmBadge, styles.badgeFree]}>
-              <Text style={[styles.fmBadgeText, { color: colors.green }]}>{m.badge}</Text>
-            </View>
-          </PressScale>
-        </View>
-
-        <Text style={styles.fasLabel}>Montant rapide</Text>
-        <View style={styles.fasAmounts}>
-          {FUND_AMOUNTS.map((a) => (
-            <PressScale key={a} scaleTo={0.92} onPress={() => setAmount(a)} style={[styles.faChip, amount === a && styles.faChipOn]}>
-              <Text style={[styles.faChipText, amount === a && { color: colors.green }]}>{a / 1000}k F</Text>
+          {methods.map((m) => (
+            <PressScale key={m.key} scaleTo={0.98} onPress={() => setMethod(m.key)} style={[styles.fmItem, method === m.key && styles.fmItemOn]}>
+              <View style={[styles.fmIco, { backgroundColor: m.bg }]}>
+                <Text style={{ fontSize: 20 }}>{m.icon}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fmName}>{m.name}</Text>
+                <Text style={styles.fmSub}>{m.sub}</Text>
+              </View>
+              <View style={[styles.fmBadge, m.badgeStyle === 'stripe' ? styles.badgeStripe : styles.badgeFree]}>
+                <Text style={[styles.fmBadgeText, { color: m.badgeStyle === 'stripe' ? colors.goldDark : colors.green }]}>{m.badge}</Text>
+              </View>
             </PressScale>
           ))}
         </View>
+
+        {method !== 'agent_later' ? (
+          <>
+            <Text style={styles.fasLabel}>Montant rapide</Text>
+            <View style={styles.fasAmounts}>
+              {FUND_AMOUNTS.map((a) => (
+                <PressScale key={a} scaleTo={0.92} onPress={() => setAmount(a)} style={[styles.faChip, amount === a && styles.faChipOn]}>
+                  <Text style={[styles.faChipText, amount === a && { color: colors.green }]}>{a / 1000}k F</Text>
+                </PressScale>
+              ))}
+            </View>
+          </>
+        ) : null}
       </ScrollView>
 
       <PressScale scaleTo={0.96} onPress={onSkip} disabled={loading} style={{ alignSelf: 'center', marginBottom: spacing.md }}>
         <Text style={styles.skipFund}>ou <Text style={{ color: ob.muted }}>Commencer sans argent pour l'instant</Text></Text>
       </PressScale>
-      <GlowButton label={loading ? t(lang, 'signupCreating') : `Ajouter ${formatAmount(amount)} F →`} onPress={onNext} disabled={loading} />
+      <GlowButton label={loading ? t(lang, 'signupCreating') : primaryLabel} onPress={onNext} disabled={loading} />
     </Animated.View>
   );
 }
@@ -397,7 +442,11 @@ function FundStep({ lang, amount, setAmount, method, setMethod, loading, onNext,
 export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete, onLoginComplete, onCancel, onForgot, onSwitchToSignup, onSwitchToLogin }) {
   const { country, region, langCode, setOnboardingIntent } = useLocale();
   const showToast = useToast();
-  const [step, setStep] = useState('phone');
+  const { feature } = usePlatformFeatures();
+  const stripeEnabled = feature('cash', 'stripeDeposits');
+  const betaEnabled = feature('cash', 'betaDeposits') || process.env.EXPO_PUBLIC_ALLOW_BETA_DEPOSITS === 'true';
+  const defaultFundMethod = stripeEnabled ? 'stripe_card' : betaEnabled ? 'beta' : 'agent_later';
+  const [step, setStep] = useState('email');
   const [authEmailAddress, setAuthEmailAddress] = useState(initialEmail ?? '');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
@@ -407,7 +456,7 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
   const [handle, setHandle] = useState('');
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [intent, setIntent] = useState(null);
-  const [fundMethod, setFundMethod] = useState('mobile_money');
+  const [fundMethod, setFundMethod] = useState(defaultFundMethod);
   const [fundAmount, setFundAmount] = useState(10000);
   const [loading, setLoading] = useState(false);
 
@@ -625,14 +674,24 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
       let wallet = res;
       let txs = res.transactions ?? [];
 
-      if (amount > 0) {
+      if (amount > 0 && fundMethod === 'beta') {
         try {
           const deposited = await depositNational({ amount, source: 'signup' });
           wallet = deposited;
           if (deposited.transaction) txs = [deposited.transaction, ...txs];
         } catch (depositErr) {
-          showToast(depositErr.message ?? 'Dépôt test indisponible — tu peux ajouter de l’argent plus tard');
+          showToast(depositErr.message ?? 'Crédit test indisponible — tu peux ajouter de l’argent plus tard');
           wallet = await getWallet();
+        }
+      } else if (amount > 0 && fundMethod === 'stripe_card') {
+        try {
+          const session = await createStripeDepositSession({ amount });
+          if (session.checkoutUrl) {
+            await Linking.openURL(session.checkoutUrl);
+            showToast('Finalise le paiement Stripe — ton wallet sera crédité automatiquement.');
+          }
+        } catch (stripeErr) {
+          showToast(stripeErr.message ?? 'Paiement carte indisponible');
         }
       }
 
@@ -645,7 +704,7 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
         fundAmount: balance,
         intent,
         profile: res.profile,
-        transactions: txs.length ? txs : undefined,
+        transactions: txs,
       });
     } catch (err) {
       showToast(err.message ?? t(langCode, 'signupProfileFailed'));
@@ -657,7 +716,7 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
 
   return (
     <OnboardingShell>
-        {step === 'phone' && (
+        {step === 'email' && (
           <EmailStep
             lang={langCode}
             mode={mode}
@@ -677,12 +736,12 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
           <OtpStep
             lang={langCode}
             mode={mode}
-            displayPhone={otpDestination}
+            displayEmail={otpDestination}
             otp={otp}
             setOtp={setOtp}
             loading={loading}
             devHint={devOtpHint}
-            emailOnly={otpViaEmail}
+            emailOnly
             onResend={resendOtp}
             onNext={verifyOtp}
             onBack={back}
@@ -711,7 +770,9 @@ export default function SignUpScreen({ mode = 'signup', initialEmail, onComplete
             method={fundMethod}
             setMethod={setFundMethod}
             loading={loading}
-            onNext={() => finishSignup(fundAmount)}
+            stripeEnabled={stripeEnabled}
+            betaEnabled={betaEnabled}
+            onNext={() => finishSignup(fundMethod === 'agent_later' ? 0 : fundAmount)}
             onSkip={() => finishSignup(0)}
             onBack={back}
           />
@@ -842,6 +903,18 @@ const styles = StyleSheet.create({
   fmBadge: { borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 3 },
   fmBadgeText: { fontSize: 8, fontWeight: '700', letterSpacing: 0.5 },
   badgeFree: { backgroundColor: ob.greenSoft, borderWidth: 1, borderColor: ob.greenBorder },
+  badgeStripe: { backgroundColor: 'rgba(250,216,54,0.2)', borderWidth: 1, borderColor: 'rgba(232,146,10,0.35)' },
+  emailOnlyPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.greenA08,
+    borderWidth: 1,
+    borderColor: colors.greenA20,
+    borderRadius: radius.round,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.lg,
+  },
+  emailOnlyText: { fontSize: 11, fontFamily: fontFamily.bodyBold, color: colors.greenDark },
   badgeFast: { backgroundColor: ob.orangeSoft, borderWidth: 1, borderColor: ob.orangeBorder },
 
   fasLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, color: ob.faint, textTransform: 'uppercase', marginBottom: spacing.md },

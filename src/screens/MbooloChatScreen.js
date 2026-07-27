@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Animated, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
@@ -11,10 +11,11 @@ import { colors, fontFamily, radius, spacing } from '../theme';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { getMe, getMboloMessages, sendMboloMessage, transferRequest } from '../lib/api-client';
-import { pickMboloImage, takeMboloPhoto, resolveGifMediaUrl } from '../lib/mbolo-media';
+import { pickMboloImage, takeMboloPhoto, resolveGifMediaUrl, resolveVoicePlaybackSource } from '../lib/mbolo-media';
 import { formatXof, getDirectPartner } from '../lib/mbolo-social';
-import { useMbooloVoiceRecorder } from '../hooks/useMbooloVoiceRecorder';
+import { useMbooloVoiceRecorder, formatVoiceDuration } from '../hooks/useMbooloVoiceRecorder';
 import { navigateFromRoot } from '../lib/root-navigation';
+import { useBlink } from '../hooks/animations';
 
 function formatMsgTime(iso) {
   const d = new Date(iso);
@@ -110,13 +111,60 @@ function MessageBubble({ message, isMe, onPlayVoice, onJoinCall }) {
   );
 }
 
+function VoiceRecordingBar({ phase, durationMillis, maxSeconds, onStop, onCancel, processing }) {
+  const dotBlink = useBlink(700, 0.25);
+  const elapsed = formatVoiceDuration(durationMillis);
+  const limit = formatVoiceDuration(maxSeconds * 1000);
+  const isReady = phase === 'ready';
+
+  if (processing) {
+    return (
+      <View style={[styles.recordingBar, styles.recordingBarProcessing]}>
+        <ActivityIndicator color={colors.mboolo.terra} size="small" />
+        <Text style={styles.recordingText}>Préparation du message vocal…</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.recordingBar, isReady && styles.recordingBarReady]}>
+      <Animated.View style={[styles.recordingDot, isReady ? { opacity: 1 } : { opacity: dotBlink }]} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.recordingText}>{isReady ? 'Enregistrement terminé' : 'Enregistrement en cours'}</Text>
+        <Text style={styles.recordingTimer}>
+          {elapsed} / {limit}
+        </Text>
+      </View>
+      <PressScale scaleTo={0.95} onPress={onCancel} style={styles.recordingCancel}>
+        <Text style={styles.recordingCancelText}>Annuler</Text>
+      </PressScale>
+      <PressScale scaleTo={0.95} onPress={onStop} style={styles.recordingStop}>
+        <Text style={styles.recordingStopText}>⏹ Envoyer</Text>
+      </PressScale>
+    </View>
+  );
+}
+
 export default function MbooloChatScreen({ navigation, route }) {
   const open = (name, params) => navigateFromRoot(navigation, name, params);
   const { threadId, thread, title } = route.params ?? {};
   const showToast = useToast();
   const { profile } = useAppState();
   const voicePlayer = useAudioPlayer(null);
-  const { start: startVoice, stop: stopVoice, isRecording } = useMbooloVoiceRecorder();
+  const {
+    start: startVoice,
+    stop: stopVoice,
+    cancel: cancelVoice,
+    phase: voicePhase,
+    isRecording,
+    isReady,
+    isProcessing,
+    isVoiceBusy,
+    durationMillis,
+    maxSeconds,
+  } = useMbooloVoiceRecorder();
+  const micPulse = useBlink(isRecording ? 600 : 100000, isRecording ? 0.55 : 1);
+  const readyToastShown = useRef(false);
   const [messages, setMessages] = useState([]);
   const [userId, setUserId] = useState(null);
   const [text, setText] = useState('');
@@ -128,6 +176,8 @@ export default function MbooloChatScreen({ navigation, route }) {
   const [requestNote, setRequestNote] = useState('');
   const [requesting, setRequesting] = useState(false);
   const scrollRef = useRef(null);
+  const insets = useSafeAreaInsets();
+  const composerBottomPad = Math.max(insets.bottom, spacing.md);
 
   const chatTitle = title ?? thread?.name ?? 'Mboolo';
   const memberCount = thread?.members?.length ?? 0;
@@ -136,13 +186,14 @@ export default function MbooloChatScreen({ navigation, route }) {
   const playVoice = useCallback(
     async (url) => {
       if (!url) return;
-      if (Platform.OS === 'web' && typeof Audio !== 'undefined') {
-        new Audio(url).play().catch(() => showToast('Lecture impossible'));
-        return;
-      }
       try {
+        const source = await resolveVoicePlaybackSource(url);
+        if (Platform.OS === 'web' && typeof Audio !== 'undefined') {
+          new Audio(source).play().catch(() => showToast('Lecture impossible'));
+          return;
+        }
         await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
-        voicePlayer.replace(url);
+        voicePlayer.replace(source);
         voicePlayer.play();
       } catch {
         showToast('Lecture impossible');
@@ -177,6 +228,14 @@ export default function MbooloChatScreen({ navigation, route }) {
     scrollRef.current?.scrollToEnd({ animated: true });
   }, [messages.length]);
 
+  useEffect(() => {
+    if (isReady && !readyToastShown.current) {
+      readyToastShown.current = true;
+      showToast('⏹ Enregistrement terminé — appuie sur Envoyer');
+    }
+    if (!isReady) readyToastShown.current = false;
+  }, [isReady, showToast]);
+
   const postMessage = async (payload) => {
     setSending(true);
     try {
@@ -184,10 +243,20 @@ export default function MbooloChatScreen({ navigation, route }) {
       setMessages((prev) => [...prev, msg]);
       setText('');
     } catch (err) {
-      showToast(err.message ?? 'Envoi impossible');
+      if (err?.code === 'verification_required' || err?.status === 403) {
+        showToast(err.message ?? 'Vérifie ton profil (nom + téléphone) pour envoyer des messages');
+      } else {
+        showToast(err.message ?? 'Envoi impossible');
+      }
     } finally {
       setSending(false);
     }
+  };
+
+  const dismissAttachBeforePicker = async () => {
+    if (Platform.OS === 'web') return;
+    closeAttach();
+    await new Promise((resolve) => setTimeout(resolve, 280));
   };
 
   const handleSend = () => {
@@ -200,9 +269,9 @@ export default function MbooloChatScreen({ navigation, route }) {
 
   const handlePhoto = async () => {
     try {
-      // Web: file picker must run in the same tap gesture — do not close the sheet first.
+      await dismissAttachBeforePicker();
       const mediaUrl = await pickMboloImage();
-      closeAttach();
+      if (Platform.OS === 'web') closeAttach();
       if (!mediaUrl) return;
       showToast('Envoi de la photo…');
       await postMessage({ kind: 'image', mediaUrl, body: '📷 Photo' });
@@ -214,8 +283,9 @@ export default function MbooloChatScreen({ navigation, route }) {
 
   const handleCamera = async () => {
     try {
+      await dismissAttachBeforePicker();
       const mediaUrl = await takeMboloPhoto();
-      closeAttach();
+      if (Platform.OS === 'web') closeAttach();
       if (!mediaUrl) return;
       showToast('Envoi de la photo…');
       await postMessage({ kind: 'image', mediaUrl, body: '📷 Photo' });
@@ -229,12 +299,12 @@ export default function MbooloChatScreen({ navigation, route }) {
     try {
       if (isRecording) {
         closeAttach();
-        await toggleVoice();
+        await finishVoiceRecording();
         return;
       }
       await startVoice();
       closeAttach();
-      showToast('Enregistrement… appuie sur ⏹ pour envoyer');
+      showToast('🎤 Enregistrement démarré — appuie sur ⏹ pour envoyer');
     } catch (err) {
       closeAttach();
       showToast(err.message ?? 'Micro indisponible');
@@ -262,24 +332,36 @@ export default function MbooloChatScreen({ navigation, route }) {
     }
   };
 
+  const finishVoiceRecording = async () => {
+    try {
+      const mediaUrl = await stopVoice();
+      if (!mediaUrl) return;
+      showToast('⏹ Enregistrement terminé — envoi…');
+      await postMessage({ kind: 'voice', mediaUrl, body: '🎤 Message vocal' });
+      showToast('Message vocal envoyé ✓');
+    } catch (err) {
+      showToast(err.message ?? 'Enregistrement impossible');
+    }
+  };
+
   const toggleVoice = async () => {
-    if (isRecording) {
-      try {
-        const mediaUrl = await stopVoice();
-        if (!mediaUrl) return;
-        showToast('Envoi du vocal…');
-        await postMessage({ kind: 'voice', mediaUrl, body: '🎤 Message vocal' });
-      } catch (err) {
-        showToast(err.message ?? 'Enregistrement impossible');
-      }
+    if (isProcessing) return;
+    if (isRecording || isReady) {
+      await finishVoiceRecording();
       return;
     }
     try {
       await startVoice();
-      showToast('Enregistrement… appuie sur ⏹ pour envoyer');
+      showToast('🎤 Enregistrement démarré — appuie sur ⏹ pour envoyer');
     } catch (err) {
       showToast(err.message ?? 'Micro indisponible');
     }
+  };
+
+  const cancelVoiceRecording = async () => {
+    if (!isVoiceBusy || isProcessing) return;
+    await cancelVoice();
+    showToast('Enregistrement annulé');
   };
 
   const handleSendMoney = () => {
@@ -339,6 +421,11 @@ export default function MbooloChatScreen({ navigation, route }) {
     <View style={styles.root}>
       <WaxPattern color="rgba(232,92,26,0.04)" size={14} durationMs={25000} animated={false} />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
         <View style={styles.chatHead}>
           <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.chBack}>
             <Text style={{ fontSize: 15, color: '#fff' }}>←</Text>
@@ -381,8 +468,10 @@ export default function MbooloChatScreen({ navigation, route }) {
         <ScrollView
           ref={scrollRef}
           style={{ flex: 1 }}
-          contentContainerStyle={styles.msgs}
+          contentContainerStyle={[styles.msgs, { paddingBottom: spacing.xl }]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
         >
           {loading && <ActivityIndicator color={colors.mboolo.terra} style={{ marginVertical: spacing.xl }} />}
@@ -407,37 +496,55 @@ export default function MbooloChatScreen({ navigation, route }) {
           ))}
         </ScrollView>
 
-        {isRecording ? (
-          <View style={styles.recordingBar}>
-            <Text style={styles.recordingText}>🎤 Enregistrement en cours…</Text>
-            <PressScale scaleTo={0.95} onPress={toggleVoice} style={styles.recordingStop}>
-              <Text style={styles.recordingStopText}>⏹ Envoyer</Text>
-            </PressScale>
-          </View>
+        {isVoiceBusy ? (
+          <VoiceRecordingBar
+            phase={voicePhase}
+            durationMillis={durationMillis}
+            maxSeconds={maxSeconds}
+            processing={isProcessing}
+            onStop={finishVoiceRecording}
+            onCancel={cancelVoiceRecording}
+          />
         ) : null}
 
-        <View style={styles.inputRow}>
-          <PressScale scaleTo={0.9} onPress={() => setAttachOpen(true)} style={styles.ciAttach} disabled={sending}>
+        <View style={[styles.inputRow, { paddingBottom: composerBottomPad }]}>
+          <PressScale scaleTo={0.9} onPress={() => setAttachOpen(true)} style={styles.ciAttach} disabled={sending || isVoiceBusy}>
             <Text style={{ fontSize: 16 }}>📎</Text>
           </PressScale>
-          <PressScale scaleTo={0.9} onPress={toggleVoice} style={[styles.ciAttach, isRecording && styles.ciRecording]} disabled={sending}>
-            <Text style={{ fontSize: 16 }}>{isRecording ? '⏹' : '🎤'}</Text>
+          <PressScale
+            scaleTo={0.9}
+            onPress={toggleVoice}
+            style={[styles.ciAttach, isRecording && styles.ciRecording, (isReady || isProcessing) && styles.ciProcessing]}
+            disabled={sending || isProcessing}
+          >
+            <Animated.View style={{ opacity: isRecording ? micPulse : 1 }}>
+              <Text style={{ fontSize: 16 }}>{isRecording ? '⏹' : isReady ? '⏹' : isProcessing ? '…' : '🎤'}</Text>
+            </Animated.View>
           </PressScale>
           <TextInput
-            style={styles.ciField}
-            placeholder="Message…"
+            style={[styles.ciField, isVoiceBusy && styles.ciFieldMuted]}
+            placeholder={
+              isRecording
+                ? 'Enregistrement en cours…'
+                : isReady
+                  ? 'Enregistrement terminé — envoie ou annule'
+                  : isProcessing
+                    ? 'Préparation du vocal…'
+                    : 'Message…'
+            }
             placeholderTextColor={colors.mboolo.ink3}
             value={text}
             onChangeText={setText}
-            editable={!sending}
+            editable={!sending && !isVoiceBusy}
             onSubmitEditing={handleSend}
             returnKeyType="send"
           />
-          <PressScale scaleTo={0.9} onPress={handleSend} style={styles.ciSend} disabled={sending || !text.trim()}>
+          <PressScale scaleTo={0.9} onPress={handleSend} style={styles.ciSend} disabled={sending || isVoiceBusy || !text.trim()}>
             <LinearGradient colors={[colors.mboolo.terra, colors.mboolo.terraDark]} style={StyleSheet.absoluteFill} borderRadius={19} />
             <Text style={{ fontSize: 17, color: '#fff' }}>{sending ? '…' : '➤'}</Text>
           </PressScale>
         </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
 
       <MbooloAttachSheet
@@ -545,19 +652,55 @@ const styles = StyleSheet.create({
   recordingBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(232,92,26,0.08)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(232,92,26,0.2)',
+    gap: spacing.md,
+    backgroundColor: 'rgba(232,92,26,0.12)',
+    borderTopWidth: 2,
+    borderTopColor: colors.terracotta,
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
   },
-  recordingText: { fontFamily: fontFamily.bodySemiBold, fontSize: 12, color: colors.terracotta },
+  recordingBarProcessing: {
+    backgroundColor: 'rgba(250,216,54,0.16)',
+    borderTopColor: colors.goldDark,
+    justifyContent: 'center',
+  },
+  recordingBarReady: {
+    backgroundColor: 'rgba(26,240,96,0.1)',
+    borderTopColor: colors.greenDark,
+  },
+  recordingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.terracotta,
+  },
+  recordingText: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.terracotta },
+  recordingTimer: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: 'rgba(232,92,26,0.75)', marginTop: 2 },
+  recordingCancel: {
+    borderRadius: radius.round,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(232,92,26,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.85)',
+  },
+  recordingCancelText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.terracotta },
   recordingStop: { backgroundColor: colors.terracotta, borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 6 },
   recordingStopText: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: '#fff' },
-  inputRow: { backgroundColor: '#fff', borderTopWidth: 2, borderTopColor: 'rgba(232,92,26,0.1)', paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
+  inputRow: {
+    backgroundColor: '#fff',
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(232,92,26,0.1)',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignItems: 'center',
+  },
   ciAttach: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.mboolo.terraPale, borderWidth: 1.5, borderColor: colors.mboolo.border, alignItems: 'center', justifyContent: 'center' },
-  ciRecording: { backgroundColor: 'rgba(232,92,26,0.15)', borderColor: colors.terracotta },
+  ciRecording: { backgroundColor: 'rgba(232,92,26,0.22)', borderColor: colors.terracotta, borderWidth: 2 },
+  ciProcessing: { opacity: 0.55 },
+  ciFieldMuted: { opacity: 0.55 },
   ciField: { flex: 1, minHeight: 38, borderRadius: 19, backgroundColor: colors.mboolo.bg2, borderWidth: 2, borderColor: colors.mboolo.border, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.sm, fontSize: 13, color: colors.mboolo.ink },
   ciSend: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },

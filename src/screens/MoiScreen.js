@@ -49,7 +49,7 @@ function HighlightRing({ item, onPress }) {
 
 function highlightNavigation(item, open) {
   if (item.type === 'event') {
-    open('DiscoverTab', { screen: 'Discover', params: { initialTab: 'Events' } });
+    open('MarketplaceTab', { screen: 'Discover', params: { initialTab: 'Events' } });
     return;
   }
   if (item.type === 'tontine') {
@@ -195,6 +195,19 @@ export default function MoiScreen({ navigation }) {
   }, [profile.statusText, profile.currentSong, profile.arrondissement, isVerified, ngorScore]);
 
   const locationLine = [profile.arrondissement?.name, country?.name].filter(Boolean).join(' · ');
+
+  const settingsRows = useMemo(() => {
+    const rows = [...SETTINGS];
+    if (profile.isAgent) {
+      rows.unshift({
+        key: 'agent',
+        icon: '🏧',
+        title: 'Mode agent K21',
+        subtitle: 'Scanner dépôts clients, float, confirmation cash',
+      });
+    }
+    return rows;
+  }, [profile.isAgent]);
 
   useFocusEffect(
     useCallback(() => {
@@ -375,7 +388,7 @@ export default function MoiScreen({ navigation }) {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xl }}>
                 <PressScale
                   scaleTo={0.94}
-                  onPress={() => navigateFromRoot(navigation, 'Main', { screen: 'DiscoverTab' })}
+                  onPress={() => navigateFromRoot(navigation, 'Main', { screen: 'MarketplaceTab' })}
                   style={styles.hiItem}
                 >
                   <View style={styles.hiPlusRing}>
@@ -411,17 +424,21 @@ export default function MoiScreen({ navigation }) {
 
           <View style={[styles.settingsBlock, { paddingBottom: spacing.lg }]}>
             <Text style={styles.sectionLabel}>Paramètres</Text>
-            {SETTINGS.map((s) => (
+            {settingsRows.map((s) => (
               <SettingsRow
                 key={s.key}
                 item={s}
                 onPress={() => {
+                  if (s.key === 'agent') {
+                    open('AgentHome');
+                    return;
+                  }
                   if (s.key === 'business') {
                     open('BusinessMain');
                     return;
                   }
                   if (s.key === 'account') {
-                    open('EditProfile');
+                    open('CniVerification');
                     return;
                   }
                   if (s.key === 'accessibility') {
@@ -429,7 +446,7 @@ export default function MoiScreen({ navigation }) {
                     return;
                   }
                   if (s.key === 'notifs') {
-                    open('Notifications');
+                    open('Main', { screen: 'NotificationsTab' });
                     return;
                   }
                   open('Info', { title: s.title, subtitle: `${s.subtitle} — bientôt disponible.`, icon: s.icon });

@@ -122,6 +122,15 @@ export async function apiFetch(path, { method = 'GET', body, stepUpToken, auth =
       if (auth && response.ok) await touchActivity();
 
       const data = await response.json().catch(() => ({}));
+      if (response.status === 202) {
+        const error = new Error(
+          data.message ?? 'Nous vérifions cette transaction — tu auras de nos nouvelles sous peu.',
+        );
+        error.status = 202;
+        error.code = data.status ?? 'pending_review';
+        error.data = data;
+        throw error;
+      }
       if (!response.ok) {
         if (response.status === 401 && auth && _retry401 && path !== '/api/auth/refresh' && !accessTokenOverride) {
           const refreshToken = await getRefreshToken();
@@ -306,6 +315,10 @@ export function mePhoneConfirm(phone, otp) {
   return apiFetch('/api/me/phone/confirm', { method: 'POST', body: { phone, otp: String(otp).trim() }, skipCache: true });
 }
 
+export function getPlatformConfig() {
+  return apiFetch('/api/platform/config', { skipCache: true, auth: false });
+}
+
 export function getWallet(accessToken) {
   return apiFetch('/api/wallet', { skipCache: true, accessToken, _retry401: !accessToken });
 }
@@ -322,6 +335,10 @@ export function transferSend({ recipientHandle, amount, currency = 'kori', note,
     stepUpToken,
     skipCache: true,
   });
+}
+
+export function getMerchantPublic(idOrKebuId) {
+  return apiFetch(`/api/merchants/${encodeURIComponent(idOrKebuId)}/public`, { skipCache: true });
 }
 
 export function merchantPay(businessId, { amount, currency = 'kori', stepUpToken }) {
@@ -355,6 +372,49 @@ export function depositNational({ amount, source = 'beta' }) {
   return apiFetch('/api/deposits/national', {
     method: 'POST',
     body: { amount, source },
+    skipCache: true,
+  });
+}
+
+export function createAgentDeposit({ amount }) {
+  return apiFetch('/api/deposits/agent', {
+    method: 'POST',
+    body: { amount },
+    skipCache: true,
+  });
+}
+
+export function getAgentDepositStatus(reference) {
+  return apiFetch(`/api/deposits/agent/${encodeURIComponent(reference)}`, { skipCache: true });
+}
+
+export function createStripeDepositSession({ amount }) {
+  return apiFetch('/api/deposits/card/session', {
+    method: 'POST',
+    body: { amount },
+    skipCache: true,
+  });
+}
+
+export function getStripeDepositStatus(reference) {
+  return apiFetch(`/api/deposits/card/${encodeURIComponent(reference)}`, { skipCache: true });
+}
+
+export function getAgentMe() {
+  return apiFetch('/api/agent/me', { skipCache: true });
+}
+
+export function agentScanDeposit({ token, qr }) {
+  return apiFetch('/api/agent/deposits/scan', {
+    method: 'POST',
+    body: { token, qr },
+    skipCache: true,
+  });
+}
+
+export function agentConfirmDeposit(depositId) {
+  return apiFetch(`/api/agent/deposits/${encodeURIComponent(depositId)}/confirm`, {
+    method: 'POST',
     skipCache: true,
   });
 }
@@ -402,6 +462,90 @@ export function getProducts(category) {
 
 export function createProduct(body) {
   return apiFetch('/api/products', { method: 'POST', body, skipCache: true });
+}
+
+export function getSellerProfile() {
+  return apiFetch('/api/sellers/profile', { skipCache: true });
+}
+
+export function marketplaceSearch({ q, lat, lng, category }) {
+  const params = new URLSearchParams({ q });
+  if (lat != null) params.set('lat', String(lat));
+  if (lng != null) params.set('lng', String(lng));
+  if (category) params.set('category', category);
+  return apiFetch(`/api/marketplace/search?${params}`, { skipCache: true });
+}
+
+export function marketplaceShopsNearby({ lat, lng, category }) {
+  const params = new URLSearchParams();
+  if (lat != null) params.set('lat', String(lat));
+  if (lng != null) params.set('lng', String(lng));
+  if (category) params.set('category', category);
+  const q = params.toString() ? `?${params}` : '';
+  return apiFetch(`/api/marketplace/shops/nearby${q}`, { skipCache: true });
+}
+
+export function getMarketplaceShop(businessId, { lat, lng } = {}) {
+  const params = new URLSearchParams();
+  if (lat != null) params.set('lat', String(lat));
+  if (lng != null) params.set('lng', String(lng));
+  const q = params.toString() ? `?${params}` : '';
+  return apiFetch(`/api/marketplace/shops/${encodeURIComponent(businessId)}${q}`, { skipCache: true });
+}
+
+export function getMarketplaceHubs({ lat, lng, country } = {}) {
+  const params = new URLSearchParams();
+  if (lat != null) params.set('lat', String(lat));
+  if (lng != null) params.set('lng', String(lng));
+  if (country) params.set('country', country);
+  const q = params.toString() ? `?${params}` : '';
+  return apiFetch(`/api/marketplace/hubs${q}`, { skipCache: true });
+}
+
+export function getMyHubParcels() {
+  return apiFetch('/api/hubs/parcels/mine', { skipCache: true });
+}
+
+export function createHubParcel(body) {
+  return apiFetch('/api/hubs/parcels', { method: 'POST', body, skipCache: true });
+}
+
+export function getHubParcel(parcelId) {
+  return apiFetch(`/api/hubs/parcels/${encodeURIComponent(parcelId)}`, { skipCache: true });
+}
+
+export function markHubParcelInTransit(parcelId) {
+  return apiFetch(`/api/hubs/parcels/${encodeURIComponent(parcelId)}/in-transit`, {
+    method: 'POST',
+    skipCache: true,
+  });
+}
+
+export function requestHubParcelLastMile(parcelId, body) {
+  return apiFetch(`/api/hubs/parcels/${encodeURIComponent(parcelId)}/last-mile`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function confirmHubParcelPickup(parcelId, pickupCode) {
+  return apiFetch(`/api/hubs/parcels/${encodeURIComponent(parcelId)}/pickup`, {
+    method: 'POST',
+    body: { pickupCode },
+    skipCache: true,
+  });
+}
+
+export function hubParcelArrive(parcelId) {
+  return apiFetch(`/api/hubs/parcels/${encodeURIComponent(parcelId)}/arrive`, {
+    method: 'POST',
+    skipCache: true,
+  });
+}
+
+export function placeMarketplaceOrder(body) {
+  return apiFetch('/api/marketplace/orders', { method: 'POST', body, skipCache: true });
 }
 
 export function registerSellerProfile(body) {

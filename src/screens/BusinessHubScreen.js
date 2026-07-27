@@ -525,7 +525,7 @@ export default function BusinessHubScreen({ navigation }) {
                   {TYPE_LABEL[type] ?? 'Commerce'} · {business.kebuId ?? 'KEBU —'}
                 </Text>
               </View>
-              <PressScale scaleTo={0.9} onPress={() => navigation.navigate('Notifications')} style={styles.notifBtn}>
+              <PressScale scaleTo={0.9} onPress={() => navigation.navigate('Main', { screen: 'NotificationsTab' })} style={styles.notifBtn}>
                 <Text style={{ fontSize: 16 }}>🔔</Text>
               </PressScale>
             </View>

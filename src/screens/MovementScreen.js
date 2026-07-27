@@ -16,6 +16,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import { useToast } from '../components/Toast';
 import { useLocale } from '../context/LocaleContext';
 import { useAppState } from '../state/AppState';
+import { coordsFromArrondissement } from '../lib/dakar-coords';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useEntrance } from '../hooks/animations';
 import {
@@ -175,7 +176,7 @@ function GigsPanel({ onPostGig, refreshKey }) {
   );
 }
 
-function DrivePanel({ onRequestCourier, refreshKey }) {
+function DrivePanel({ onRequestCourier, refreshKey, navigation, coords }) {
   const showToast = useToast();
   const [online, setOnline] = useState(false);
   const [activating, setActivating] = useState(false);
@@ -190,14 +191,17 @@ function DrivePanel({ onRequestCourier, refreshKey }) {
     }
     setLoading(true);
     try {
-      const list = await getNearbyDeliveries();
+      const list = await getNearbyDeliveries({
+        lat: coords?.lat,
+        lng: coords?.lng,
+      });
       setJobs(Array.isArray(list) ? list : []);
     } catch {
       setJobs([]);
     } finally {
       setLoading(false);
     }
-  }, [online]);
+  }, [online, coords?.lat, coords?.lng]);
 
   useFocusEffect(
     useCallback(() => {
@@ -280,18 +284,22 @@ function DrivePanel({ onRequestCourier, refreshKey }) {
         <Text style={styles.emptyText}>Aucune course disponible pour le moment.</Text>
       )}
       {online &&
-        jobs.map((job, i) => (
-          <ListRow
-            key={job.id}
-            icon="📦"
-            title={job.pickup?.label ?? 'Collecte'}
-            meta={`${job.dropoff?.area ?? 'Dakar'} · ${job.distanceLabel ?? '—'} · ${job.deliveryFeeNational?.toLocaleString('fr-FR') ?? '—'} F`}
-            tag={acceptingId === job.id ? '…' : 'Accepter'}
-            tagColor={colors.orange}
-            delay={i * 60}
-            onPress={acceptingId ? undefined : () => onAccept(job.id)}
-          />
-        ))}
+        jobs.map((job, i) => {
+          const hubNote = job.hub?.name ? ` · ${job.hub.name}` : '';
+          const summary = job.productSummary ? ` · ${job.productSummary}` : '';
+          return (
+            <ListRow
+              key={job.id}
+              icon={job.pickup?.type === 'hub_parcel' ? '📦' : job.pickup?.type === 'warehouse' ? '🏭' : job.pickup?.type === 'hub' ? '📍' : '📦'}
+              title={job.pickup?.label ?? 'Collecte'}
+              meta={`${job.dropoff?.area ?? 'Dakar'} · ${job.distanceLabel ?? '—'} · ${job.deliveryFeeNational?.toLocaleString('fr-FR') ?? '—'} F${hubNote}${summary}`}
+              tag={acceptingId === job.id ? '…' : 'Accepter'}
+              tagColor={colors.orange}
+              delay={i * 60}
+              onPress={acceptingId ? undefined : () => onAccept(job.id)}
+            />
+          );
+        })}
     </View>
   );
 }
@@ -299,6 +307,7 @@ function DrivePanel({ onRequestCourier, refreshKey }) {
 export default function MovementScreen({ navigation, route }) {
   const showToast = useToast();
   const { profile } = useAppState();
+  const riderCoords = coordsFromArrondissement(profile?.arrondissement?.key);
   const { showMovementTab, setShowMovementTab } = useLocale();
   const initialMode = route.params?.initialMode === 'gigs' ? 'gigs' : 'drive';
   const [mode, setMode] = useState(initialMode);
@@ -402,7 +411,12 @@ export default function MovementScreen({ navigation, route }) {
           showsVerticalScrollIndicator={false}
         >
           {mode === 'drive' ? (
-            <DrivePanel onRequestCourier={() => setCourierSheetOpen(true)} refreshKey={refreshKey} />
+            <DrivePanel
+              onRequestCourier={() => setCourierSheetOpen(true)}
+              refreshKey={refreshKey}
+              navigation={navigation}
+              coords={riderCoords}
+            />
           ) : (
             <GigsPanel onPostGig={() => setGigSheetOpen(true)} refreshKey={refreshKey} />
           )}

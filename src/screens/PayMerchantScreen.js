@@ -18,17 +18,19 @@ import { colors, fontFamily, radius, spacing } from '../theme';
 import { useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { useToast } from '../components/Toast';
-import { merchantPay, getBusinesses } from '../lib/api-client';
-import { formatKori } from '../lib/kori.js';
+import StepUpOverlay from '../components/StepUpOverlay';
+import { useSecurity } from '../context/SecurityContext';
+import { merchantPay, getBusinesses, getMerchantPublic } from '../lib/api-client';
+import { formatKori, KORI_SYMBOL } from '../lib/kori.js';
 
 // design/k21-four-flows.html, FLOW 4 — MERCHANT QR PAYMENT (Screens M1-M3):
 // Scan QR (merchant card + scanner + amount) -> Confirm payment -> Payment done.
 
 const QUICK_AMOUNTS = [
-  { key: '50', value: 50, label: '₭50' },
-  { key: '100', value: 100, label: '₭100' },
-  { key: '250', value: 250, label: '₭250' },
-  { key: '500', value: 500, label: '₭500' },
+  { key: '50', value: 50, label: `${KORI_SYMBOL} 50` },
+  { key: '100', value: 100, label: `${KORI_SYMBOL} 100` },
+  { key: '250', value: 250, label: `${KORI_SYMBOL} 250` },
+  { key: '500', value: 500, label: `${KORI_SYMBOL} 500` },
 ];
 
 const DEFAULT_MERCHANT = {
@@ -88,9 +90,11 @@ function ScanStep({ merchant, merchants, onSelectMerchant, amount, setAmount, on
               <Text style={styles.merchantName}>{merchant.name}</Text>
               <Text style={styles.merchantArr}>📍 {merchant.arr}</Text>
             </View>
-            <View style={styles.verifiedPill}>
-              <Text style={styles.verifiedPillText}>✓ K21</Text>
-            </View>
+            {merchant.verified ? (
+              <View style={styles.verifiedPill}>
+                <Text style={styles.verifiedPillText}>✓ K21</Text>
+              </View>
+            ) : null}
           </Animated.View>
           {merchants.length > 1 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: spacing.md, maxHeight: 44 }}>
@@ -162,6 +166,7 @@ function ScanStep({ merchant, merchants, onSelectMerchant, amount, setAmount, on
 
 function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting }) {
   const entrance = useEntrance(0, 350, 10);
+  const verifyLabel = merchant.verified ? 'Marchand vérifié K21' : 'Marchand K21';
 
   return (
     <View style={{ flex: 1 }}>
@@ -173,7 +178,7 @@ function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting })
               <Text style={{ fontSize: 28 }}>{merchant.emoji}</Text>
             </View>
             <Text style={styles.confirmMerchantName}>{merchant.name}</Text>
-            <Text style={styles.confirmMerchantArr}>📍 {merchant.arr} · Marchand vérifié K21</Text>
+            <Text style={styles.confirmMerchantArr}>📍 {merchant.arr} · {verifyLabel}</Text>
             <Text style={styles.confirmAmount}>
               {formatKori(amount)}
             </Text>
@@ -278,6 +283,7 @@ function SuccessStep({ merchant, amount, oldBalance, newBalance, reference, onDo
 export default function PayMerchantScreen({ navigation, route }) {
   useScreenshotBlock(true);
   const showToast = useToast();
+  const security = useSecurity();
   const [step, setStep] = useState('scan');
   const [amount, setAmount] = useState(2500);
   const [oldBalance, setOldBalance] = useState(0);
@@ -285,28 +291,38 @@ export default function PayMerchantScreen({ navigation, route }) {
   const [reference, setReference] = useState('');
   const [undone, setUndone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [stepUpVisible, setStepUpVisible] = useState(false);
   const [merchants, setMerchants] = useState([]);
   const [merchant, setMerchant] = useState(DEFAULT_MERCHANT);
   const { balance, refreshWallet, setPendingMboloShare } = useAppState();
 
+  const applyMerchant = (m, params = route.params) => {
+    setMerchant({
+      name: params?.merchantName ?? m.name,
+      arr: params?.merchantArr ?? m.arrondissement ?? m.category ?? 'K21',
+      emoji: m.type === 'cooperative' ? '🌾' : '🏪',
+      businessId: m.id,
+      verified: params?.merchantVerified ?? m.verified ?? false,
+    });
+  };
+
   useEffect(() => {
+    const presetId = route.params?.merchantId;
+    if (presetId) {
+      getMerchantPublic(presetId)
+        .then((m) => applyMerchant(m))
+        .catch(() => {
+          showToast('Marchand introuvable');
+        });
+    }
     getBusinesses()
       .then((list) => {
         const items = Array.isArray(list) ? list : [];
         setMerchants(items);
-        const presetId = route.params?.merchantId;
-        const picked = presetId ? items.find((b) => b.id === presetId) : items[0];
-        if (picked) {
-          setMerchant({
-            name: route.params?.merchantName ?? picked.name,
-            arr: picked.arrondissement ?? picked.category ?? 'K21',
-            emoji: picked.type === 'cooperative' ? '🌾' : '🏪',
-            businessId: picked.id,
-          });
-        }
+        if (!presetId && items[0]) applyMerchant(items[0]);
       })
       .catch(() => {});
-  }, [route.params?.merchantId, route.params?.merchantName]);
+  }, [route.params?.merchantId, route.params?.merchantName, route.params?.merchantVerified, route.params?.merchantArr]);
 
   const selectMerchant = (m) => {
     setMerchant({
@@ -314,28 +330,43 @@ export default function PayMerchantScreen({ navigation, route }) {
       arr: m.arrondissement ?? m.category ?? 'K21',
       emoji: m.type === 'cooperative' ? '🌾' : '🏪',
       businessId: m.id,
+      verified: Boolean(m.verified),
     });
   };
 
-  const pay = async () => {
+  const executePay = async (stepUpToken) => {
     if (!merchant.businessId) {
-      showToast('Aucun marchand K21 — crée un commerce ou choisis dans la liste');
+      showToast('Aucun marchand K21 — scanne un QR ou choisis dans la liste');
       return;
     }
     setSubmitting(true);
     setOldBalance(balance);
     try {
-      const result = await merchantPay(merchant.businessId, { amount });
+      const result = await merchantPay(merchant.businessId, {
+        amount,
+        stepUpToken: stepUpToken ?? security.stepUpToken,
+      });
       setReference(result.reference);
       setUndone(false);
       const wallet = await refreshWallet();
       setNewBalance(wallet.balance ?? wallet.koriBalance ?? balance - amount);
       setStep('success');
     } catch (err) {
+      if (err.code === 'step_up_required') {
+        setStepUpVisible(true);
+        return;
+      }
       showToast(err.message ?? 'Paiement impossible');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const pay = () => executePay();
+
+  const handleStepUpVerified = (token) => {
+    setStepUpVisible(false);
+    executePay(token);
   };
 
   const handleUndone = async () => {
@@ -394,6 +425,7 @@ export default function PayMerchantScreen({ navigation, route }) {
           </StepTransition>
         )}
       </SafeAreaView>
+      <StepUpOverlay visible={stepUpVisible} onCancel={() => setStepUpVisible(false)} onVerified={handleStepUpVerified} />
     </View>
   );
 }

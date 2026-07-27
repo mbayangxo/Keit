@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { colors } from '../theme';
 import { getWallet, getTransactions } from '../lib/api-client.js';
 
 function generateId(prefix) {
@@ -88,15 +87,7 @@ export function AppStateProvider({ children }) {
       business: null,
     }));
     if (fundAmount != null) setBalance(fundAmount);
-    if (txs?.length) {
-      setTransactions(txs);
-    } else if (fundAmount) {
-      setTransactions([
-        { key: 'funding', icon: '💰', iconBg: colors.greenA08, title: 'Dépôt initial', subtitle: 'Bienvenue sur K21', amount: fundAmount },
-      ]);
-    } else {
-      setTransactions([]);
-    }
+    setTransactions(Array.isArray(txs) ? txs : []);
     setAuthenticated(true);
   }, []);
 

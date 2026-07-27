@@ -89,7 +89,7 @@ export default function BusinessDashboardScreen({ navigation }) {
               </View>
               <PressScale
                 scaleTo={0.9}
-                onPress={() => navigation.navigate('Notifications')}
+                onPress={() => navigation.navigate('Main', { screen: 'NotificationsTab' })}
                 style={styles.notifBtn}
               >
                 <Text style={{ fontSize: 16 }}>🔔</Text>

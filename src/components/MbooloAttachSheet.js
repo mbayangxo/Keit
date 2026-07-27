@@ -14,7 +14,7 @@ export default function MbooloAttachSheet({
   onGif,
 }) {
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent presentationStyle="overFullScreen" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <Pressable style={styles.backdropTap} onPress={onClose} accessibilityRole="button" accessibilityLabel="Fermer" />
         <View style={styles.sheet}>

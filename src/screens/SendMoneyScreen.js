@@ -18,10 +18,13 @@ import UndoTransferBar from '../components/UndoTransferBar';
 import { usePreferences } from '../context/PreferencesContext';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { useToast } from '../components/Toast';
-import { transferSend, lookupUser } from '../lib/api-client';
+import ProfileAvatar from '../components/ProfileAvatar';
+import StepUpOverlay from '../components/StepUpOverlay';
+import { useSecurity } from '../context/SecurityContext';
 import { useLocale } from '../context/LocaleContext';
+import { transferSend, lookupUser } from '../lib/api-client';
 import { toE164, isValidLocalPhone } from '../lib/phone';
-import { formatKori } from '../lib/kori.js';
+import { formatKori, KORI_SYMBOL } from '../lib/kori.js';
 
 const RECIPIENT_MODES = [
   { key: 'scan', icon: '📷', label: 'Scanner' },
@@ -36,10 +39,13 @@ const RECIPIENT_MODES = [
 
 const QUICK_AMOUNTS = [100, 500, 1000, 2500];
 
-function formatPhoneDisplay(phone) {
+function formatPhoneDisplay(phone, masked = false) {
   if (!phone || String(phone).startsWith('e:')) return '';
   const d = String(phone).replace(/\D/g, '');
   if (d.length >= 12 && d.startsWith('221')) {
+    if (masked) {
+      return `+221 ${d.slice(3, 5)} *** ** ${d.slice(-2)}`;
+    }
     return `+221 ${d.slice(3, 5)} ${d.slice(5, 8)} ${d.slice(8)}`.trim();
   }
   return phone;
@@ -209,22 +215,28 @@ function AmountStep({
 function ConfirmStep({ amount, reason, balance, recipientProfile, onConfirm, onCancel, submitting }) {
   const solde = balance - amount;
   const label = recipientProfile?.name || displayHandle(recipientProfile?.handle);
+  const arrLabel = recipientProfile?.arrondissement?.name
+    ? `${recipientProfile.arrondissement.icon ?? '📍'} ${recipientProfile.arrondissement.name}${recipientProfile?.verified ? ' · Vérifiée K21' : ''}`
+    : recipientProfile?.verified
+      ? 'Vérifiée K21'
+      : null;
 
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.csHero}>
         <WaxPattern color="rgba(26,240,96,0.03)" size={18} animated={false} />
         <View style={styles.csAva}>
-          <Text style={{ fontSize: 28 }}>{recipientProfile?.avatarEmoji ?? '🧑🏾'}</Text>
+          <ProfileAvatar
+            photoUrl={recipientProfile?.avatarUrl}
+            initial={label[0]?.toUpperCase() ?? '?'}
+            size={64}
+            textStyle={{ fontSize: 28 }}
+          />
         </View>
         <Text style={styles.csName}>{recipientProfile?.name}</Text>
         <Text style={styles.csHandle}>{displayHandle(recipientProfile?.handle)}</Text>
-        <Text style={styles.csPhone}>{formatPhoneDisplay(recipientProfile?.phone)}</Text>
-        {recipientProfile?.arrondissement?.name ? (
-          <Text style={styles.csArr}>
-            {recipientProfile.arrondissement.icon} {recipientProfile.arrondissement.name}
-          </Text>
-        ) : null}
+        <Text style={styles.csPhone}>{formatPhoneDisplay(recipientProfile?.phone, true)}</Text>
+        {arrLabel ? <Text style={styles.csArr}>{arrLabel}</Text> : null}
         <Text style={styles.csAmount}>
           {formatKori(amount)}
         </Text>
@@ -342,6 +354,7 @@ function SuccessStep({ amount, reason, reference, recipientProfile, onDone, onMa
 
 export default function SendMoneyScreen({ navigation, route }) {
   useScreenshotBlock(true);
+  const security = useSecurity();
   const { reduceMotion } = usePreferences();
   const { country } = useLocale();
   const showToast = useToast();
@@ -356,6 +369,7 @@ export default function SendMoneyScreen({ navigation, route }) {
   const [reference, setReference] = useState('');
   const [undone, setUndone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [stepUpVisible, setStepUpVisible] = useState(false);
   const lookupTimer = useRef(null);
   const { balance, refreshWallet, setPendingMboloShare } = useAppState();
   const countryDial = country?.dial ?? '+221';
@@ -409,7 +423,7 @@ export default function SendMoneyScreen({ navigation, route }) {
     setLookupError('');
   };
 
-  const confirm = async () => {
+  const executeSend = async (stepUpToken) => {
     if (!recipientProfile?.handle) return;
     setSubmitting(true);
     try {
@@ -417,16 +431,28 @@ export default function SendMoneyScreen({ navigation, route }) {
         recipientHandle: recipientProfile.handle,
         amount,
         note: reason,
+        stepUpToken: stepUpToken ?? security.stepUpToken,
       });
       setReference(result.reference);
       setUndone(false);
       await refreshWallet();
       setStep('success');
     } catch (err) {
+      if (err.code === 'step_up_required') {
+        setStepUpVisible(true);
+        return;
+      }
       showToast(err.message ?? 'Envoi impossible');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const confirm = () => executeSend();
+
+  const handleStepUpVerified = (token) => {
+    setStepUpVisible(false);
+    executeSend(token);
   };
 
   const handleUndone = async () => {
@@ -503,6 +529,7 @@ export default function SendMoneyScreen({ navigation, route }) {
           </StepTransition>
         )}
       </SafeAreaView>
+      <StepUpOverlay visible={stepUpVisible} onCancel={() => setStepUpVisible(false)} onVerified={handleStepUpVerified} />
     </View>
   );
 }

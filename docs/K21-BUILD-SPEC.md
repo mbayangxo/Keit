@@ -1,4 +1,6 @@
-# K21 — Complete Wallet & Payments Build Spec
+# K21 — Payment infrastructure for Senegal
+
+**K21 is the payment infrastructure for Senegal** — the platform every future K21 app runs on. Wallet, marketplace, and Mboolo share one ledger, one API, and one identity. Rect and partner apps are clients of this platform; they do not implement their own money layer.
 
 **For Cursor agents.** This document consolidates product, regulatory, and implementation context across sessions.
 
@@ -20,6 +22,66 @@
 **Deploy:** One Vercel project (Expo web export + `/api`). See [`docs/K21-GET-ONLINE.md`](K21-GET-ONLINE.md).
 
 **Do not edit `/src` for backend-only work.** Wire the app to existing `/api` routes when connecting features.
+
+---
+
+## K21 vs Rect (two apps, one platform)
+
+**K21 is payment infrastructure for Senegal** — the app (and API) for **wallet**, **marketplace** (anything you pay for), and **Mboolo** (chat + voice/video calls). **Rect** is identity and culture on top of that platform — not a second wallet.
+
+**Locked product split:**
+
+| | **K21** | **Rect** |
+|---|---------|----------|
+| **What it is** | Infrastructure — **wallet**, **marketplace**, **Mboolo** | Social — who you are, clubs, culture, creator presence |
+| **User promise** | “Pay for life — send money, order, ride, shop, eat, deliver” | “My space in the African digital world” |
+| **Surfaces** | **Wallet** · **Marketplace** · **Mboolo** (messages, voice notes, **voice & video chat**) | Lounge, clubs, Tendances, … (checkout → K21) |
+| **App store** | Separate install (primary) | Separate install (`Rect`) |
+| **Runs on** | Platform owner (ledger + compliance) | **K21 platform** (same backend — not a second ledger) |
+
+### Three surfaces in K21 (do not merge)
+
+| Surface | Job | Examples |
+|---------|-----|----------|
+| **Wallet** | Balances & P2P / cash rails | Send to @handle, receive, Cash in/out, tontine, pay merchant QR |
+| **Marketplace** | **Paid commerce & work** — one place for “I pay for something” | Delivery (Mouvement), rides, driver gigs, seller shop, event tickets, cooperative payouts, Ñu Lekk settle-to-merchant, Cayor market orders |
+| **Mboolo** | **Chat & calls** — messages, voice notes, photos, stickers, **voice call, video call**, groups | Friends, DMs, group threads; 📞/🎥 from chat header; optional receipt *share* only |
+
+**Rule:** If it **costs money** and is a **product, ride, delivery, ticket, or job** → **marketplace** (+ wallet settlement). If it **moves money person-to-person** → **wallet**. If it **messages or calls (voice/video)** → **Mboolo**.
+
+Discover/Tendances in this repo today is wired into the **Marketplace** tab — paid commerce and regional alerts. Long term **Rect** owns culture browse; **K21 marketplace** owns the paid side (order, deliver, ride, checkout).
+
+**Bottom nav (K21 app):** Accueil · Mboolo · Marketplace · Alertes · Moi. Wallet actions live on Accueil (+ **Plus** sheet); paid commerce on Marketplace; chat/calls on Mboolo.
+
+### Mboolo ≠ wallet
+
+**Do not describe Mboolo as “where you send money.”** They are separate surfaces in one app:
+
+| | **Wallet** | **Mboolo** |
+|---|------------|------------|
+| **Purpose** | Balances, transfers, cash, merchant pay, receipts | Talk to people — text, voice notes, images, groups, **voice & video calls** |
+| **Primary UI** | Accueil wallet, Send / Receive / Cash, **Plus** (MoreActions) | **Mboolo** tab, chat threads, **Call** screen (📞 / 🎥) |
+| **Money** | All ledger movement happens here (with safety confirm, PIN, etc.) | Optional hooks only — e.g. share a receipt, *future* “request ₭” → **Receive** — not a balance UI |
+
+Mboolo is **WhatsApp-class messaging + calls inside K21** (including **video chat**), not a payment surface. Wallet stays the single place for balance and moving money.
+
+**“Runs on K21” means Rect never implements its own money layer.** Shared infrastructure:
+
+- One **Postgres** (`/prisma`) — `User`, `Wallet`, ledger, verification
+- One **API** (`/api` + `/lib`) — auth JWT, `/transfers/*`, `/deposits/*`, `/mbolo/*`, `/trending/*`, etc.
+- One **identity** — `@handle`, AFRI ID, tiers; Rect reads profile; K21 owns KYC/fraud
+- **Pay flows** — Rect triggers K21 (deep link, app switch, or in-app wallet sheet); settlement always hits K21 APIs
+
+**Cross-app flows (target):**
+
+- Rect: pay / buy ticket / tip creator → **K21 wallet** (Accueil, Payer, Send — not Mboolo)
+- Rect: “Message @awa” → **K21 Mboolo** (chat lives in K21, not Rect)
+- K21 wallet: optional **post to Mboolo** after send (receipt card in thread) — convenience, not required
+- Shared session: same refresh token / SSO where OS allows (Universal Links / App Links)
+
+**This repo today:** the Expo app in `/src` is **K21** — wallet + **Mboolo** + (for now) Discover/Tendances screens that will eventually move to the Rect app. Do not remove Mboolo from K21. New **Mboolo** work stays in this app + shared `/api/mbolo/*`. New **Lounge / culture / creator** surface targets Rect when that app exists.
+
+**Regulatory:** all balance changes, deposits, and payouts stay in K21 handlers with [`K21-FINANCIAL-SECURITY.md`](K21-FINANCIAL-SECURITY.md). Rect is a client of that API, like a third-party app would be — but first-party, same team.
 
 ---
 
@@ -104,15 +166,17 @@ Family Wallet for mother, child, spouse, etc. Framed as **"Protège ta famille"*
 
 ---
 
-## COMMUNICATION (inside K21)
+## Mboolo (chat + calls)
 
-- **Voice notes:** hold-to-record, inline play, no file download UX
-- **Voice calls:** K21↔K21 over data, free
-- **Video calls:** same infra as voice
-- **Money request + voice:** voice note instead of typed reason
-- **Group voice notes:** same mechanic in Mboolo groups
+All of this lives in the **Mboolo** tab — not wallet, not marketplace.
 
-**Planned infra:** Stream or Sendbird for RTC + messaging. **Backend today:** basic MBLOL threads/messages in `/server` — not production chat.
+- **Messages:** text, images, GIFs, stickers, voice notes (hold-to-record, inline play)
+- **Voice calls:** 📞 1:1 and group threads — K21↔K21 over data (LiveKit; see [`docs/K21-CALLS-LIVEKIT.md`](K21-CALLS-LIVEKIT.md))
+- **Video calls:** 🎥 same rooms as voice — tap from chat header or join card in thread
+- **Friends & groups:** DMs, group threads, @handle invites
+- **Optional:** share transfer receipt in thread; money requests stay **wallet / Receive**, not inline pay in chat
+
+**Backend today:** `/api/mbolo/*` threads + messages; `POST /api/calls/token` mints LiveKit room per thread. **Web first** for calls; native needs custom dev build.
 
 ---
 
@@ -150,16 +214,19 @@ Family Wallet for mother, child, spouse, etc. Framed as **"Protège ta famille"*
 
 ---
 
-## Worker profile (travailleur)
+## Worker profile (travailleur) & marketplace
 
-- **Not a signup type** — only **personal** accounts activate worker from **Moi → Profil travailleur** or **Mouvement**
+K21 **marketplace** covers delivery, riding, gigs, seller orders, and any paid service — not a separate product per vertical.
+
+- **Not a signup type** — personal accounts activate worker from **Moi → Profil travailleur** or **Mouvement**
 - **Business accounts** cannot activate worker (separate KEBU business signup)
-- Modes: **delivery**, **seller** (Discover), **gigs**
+- **Modes:** delivery, seller, rides/gigs (Mouvement)
+- Escrow on delivery → release on confirm; disputes + admin resolve
 - Completed paid jobs → **WorkerReceipt** (`WR-…`) for loan documentation
-- **Credit tier**: starter → building (3+ jobs, 10k+ F) → established (20+ jobs, 100k+ F)
-- APIs: `GET/POST /workers/profile`, `GET /workers/receipts`, `GET /workers/credit-summary`
+- **Credit tier**: starter → building → established
+- APIs: `/workers/*`, `/deliveries/*`, seller/market routes, `/events/*` tickets
 
-**Backend today:** ✅ delivery receipts on escrow release; seller/gig receipts on order settlement — planned.
+**Backend today:** ✅ delivery escrow + receipts; seller/gig settlement — partial; Movement UI in app.
 
 ---
 
@@ -223,7 +290,7 @@ Send/receive + safety screen · Merchant QR pay · Cash in/out (Julaya) · Basic
 Tontine · Ñu Lekk · Voice notes · Money request accept/deny · LemFi international · Events/tickets · Cayor Market + rider signup
 
 ### Within 6 months
-Family wallet locks · Voice/video calls · Float · Agent network · Rider dispatch · Full Kori earn
+Family wallet locks · Float · Agent network · Rider dispatch · Full Kori earn · native Mboolo video (custom build)
 
 ### Year 2
 K21 Charts · Alkebulan ID · TAALI · K21 Pass card · Défis · Leaderboards · K21 Junior · Xel ak Sago · Ataya rooms · Cayor checkpoints
@@ -255,7 +322,7 @@ K21 Charts · Alkebulan ID · TAALI · K21 Pass card · Défis · Leaderboards �
 | Merchant pay XOF/₭ | ⚠️ partial |
 | QR / offline token | ❌ |
 | Julaya / LemFi rails | ⚠️ Julaya adapter (sandbox + live boundary) |
-| Voice/video / Stream | ❌ |
+| Voice/video calls (Mboolo, LiveKit) | ⚠️ web + API; env required |
 | Float | ❌ |
 | Wakhna points | ❌ |
 | Events/tickets | ⚠️ basic |

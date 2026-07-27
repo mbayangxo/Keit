@@ -70,7 +70,13 @@ export default function WelcomeCelebrationScreen({ accountType = 'personal', nam
               {formatKori(fundAmount ?? 0)}
             </Text>
             <Text style={[styles.balanceNote, { color: ob.muted }]}>
-              {isBusiness ? '✦ Zéro frais sur tes paiements reçus' : '✦ Zéro frais sur tous tes envois'}
+              {(fundAmount ?? 0) > 0
+                ? isBusiness
+                  ? '✦ Zéro frais sur tes paiements reçus'
+                  : '✦ Zéro frais sur tous tes envois'
+                : isBusiness
+                  ? 'Ton commerce est prêt — les paiements arriveront ici.'
+                  : 'Commence sans solde — ajoute de l’argent quand tu veux via Cash.'}
             </Text>
           </View>
 

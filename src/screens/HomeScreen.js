@@ -9,6 +9,7 @@ import PressScale from '../components/PressScale';
 import ProfileAvatar from '../components/ProfileAvatar';
 import { useAppState } from '../state/AppState';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
+import { usePlatformFeatures } from '../lib/platform-features';
 import { getFriends, getMboloThreads, getMe, getTontineGroups, getTransactions } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing, type, motion } from '../theme';
 import { navigateFromRoot } from '../lib/root-navigation';
@@ -28,11 +29,10 @@ const PRIMARY_ACTIONS = [
 ];
 
 const SECONDARY_ACTIONS = [
-  { icon: '🏧', label: 'Cash', gradient: ['#baf7d0', '#22d968'], glow: colors.green, route: 'Cash' },
-  { icon: '🏦', label: 'Tontine', gradient: ['#fdf3cd', '#eeda96'], glow: colors.flagGold, route: 'Tontine' },
-  { icon: '🍖', label: 'Ñu Lekk', gradient: ['#ffd4c4', '#e85c1a'], glow: colors.terracotta, route: 'NuLekk' },
-  { icon: '🛵', label: 'Mouvement', gradient: ['#d4f5e2', '#1a9e52'], glow: colors.green, route: 'Movement' },
-  { icon: '⋯', label: 'Services', gradient: ['#fdf3cd', '#eeda96'], glow: colors.flagGold, route: 'MoreActions' },
+  { icon: '🏧', label: 'Cash', gradient: ['#baf7d0', '#22d968'], glow: colors.green, route: 'Cash', feature: ['cash', 'available'] },
+  { icon: '🏦', label: 'Tontine', gradient: ['#fdf3cd', '#eeda96'], glow: colors.flagGold, route: 'Tontine', feature: ['wallet', 'tontine'] },
+  { icon: '📷', label: 'Scan', gradient: ['#ffd4c4', '#e85c1a'], glow: colors.terracotta, route: 'QrScan' },
+  { icon: '➕', label: 'Plus', gradient: ['#d4f5e2', '#1a9e52'], glow: colors.green, route: 'MoreActions' },
 ];
 
 function formatAmount(n) {
@@ -335,16 +335,17 @@ function TransactionRow({ icon, iconBg, title, subtitle, amount, amountColor }) 
 export default function HomeScreen({ navigation }) {
   useScreenshotBlock(true);
   const open = (route, params) => navigateFromRoot(navigation, route, params);
+  const { feature } = usePlatformFeatures();
   const notifBlink = useBlink();
   const balanceEntrance = useEntrance(0, 1000, 12);
   const { profile, balance, transactions, refreshWallet } = useAppState();
   const firstName = profile.name.split(' ')[0];
-  const [spendingTxs, setSpendingTxs] = useState([]);
+  const [recentTxs, setRecentTxs] = useState([]);
   const [tontineGroup, setTontineGroup] = useState(null);
   const [mboloThread, setMbooloThread] = useState(null);
   const [mboloUserId, setMbooloUserId] = useState(null);
 
-  const spending = computeMonthlySpending(spendingTxs.length ? spendingTxs : transactions);
+  const spending = computeMonthlySpending(recentTxs.length ? recentTxs : transactions);
 
   useFocusEffect(
     useCallback(() => {
@@ -359,7 +360,8 @@ export default function HomeScreen({ navigation }) {
       ])
         .then(([txList, tontines, me, threads]) => {
           if (cancelled) return;
-          setSpendingTxs(Array.isArray(txList) ? txList : []);
+          const txs = Array.isArray(txList) ? txList : [];
+          setRecentTxs(txs);
           const groups = Array.isArray(tontines) ? tontines : [];
           const primary =
             groups.find((g) => g.isMyTurn) ?? groups.find((g) => g.releasing) ?? groups[0] ?? null;
@@ -400,7 +402,7 @@ export default function HomeScreen({ navigation }) {
                     Salut <Text style={styles.greetingBold}>{firstName}</Text> 👋🏿
                   </Text>
                 </View>
-                <PressScale scaleTo={0.9} onPress={() => open('Notifications')} style={styles.notifBtn}>
+                <PressScale scaleTo={0.9} onPress={() => open('Main', { screen: 'NotificationsTab' })} style={styles.notifBtn}>
                   <Text style={{ fontSize: 16 }}>🔔</Text>
                   <Animated.View style={[styles.notifDot, { opacity: notifBlink }]} />
                 </PressScale>
@@ -422,7 +424,7 @@ export default function HomeScreen({ navigation }) {
                 ))}
               </View>
               <View style={styles.homeActionsSecondary}>
-                {SECONDARY_ACTIONS.map((a, i) => (
+                {SECONDARY_ACTIONS.filter((a) => !a.feature || feature(...a.feature)).map((a, i) => (
                   <ActionButton
                     key={a.label}
                     {...a}
@@ -432,6 +434,14 @@ export default function HomeScreen({ navigation }) {
                   />
                 ))}
               </View>
+              <PressScale scaleTo={0.98} onPress={() => open('Main', { screen: 'MarketplaceTab' })} style={styles.marketplaceCard}>
+                <Text style={styles.marketplaceIcon}>🛒</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.marketplaceTitle}>Marketplace</Text>
+                  <Text style={styles.marketplaceSub}>Livraison · courses · billets · marchands</Text>
+                </View>
+                <Text style={styles.marketplaceArrow}>→</Text>
+              </PressScale>
             </View>
           </View>
 
@@ -456,11 +466,11 @@ export default function HomeScreen({ navigation }) {
 
           <View style={styles.txSection}>
             <Text style={styles.txLabel}>Transactions récentes</Text>
-            {transactions.length === 0 ? (
+            {recentTxs.length === 0 ? (
               <Text style={styles.txEmpty}>Aucune transaction pour l'instant.</Text>
             ) : (
               <View style={{ gap: spacing.sm }}>
-                {transactions.slice(0, 5).map((tx) => (
+                {recentTxs.slice(0, 5).map((tx) => (
                   <TransactionRow
                     key={tx.key}
                     icon={tx.icon}
@@ -500,7 +510,22 @@ const styles = StyleSheet.create({
   zeroFeesText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.goldDark },
 
   homeActions: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.lg },
-  homeActionsSecondary: { flexDirection: 'row', justifyContent: 'space-between' },
+  homeActionsSecondary: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.lg },
+  marketplaceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(5,8,5,0.08)',
+    borderRadius: radius.xl,
+    borderBottomRightRadius: 10,
+    padding: spacing.lg,
+  },
+  marketplaceIcon: { fontSize: 28 },
+  marketplaceTitle: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.ink },
+  marketplaceSub: { fontSize: 10, color: 'rgba(5,8,5,0.5)', marginTop: 2 },
+  marketplaceArrow: { fontSize: 16, color: colors.greenDark },
   haItem: { alignItems: 'center', gap: spacing.xs, flex: 1, maxWidth: 88, minHeight: 72 },
   haItemCompact: { maxWidth: 72, minHeight: 68 },
   haBtn: {

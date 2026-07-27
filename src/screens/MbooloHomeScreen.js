@@ -12,11 +12,6 @@ import { useScalePulse, useColorPulse, useEntrance } from '../hooks/animations';
 import { createMboloThread, getMboloThreads, getMe } from '../lib/api-client';
 import { navigateFromRoot } from '../lib/root-navigation';
 
-const SOCIAL_SHORTCUTS = [
-  { key: 'friends', icon: '👥', label: 'Amis', route: 'Friends' },
-  { key: 'tontine', icon: '🔄', label: 'Tontine', route: 'Tontine' },
-];
-
 const DOTS = [
   { size: 5, left: '12%', color: 'rgba(232,92,26,0.25)', duration: 9000, delay: 0 },
   { size: 4, left: '45%', color: 'rgba(255,179,71,0.3)', duration: 13000, delay: 3000 },
@@ -137,7 +132,6 @@ const SearchBar = ({ query, setQuery, inputRef }) => {
 };
 
 export default function MbooloHomeScreen({ navigation }) {
-  const open = (name, params) => navigateFromRoot(navigation, name, params);
   const logoBounce = useScalePulse(3000, 1.03);
   const [query, setQuery] = useState('');
   const [threads, setThreads] = useState([]);
@@ -238,25 +232,6 @@ export default function MbooloHomeScreen({ navigation }) {
             <SearchBar query={query} setQuery={setQuery} inputRef={searchRef} />
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.socialRow}
-            style={{ marginBottom: spacing.lg }}
-          >
-            {SOCIAL_SHORTCUTS.map((item) => (
-              <PressScale
-                key={item.key}
-                scaleTo={0.96}
-                onPress={() => open(item.route)}
-                style={styles.socialChip}
-              >
-                <Text style={styles.socialIcon}>{item.icon}</Text>
-                <Text style={styles.socialLabel}>{item.label}</Text>
-              </PressScale>
-            ))}
-          </ScrollView>
-
           <Text style={styles.convDivider}>Messages</Text>
 
           {loading && (
@@ -322,20 +297,6 @@ const styles = StyleSheet.create({
   mbIcon: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.greenA10, borderWidth: 1.5, borderColor: colors.greenA20, alignItems: 'center', justifyContent: 'center' },
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.appCanvas.surface, borderWidth: 2, borderColor: colors.appCanvas.border, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, height: 42, marginBottom: spacing.xxxl, shadowColor: colors.orange, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 2 },
   searchInput: { flex: 1, fontSize: 13, color: colors.mboolo.ink },
-  socialRow: { paddingHorizontal: spacing.huge, gap: spacing.md },
-  socialChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.appCanvas.surface,
-    borderWidth: 2,
-    borderColor: colors.mboolo.border,
-    borderRadius: radius.xxl,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-  },
-  socialIcon: { fontSize: 16 },
-  socialLabel: { fontSize: 12, fontWeight: '700', color: colors.mboolo.ink },
   noResults: { textAlign: 'center', fontSize: 12, color: colors.mboolo.ink3 },
   newBtn: { backgroundColor: colors.mboolo.terraPale, borderWidth: 1.5, borderColor: colors.mboolo.border, borderRadius: radius.xl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.lg },
   newBtnText: { fontSize: 13, fontWeight: '700', color: colors.mboolo.terraDark },

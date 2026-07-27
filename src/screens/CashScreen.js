@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Animated, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
@@ -9,43 +9,35 @@ import Keypad from '../components/Keypad';
 import ScreenHeader from '../components/ScreenHeader';
 import AmountChips from '../components/AmountChips';
 import ReceiptCard from '../components/ReceiptCard';
+import StepUpOverlay from '../components/StepUpOverlay';
 import { useAppState } from '../state/AppState';
+import { useSecurity } from '../context/SecurityContext';
+import { usePlatformFeatures } from '../lib/platform-features';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
-import { useBlink, useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
+import { useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { useToast } from '../components/Toast';
-import { cashIn, cashOut, depositNational } from '../lib/api-client';
-import { formatKori, formatNationalEquivalent } from '../lib/kori.js';
-
-const BETA_DEPOSITS = process.env.EXPO_PUBLIC_ALLOW_BETA_DEPOSITS === 'true';
-
-/** Maps agent UI keys to Julaya operator ids (backend abstraction). */
-const AGENT_OPERATORS = {
-  ndiaye: 'orange_money',
-  sandaga: 'wave',
-  'medina-tel': 'free_money',
-  'aminata-shop': 'orange_money',
-};
-
-// No HTML prototype exists for Cash In/Out (Julaya agent network) — only
-// mentioned in the brief's Phase 1 scope. Designed to match the established
-// system exactly and mirror Pay Merchant / Send Money's step structure.
+import { cashIn, cashOut, depositNational, createStripeDepositSession, getMe } from '../lib/api-client';
+import { formatKori } from '../lib/kori.js';
 
 const QUICK_AMOUNTS = [2000, 5000, 10000, 25000];
 
-const AGENTS = [
-  { key: 'ndiaye', name: 'Boutique Ndiaye', distance: '250 m', rating: 4.8, open: true },
-  { key: 'sandaga', name: 'Kiosque Sandaga', distance: '480 m', rating: 4.6, open: true },
-  { key: 'medina-tel', name: 'Médina Télécom', distance: '620 m', rating: 4.9, open: true },
-  { key: 'aminata-shop', name: 'Chez Aminata', distance: '900 m', rating: 4.5, open: false },
+const OPERATORS = [
+  { key: 'orange_money', name: 'Orange Money', icon: '🟠' },
+  { key: 'wave', name: 'Wave', icon: '💙' },
+  { key: 'free_money', name: 'Free Money', icon: '🟣' },
 ];
 
 function formatAmount(n) {
   return Math.round(n).toLocaleString('fr-FR').replace(/ /g, ' ');
 }
 
-function agentFee(amount) {
-  return Math.max(100, Math.round(amount * 0.01));
+function formatPhone(phone) {
+  const d = String(phone ?? '').replace(/\D/g, '');
+  if (d.length >= 12 && d.startsWith('221')) {
+    return `+221 ${d.slice(3, 5)} ${d.slice(5, 8)} ${d.slice(8)}`.trim();
+  }
+  return phone ?? '';
 }
 
 function ModeToggle({ mode, setMode }) {
@@ -63,8 +55,23 @@ function ModeToggle({ mode, setMode }) {
   );
 }
 
-function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onBetaDeposit, onBack, betaLoading }) {
-  const label = mode === 'in' ? 'Combien déposer ?' : 'Combien retirer ?';
+function AmountStep({
+  mode,
+  setMode,
+  amount,
+  setAmount,
+  balance,
+  onContinue,
+  onBetaDeposit,
+  onAgentDeposit,
+  onCardDeposit,
+  onBack,
+  betaLoading,
+  betaEnabled,
+  agentEnabled,
+  stripeEnabled,
+  cardLoading,
+}) {
   const pressDigit = (d) => setAmount((prev) => Math.min(999999, Number(`${prev === 0 ? '' : prev}${d}`)));
   const pressBackspace = () => setAmount((prev) => Math.floor(prev / 10));
 
@@ -86,15 +93,14 @@ function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onB
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.amountHero}>
-          <Text style={styles.amountLbl}>{label}</Text>
+          <Text style={styles.amountLbl}>{mode === 'in' ? 'Combien déposer ?' : 'Combien retirer ?'}</Text>
           <Text style={styles.amountNum}>
             {formatAmount(amount)} <Text style={styles.amountCurr}>F</Text>
           </Text>
-
           <AmountChips options={QUICK_AMOUNTS} value={amount} onChange={setAmount} style={styles.quickRow} />
-
-          {mode === 'out' && <Text style={styles.balanceNote}>Solde disponible : {formatKori(balance)} · retrait en F CFA</Text>}
-
+          {mode === 'out' ? (
+            <Text style={styles.balanceNote}>Solde disponible : {formatKori(balance)} · retrait en F CFA</Text>
+          ) : null}
           <View style={styles.keypadWrap}>
             <Keypad onDigit={pressDigit} onBackspace={pressBackspace} />
           </View>
@@ -102,141 +108,144 @@ function AmountStep({ mode, setMode, amount, setAmount, balance, onContinue, onB
 
         <View style={styles.feeNote}>
           <Text style={styles.feeNoteText}>
-            {mode === 'in' && BETA_DEPOSITS
-              ? 'Beta US/diaspora : crédit test instantané ci-dessous. Agents Julaya pour le Sénégal via « Choisir un agent ».'
-              : (
-                <>
-                  Frais agent estimés :{' '}
-                  <Text style={{ fontFamily: fontFamily.bodyBold, color: colors.ink }}>{formatAmount(agentFee(amount))} F</Text>
-                </>
-              )}
+            {mode === 'in'
+              ? 'Mobile Money Sénégal — confirme sur ton téléphone si Julaya le demande.'
+              : 'Retrait vers ton numéro Mobile Money · CNI vérifiée requise (Tier 2).'}
           </Text>
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
-        {mode === 'in' && BETA_DEPOSITS && (
+        {mode === 'in' && betaEnabled ? (
           <GlowButton
             label={betaLoading ? 'Ajout en cours…' : `Crédit test +${formatAmount(amount)} F`}
             onPress={onBetaDeposit}
             disabled={betaLoading || amount <= 0}
             style={{ marginBottom: spacing.md }}
           />
-        )}
-        <GlowButton label="Choisir un agent →" onPress={onContinue} disabled={amount <= 0 || (mode === 'out' && Math.floor(amount / 10) > balance)} />
+        ) : null}
+        {mode === 'in' && agentEnabled ? (
+          <GlowButton
+            label="Dépôt chez un agent K21 →"
+            onPress={onAgentDeposit}
+            disabled={amount <= 0}
+            style={{ marginBottom: spacing.md }}
+          />
+        ) : null}
+        {mode === 'in' && stripeEnabled ? (
+          <GlowButton
+            label={cardLoading ? 'Ouverture Stripe…' : 'Carte bancaire (diaspora) →'}
+            onPress={onCardDeposit}
+            disabled={amount <= 0 || cardLoading}
+            style={{ marginBottom: spacing.md }}
+          />
+        ) : null}
+        <GlowButton
+          label={mode === 'in' ? 'Mobile Money →' : 'Choisir Mobile Money →'}
+          onPress={onContinue}
+          disabled={amount <= 0 || (mode === 'out' && Math.floor(amount / 10) > balance)}
+        />
       </View>
     </View>
   );
 }
 
-function AgentRow({ agent, delay, onPress }) {
-  const entrance = useEntrance(delay, 300, 8);
-  const liveDot = useBlink(1400, 0.3);
-  return (
-    <Animated.View style={entrance}>
-      <PressScale scaleTo={0.98} onPress={agent.open ? onPress : undefined}>
-        <View style={[styles.agentRow, !agent.open && styles.agentRowClosed]}>
-          <View style={styles.agentAva}>
-            <Text style={{ fontSize: 20 }}>🏬</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.agentName}>{agent.name}</Text>
-            <Text style={styles.agentMeta}>
-              📍 {agent.distance} · ⭐ {agent.rating.toFixed(1)}
-            </Text>
-          </View>
-          {agent.open ? (
-            <View style={styles.agentStatusOpen}>
-              <Animated.View style={[styles.agentDot, { opacity: liveDot }]} />
-              <Text style={styles.agentStatusText}>Ouvert</Text>
-            </View>
-          ) : (
-            <Text style={styles.agentStatusClosedText}>Fermé</Text>
-          )}
-        </View>
-      </PressScale>
-    </Animated.View>
-  );
-}
-
-function AgentStep({ mode, amount, onBack, onSelect }) {
+function OperatorStep({ mode, amount, operator, setOperator, onBack, onContinue }) {
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
-        <ScreenHeader onBack={onBack} eyebrow="AGENT LE PLUS PROCHE" title="Choisis un agent" titleStyle={styles.title} style={styles.headerRow} />
+        <ScreenHeader
+          onBack={onBack}
+          eyebrow="MOBILE MONEY"
+          title={mode === 'in' ? 'Dépôt via' : 'Retrait via'}
+          titleStyle={styles.title}
+          style={styles.headerRow}
+        />
         <Text style={styles.subtitle}>
           {mode === 'in' ? 'Dépôt de' : 'Retrait de'} {formatAmount(amount)} F
         </Text>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
-        {AGENTS.map((a, i) => (
-          <AgentRow key={a.key} agent={a} delay={i * 60} onPress={() => onSelect(a)} />
+      <ScrollView contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
+        {OPERATORS.map((op, i) => (
+          <PressScale key={op.key} scaleTo={0.98} onPress={() => setOperator(op.key)}>
+            <View style={[styles.operatorRow, operator === op.key && styles.operatorRowOn]}>
+              <Text style={{ fontSize: 24 }}>{op.icon}</Text>
+              <Text style={styles.operatorName}>{op.name}</Text>
+              {operator === op.key ? <Text style={styles.operatorCheck}>✓</Text> : null}
+            </View>
+          </PressScale>
         ))}
       </ScrollView>
-    </View>
-  );
-}
 
-function CodeStep({ mode, amount, agent, onDone, loading }) {
-  const pop = usePopIn(0, 450, 0.85);
-  const note = useEntrance(200, 400, 8);
-  const code = useMemo(() => String(Math.floor(100000 + Math.random() * 900000)), [agent]);
-
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.giant }}>
-      <Text style={styles.codeEyebrow}>{mode === 'in' ? 'Code de dépôt' : 'Code de retrait'}</Text>
-      <Animated.View style={[styles.codeCard, pop]}>
-        <Text style={styles.codeDigits}>{code}</Text>
-        <View style={styles.codeDivider} />
-        <Text style={styles.codeAgent}>{agent.name}</Text>
-        <Text style={styles.codeAmount}>{formatAmount(amount)} F CFA</Text>
-      </Animated.View>
-
-      <Animated.View style={note}>
-        <Text style={styles.codeHint}>
-          {mode === 'in'
-            ? 'Donne ce code et le montant en espèces à l’agent pour créditer ton solde K21.'
-            : 'Donne ce code à l’agent pour retirer tes espèces. Ton solde K21 sera débité automatiquement.'}
-        </Text>
-        <Text style={styles.codeExpiry}>⏱ Valide 10 minutes · Token sécurisé, à usage unique</Text>
-      </Animated.View>
-
-      <View style={{ width: '100%', marginTop: spacing.giant }}>
-        <GlowButton label={loading ? 'Traitement…' : "J'ai terminé avec l'agent →"} onPress={onDone} disabled={loading} />
+      <View style={styles.footer}>
+        <GlowButton label="Continuer →" onPress={onContinue} disabled={!operator} />
       </View>
     </View>
   );
 }
 
-function SuccessStep({ mode, amount, agent, oldBalance, newBalance, onDone }) {
+function ConfirmStep({ mode, amount, operator, phone, onBack, onSubmit, loading }) {
+  const op = OPERATORS.find((o) => o.key === operator);
+  return (
+    <View style={{ flex: 1, paddingHorizontal: spacing.huge }}>
+      <ScreenHeader onBack={onBack} title="Confirmer" titleStyle={styles.title} style={{ marginTop: spacing.xxl, marginBottom: spacing.xl }} />
+      <View style={styles.confirmCard}>
+        <Text style={styles.confirmRow}><Text style={styles.confirmLabel}>Opération · </Text>{mode === 'in' ? 'Dépôt' : 'Retrait'}</Text>
+        <Text style={styles.confirmRow}><Text style={styles.confirmLabel}>Montant · </Text>{formatAmount(amount)} F CFA</Text>
+        <Text style={styles.confirmRow}><Text style={styles.confirmLabel}>Opérateur · </Text>{op?.name ?? operator}</Text>
+        <Text style={styles.confirmRow}><Text style={styles.confirmLabel}>Numéro · </Text>{formatPhone(phone)}</Text>
+        {mode === 'in' ? (
+          <Text style={styles.confirmHint}>Tu recevras peut‑être une demande de confirmation sur ton téléphone.</Text>
+        ) : null}
+      </View>
+      <View style={{ flex: 1 }} />
+      <GlowButton label={loading ? 'Traitement…' : 'Confirmer →'} onPress={onSubmit} disabled={loading} style={{ marginBottom: spacing.xxl }} />
+    </View>
+  );
+}
+
+function PendingStep({ message, onDone }) {
+  return (
+    <View style={styles.pendingRoot}>
+      <ActivityIndicator size="large" color={colors.greenDark} />
+      <Text style={styles.pendingTitle}>En attente de confirmation</Text>
+      <Text style={styles.pendingSub}>{message ?? 'Valide sur ton téléphone Mobile Money. Ton solde sera crédité dès confirmation.'}</Text>
+      <GlowButton label="Retour à l'accueil" onPress={onDone} style={{ marginTop: spacing.xxl, width: '100%' }} />
+    </View>
+  );
+}
+
+function SuccessStep({ mode, amount, operator, oldBalance, newBalance, onDone, beta }) {
   useSuccessHaptic();
   const ring = usePopIn(0, 500, 0.3);
   const title = useEntrance(200, 500, 10);
   const sub = useEntrance(300, 500, 10);
   const receipt = useEntrance(400, 500, 10);
-  const fee = agentFee(amount);
   const balanceCount = useCountUp(oldBalance, newBalance, 700);
-  const agentName = agent?.name ?? 'Crédit test beta';
+  const op = OPERATORS.find((o) => o.key === operator);
 
   return (
     <View style={styles.successRoot}>
       <Animated.View style={[styles.ssRing, ring]}>
         <Text style={{ fontSize: 38, color: colors.greenDark }}>✓</Text>
       </Animated.View>
-      <Animated.Text style={[styles.ssTitle, title]}>{mode === 'in' ? 'Dépôt reçu !' : 'Retrait confirmé !'}</Animated.Text>
+      <Animated.Text style={[styles.ssTitle, title]}>{mode === 'in' ? 'Dépôt reçu !' : 'Retrait lancé !'}</Animated.Text>
       <Animated.Text style={[styles.ssSub, sub]}>
-        {mode === 'in' ? 'Ton solde K21 a été crédité instantanément.' : 'Tes espèces sont prêtes chez l’agent.'}
+        {beta
+          ? 'Crédit test ajouté à ton wallet.'
+          : mode === 'in'
+            ? 'Ton solde K21 a été crédité.'
+            : 'L’argent arrive sur ton Mobile Money.'}
       </Animated.Text>
 
       <Animated.View style={receipt}>
         <ReceiptCard
           style={{ marginBottom: spacing.giant }}
           rows={[
-            { key: 'agent', label: agent?.name ? 'Agent' : 'Source', value: agentName },
+            { key: 'op', label: 'Opérateur', value: op?.name ?? (beta ? 'Crédit test' : '—') },
             { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.greenDark },
-            ...(agent ? [{ key: 'fee', label: 'Frais agent', value: `${formatAmount(fee)} F` }] : []),
-            { key: 'kori', label: 'Crédité en Kori', value: formatKori(Math.floor(amount / 10)), color: colors.greenDark },
+            { key: 'kori', label: mode === 'in' ? 'Crédité en Kori' : 'Débité en Kori', value: formatKori(Math.floor(amount / 10)), color: colors.greenDark },
             { key: 'balance', label: 'Nouveau solde', value: formatKori(balanceCount) },
           ]}
         />
@@ -250,41 +259,38 @@ function SuccessStep({ mode, amount, agent, oldBalance, newBalance, onDone }) {
 export default function CashScreen({ navigation }) {
   useScreenshotBlock(true);
   const showToast = useToast();
+  const security = useSecurity();
+  const { feature } = usePlatformFeatures();
+  const betaEnabled = feature('cash', 'betaDeposits') || process.env.EXPO_PUBLIC_ALLOW_BETA_DEPOSITS === 'true';
+  const agentEnabled = feature('cash', 'agentDeposits');
+  const stripeEnabled = feature('cash', 'stripeDeposits');
+
   const [step, setStep] = useState('amount');
   const [mode, setMode] = useState('in');
   const [amount, setAmount] = useState(5000);
-  const [agent, setAgent] = useState(null);
+  const [operator, setOperator] = useState('orange_money');
+  const [phone, setPhone] = useState('');
+  const [pendingMessage, setPendingMessage] = useState('');
   const [oldBalance, setOldBalance] = useState(0);
   const [newBalance, setNewBalance] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [cardLoading, setCardLoading] = useState(false);
+  const [stepUpVisible, setStepUpVisible] = useState(false);
+  const [isBetaSuccess, setIsBetaSuccess] = useState(false);
   const { balance, refreshWallet } = useAppState();
+
+  useEffect(() => {
+    getMe()
+      .then((me) => setPhone(me?.phone ?? ''))
+      .catch(() => {});
+  }, []);
 
   const finish = () => {
     setStep('amount');
     setAmount(5000);
-    setAgent(null);
+    setOperator('orange_money');
+    setIsBetaSuccess(false);
     navigation.goBack();
-  };
-
-  const completeAtAgent = async () => {
-    if (!agent) return;
-    const operator = AGENT_OPERATORS[agent.key] ?? 'orange_money';
-    setLoading(true);
-    setOldBalance(balance);
-    try {
-      if (mode === 'in') {
-        await cashIn({ amount, operator });
-      } else {
-        await cashOut({ amount, operator });
-      }
-      const wallet = await refreshWallet();
-      setNewBalance(wallet.balance ?? wallet.koriBalance ?? balance);
-      setStep('success');
-    } catch (err) {
-      showToast(err.message ?? 'Opération impossible');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const completeBetaDeposit = async () => {
@@ -294,11 +300,71 @@ export default function CashScreen({ navigation }) {
       await depositNational({ amount, source: 'cash_screen' });
       const wallet = await refreshWallet();
       setNewBalance(wallet.balance ?? wallet.koriBalance ?? balance);
+      setIsBetaSuccess(true);
       setStep('success');
     } catch (err) {
       showToast(err.message ?? 'Crédit test indisponible');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const executeCash = async (stepUpToken) => {
+    if (!phone?.trim()) {
+      showToast('Ajoute ton numéro de téléphone dans ton profil');
+      return;
+    }
+    setLoading(true);
+    setOldBalance(balance);
+    try {
+      const result =
+        mode === 'in'
+          ? await cashIn({ amount, operator, phone })
+          : await cashOut({ amount, operator, phone, stepUpToken: stepUpToken ?? security.stepUpToken });
+
+      if (result.rail?.status === 'pending') {
+        setPendingMessage(result.message ?? result.rail?.message ?? null);
+        setStep('pending');
+        return;
+      }
+
+      const wallet = await refreshWallet();
+      setNewBalance(wallet.balance ?? wallet.koriBalance ?? balance);
+      setIsBetaSuccess(false);
+      setStep('success');
+    } catch (err) {
+      if (err.code === 'step_up_required') {
+        setStepUpVisible(true);
+        return;
+      }
+      showToast(err.message ?? 'Opération impossible');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStepUpVerified = (token) => {
+    setStepUpVisible(false);
+    executeCash(token);
+  };
+
+  const startCardDeposit = async () => {
+    if (amount <= 0) return;
+    setCardLoading(true);
+    try {
+      const session = await createStripeDepositSession({ amount });
+      const url = session.checkoutUrl;
+      if (!url) throw new Error('Lien Stripe indisponible');
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      } else {
+        await Linking.openURL(url);
+      }
+      showToast('Finalise le paiement sur Stripe — ton wallet sera crédité automatiquement.');
+    } catch (err) {
+      showToast(err.message ?? 'Stripe indisponible');
+    } finally {
+      setCardLoading(false);
     }
   };
 
@@ -315,89 +381,120 @@ export default function CashScreen({ navigation }) {
               setAmount={setAmount}
               balance={balance}
               betaLoading={loading}
+              betaEnabled={betaEnabled}
+              agentEnabled={agentEnabled}
+              stripeEnabled={stripeEnabled}
+              cardLoading={cardLoading}
               onBetaDeposit={completeBetaDeposit}
-              onContinue={() => setStep('agent')}
+              onAgentDeposit={() => navigation.navigate('AgentDepositQr', { amount })}
+              onCardDeposit={startCardDeposit}
+              onContinue={() => setStep('operator')}
               onBack={() => navigation.goBack()}
             />
           </StepTransition>
         )}
-        {step === 'agent' && (
+        {step === 'operator' && (
           <StepTransition>
-            <AgentStep
+            <OperatorStep
               mode={mode}
               amount={amount}
+              operator={operator}
+              setOperator={setOperator}
               onBack={() => setStep('amount')}
-              onSelect={(a) => {
-                setAgent(a);
-                setStep('code');
-              }}
+              onContinue={() => setStep('confirm')}
             />
           </StepTransition>
         )}
-        {step === 'code' && agent && (
+        {step === 'confirm' && (
           <StepTransition>
-            <CodeStep mode={mode} amount={amount} agent={agent} onDone={completeAtAgent} loading={loading} />
+            <ConfirmStep
+              mode={mode}
+              amount={amount}
+              operator={operator}
+              phone={phone}
+              loading={loading}
+              onBack={() => setStep('operator')}
+              onSubmit={() => executeCash()}
+            />
+          </StepTransition>
+        )}
+        {step === 'pending' && (
+          <StepTransition>
+            <PendingStep message={pendingMessage} onDone={finish} />
           </StepTransition>
         )}
         {step === 'success' && (
           <StepTransition>
-            <SuccessStep mode={mode} amount={amount} agent={agent} oldBalance={oldBalance} newBalance={newBalance} onDone={finish} />
+            <SuccessStep
+              mode={mode}
+              amount={amount}
+              operator={operator}
+              oldBalance={oldBalance}
+              newBalance={newBalance}
+              onDone={finish}
+              beta={isBetaSuccess}
+            />
           </StepTransition>
         )}
       </SafeAreaView>
+      <StepUpOverlay visible={stepUpVisible} onCancel={() => setStepUpVisible(false)} onVerified={handleStepUpVerified} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f2f8ec' },
-
   header: { paddingHorizontal: spacing.huge, paddingTop: spacing.xxl, paddingBottom: spacing.xl },
   headerRow: { marginBottom: spacing.sm },
   title: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: colors.ink, letterSpacing: -0.5 },
   subtitle: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginTop: spacing.xs },
-
   modeToggle: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', borderRadius: radius.lg, padding: 3, gap: 3 },
   modeBtn: { flex: 1, height: 38, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   modeBtnOn: { backgroundColor: colors.green },
   modeBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: 'rgba(5,8,5,0.6)' },
   modeBtnTextOn: { color: colors.ink },
-
   amountHero: { alignItems: 'center', paddingHorizontal: spacing.giant, paddingTop: spacing.xl, paddingBottom: spacing.xl },
   amountLbl: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: 'rgba(26,240,96,0.6)', textTransform: 'uppercase', marginBottom: spacing.lg },
   amountNum: { fontFamily: fontFamily.displayBlack, fontSize: 48, letterSpacing: -3, lineHeight: 48, color: colors.greenDark },
   amountCurr: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: 'rgba(26,240,96,0.4)' },
-
   quickRow: { justifyContent: 'center', marginTop: spacing.xl },
-  balanceNote: { marginTop: spacing.xl, fontSize: 11, color: 'rgba(5,8,5,0.45)' },
+  balanceNote: { marginTop: spacing.xl, fontSize: 11, color: 'rgba(5,8,5,0.45)', textAlign: 'center' },
   keypadWrap: { width: '100%', marginTop: spacing.xxl },
-
   feeNote: { marginHorizontal: spacing.huge, backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.07)', borderRadius: radius.lg, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg },
-  feeNoteText: { fontSize: 11, color: 'rgba(5,8,5,0.5)' },
-
+  feeNoteText: { fontSize: 11, color: 'rgba(5,8,5,0.5)', lineHeight: 16 },
   footer: { paddingHorizontal: spacing.huge, paddingVertical: spacing.xxl },
-
-  agentRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, marginHorizontal: spacing.huge, marginBottom: spacing.sm, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.07)' },
-  agentRowClosed: { opacity: 0.5 },
-  agentAva: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
-  agentName: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
-  agentMeta: { fontSize: 10, color: 'rgba(5,8,5,0.45)', marginTop: 1 },
-  agentStatusOpen: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  agentDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green },
-  agentStatusText: { fontSize: 10, fontWeight: '700', color: colors.greenDark },
-  agentStatusClosedText: { fontSize: 10, fontWeight: '700', color: 'rgba(5,8,5,0.45)' },
-
-  codeEyebrow: { ...type.eyebrow, color: colors.greenDark, marginBottom: spacing.xxl },
-  codeCard: { width: '100%', backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1.5, borderColor: colors.greenA25, borderRadius: radius.xxl, paddingVertical: spacing.giant, alignItems: 'center', marginBottom: spacing.xxl },
-  codeDigits: { fontFamily: fontFamily.displayBlack, fontSize: 40, letterSpacing: 6, color: colors.greenDark },
-  codeDivider: { width: '60%', height: 1, backgroundColor: 'rgba(255,255,255,0.8)', marginVertical: spacing.xl },
-  codeAgent: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
-  codeAmount: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginTop: 2 },
-  codeHint: { fontSize: 12, color: 'rgba(5,8,5,0.6)', textAlign: 'center', lineHeight: 18, marginBottom: spacing.md },
-  codeExpiry: { fontSize: 10, color: 'rgba(5,8,5,0.45)', textAlign: 'center' },
-
+  operatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    marginHorizontal: spacing.huge,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(5,8,5,0.07)',
+  },
+  operatorRowOn: { borderColor: colors.greenA30, backgroundColor: colors.greenA08 },
+  operatorName: { flex: 1, fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink },
+  operatorCheck: { fontSize: 16, color: colors.greenDark, fontFamily: fontFamily.bodyBold },
+  confirmCard: {
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(5,8,5,0.08)',
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  confirmRow: { fontSize: 13, color: colors.ink, lineHeight: 20 },
+  confirmLabel: { color: 'rgba(5,8,5,0.45)' },
+  confirmHint: { fontSize: 11, color: 'rgba(5,8,5,0.5)', marginTop: spacing.sm, lineHeight: 16 },
+  pendingRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.giant, gap: spacing.lg },
+  pendingTitle: { fontFamily: fontFamily.displayBold, fontSize: 18, color: colors.ink, textAlign: 'center' },
+  pendingSub: { fontSize: 12, color: 'rgba(5,8,5,0.55)', textAlign: 'center', lineHeight: 18 },
   successRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl + 14 },
-  ssRing: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.greenA08, borderWidth: 3, borderColor: colors.green, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xxxl, shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 50, elevation: 8 },
+  ssRing: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.greenA08, borderWidth: 3, borderColor: colors.green, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xxxl },
   ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 24, letterSpacing: -0.8, color: colors.ink, marginBottom: spacing.md, textAlign: 'center' },
   ssSub: { fontSize: 12, color: 'rgba(5,8,5,0.5)', marginBottom: spacing.giant + 2, lineHeight: 20.4, textAlign: 'center' },
 });

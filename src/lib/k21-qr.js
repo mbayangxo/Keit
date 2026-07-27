@@ -56,6 +56,12 @@ export function buildStudentPassUrl(handle) {
   return `k21://pass/@${h}`;
 }
 
+export function buildAgentDepositUrl(token) {
+  const t = String(token ?? '').trim();
+  if (!t) throw new Error('Token required');
+  return `k21://agent-deposit/${t}`;
+}
+
 export function parseK21Qr(raw) {
   const text = String(raw ?? '').trim();
   if (!text) return null;
@@ -73,6 +79,7 @@ export function parseK21Qr(raw) {
     if ((path === 'u' || path === 'user') && rest) return { kind: 'add_user', handle: rest.toLowerCase() };
     if (path === 'pass' && rest) return { kind: 'student_pass', handle: rest.toLowerCase() };
     if (path === 'merchant' && rest) return { kind: 'pay_merchant', businessId: rest };
+    if (path === 'agent-deposit' && rest) return { kind: 'agent_deposit', token: rest };
   }
 
   try {

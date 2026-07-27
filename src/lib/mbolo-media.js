@@ -1,13 +1,13 @@
 import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
+import { readAsStringAsync, writeAsStringAsync, EncodingType, cacheDirectory } from 'expo-file-system/legacy';
 
 /** Keep under server zod limit (800k) with JSON overhead. */
 export const MAX_MEDIA_CHARS = 720_000;
 export const MAX_VOICE_CHARS = 780_000;
 export const MAX_GIF_CHARS = 720_000;
-const MAX_IMAGE_EDGE = 1280;
-const JPEG_QUALITY = 0.62;
+const MAX_IMAGE_EDGE = 960;
+const JPEG_QUALITY = 0.55;
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -37,40 +37,48 @@ async function compressWebImageFile(file) {
       el.onerror = reject;
       el.src = blobUrl;
     });
-    let { width, height } = img;
-    const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(width, height, 1));
-    width = Math.max(1, Math.round(width * scale));
-    height = Math.max(1, Math.round(height * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Compression impossible');
-    ctx.drawImage(img, 0, 0, width, height);
-    return assertDataUrlSize(canvas.toDataURL('image/jpeg', JPEG_QUALITY));
+    for (const edge of [MAX_IMAGE_EDGE, 720, 480]) {
+      let { width, height } = img;
+      const scale = Math.min(1, edge / Math.max(width, height, 1));
+      width = Math.max(1, Math.round(width * scale));
+      height = Math.max(1, Math.round(height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Compression impossible');
+      ctx.drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+      if (dataUrl.length <= MAX_MEDIA_CHARS) return assertDataUrlSize(dataUrl);
+    }
+    throw new Error('Photo trop lourde — recadre ou choisis une image plus petite');
   } finally {
     URL.revokeObjectURL(blobUrl);
   }
 }
 
-async function compressNativeImageUri(uri, mime = 'image/jpeg') {
-  try {
-    const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
-    const result = await manipulateAsync(uri, [{ resize: { width: MAX_IMAGE_EDGE } }], {
-      compress: JPEG_QUALITY,
-      format: SaveFormat.JPEG,
-      base64: true,
-    });
-    if (result.base64) {
-      return assertDataUrlSize(`data:image/jpeg;base64,${result.base64}`);
+async function compressNativeImageUri(uri) {
+  const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
+  for (const width of [MAX_IMAGE_EDGE, 720, 480, 360]) {
+    try {
+      const result = await manipulateAsync(uri, [{ resize: { width } }], {
+        compress: JPEG_QUALITY,
+        format: SaveFormat.JPEG,
+        base64: true,
+      });
+      if (result.base64) {
+        const dataUrl = assertDataUrlSize(`data:image/jpeg;base64,${result.base64}`);
+        return dataUrl;
+      }
+      if (result.uri) {
+        const dataUrl = await readUriAsDataUrl(result.uri, 'image/jpeg');
+        if (dataUrl.length <= MAX_MEDIA_CHARS) return dataUrl;
+      }
+    } catch {
+      // Try the next size.
     }
-    if (result.uri) {
-      return readUriAsDataUrl(result.uri, 'image/jpeg');
-    }
-  } catch {
-    // Fall back to raw read if manipulator unavailable.
   }
-  return readUriAsDataUrl(uri, mime);
+  throw new Error('Photo trop lourde — recadre ou choisis une image plus petite');
 }
 
 function assertVoiceDataUrlSize(dataUrl) {
@@ -90,6 +98,21 @@ export async function readVoiceUriAsDataUrl(uri, mime = 'audio/mp4') {
   }
   const base64 = await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
   return assertVoiceDataUrlSize(`data:${mime};base64,${base64}`);
+}
+
+/** Native players need a file:// URI — data URLs fail on iOS/Android. */
+export async function resolveVoicePlaybackSource(url) {
+  if (!url) return null;
+  if (Platform.OS === 'web' || !String(url).startsWith('data:')) return url;
+
+  const match = String(url).match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return url;
+
+  const mime = match[1].toLowerCase();
+  const ext = mime.includes('webm') ? 'webm' : mime.includes('3gp') ? '3gp' : mime.includes('caf') ? 'caf' : 'm4a';
+  const path = `${cacheDirectory}mbolo-voice-${Date.now()}.${ext}`;
+  await writeAsStringAsync(path, match[2], { encoding: EncodingType.Base64 });
+  return path;
 }
 
 /** Fetch a GIF and return a data URL when small enough; otherwise return the HTTPS URL. */
@@ -119,24 +142,15 @@ export async function readUriAsDataUrl(uri, mime = 'application/octet-stream') {
     return compressWebImageFile(blob);
   }
   if (mime.startsWith('image/')) {
-    return compressNativeImageUri(uri, mime);
+    return compressNativeImageUri(uri);
   }
   const base64 = await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
   return assertDataUrlSize(`data:${mime};base64,${base64}`);
 }
 
 async function assetToDataUrl(asset) {
-  const mime = asset.mimeType ?? 'image/jpeg';
-  if (asset.base64) {
-    const raw = `data:${mime};base64,${asset.base64}`;
-    if (raw.length <= MAX_MEDIA_CHARS) return raw;
-    if (asset.uri && Platform.OS !== 'web') {
-      return compressNativeImageUri(asset.uri, mime);
-    }
-    throw new Error('Photo trop lourde — recadre ou choisis une image plus petite');
-  }
   if (asset.uri) {
-    return readUriAsDataUrl(asset.uri, mime);
+    return compressNativeImageUri(asset.uri);
   }
   throw new Error('Impossible de lire la photo');
 }
@@ -146,9 +160,8 @@ async function pickImageFromLibrary() {
   if (!perm.granted) throw new Error('Accès photos refusé — autorise dans les réglages');
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
-    allowsEditing: true,
+    allowsEditing: Platform.OS === 'ios',
     quality: JPEG_QUALITY,
-    base64: Platform.OS === 'web',
   });
   if (result.canceled || !result.assets?.[0]) return null;
   return assetToDataUrl(result.assets[0]);
@@ -158,9 +171,8 @@ async function takePhotoWithCamera() {
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (!perm.granted) throw new Error('Accès caméra refusé — autorise dans les réglages');
   const result = await ImagePicker.launchCameraAsync({
-    allowsEditing: true,
+    allowsEditing: Platform.OS === 'ios',
     quality: JPEG_QUALITY,
-    base64: Platform.OS === 'web',
   });
   if (result.canceled || !result.assets?.[0]) return null;
   return assetToDataUrl(result.assets[0]);

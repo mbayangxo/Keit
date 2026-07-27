@@ -16,6 +16,7 @@
     "expo": "~57.0.1",
     "expo-audio": "~57.0.0",
     "expo-blur": "^57.0.0",
+    "expo-camera": "~57.0.3",
     "expo-device": "^57.0.0",
     "expo-file-system": "~57.0.0",
     "expo-font": "^57.0.0",
@@ -30,6 +31,7 @@
     "expo-status-bar": "~57.0.0",
     "jsonwebtoken": "^9.0.2",
     "livekit-client": "^2.20.1",
+    "livekit-server-sdk": "^2.17.0",
     "qrcode": "^1.5.4",
     "react": "19.2.3",
     "react-dom": "^19.2.3",
@@ -39,6 +41,7 @@
     "react-native-screens": "^4.25.2",
     "react-native-svg": "^15.15.5",
     "react-native-web": "^0.21.2",
+    "stripe": "^17.7.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {
@@ -66,6 +69,8 @@
     "test": "node --test --test-concurrency=1 \"tests/unit/**/*.test.js\" \"tests/integration/**/*.test.js\" \"tests/security/**/*.test.js\"",
     "test:unit": "node --test --test-concurrency=1 \"tests/unit/**/*.test.js\"",
     "test:integration": "node --test --test-concurrency=1 \"tests/integration/**/*.test.js\"",
+    "test:marketplace": "node --test --test-concurrency=1 tests/integration/marketplace-flow.test.js",
+    "verify:marketplace": "node scripts/verify-marketplace-e2e.mjs",
     "test:security": "node --test --test-concurrency=1 \"tests/security/**/*.test.js\"",
     "test:load": "node --test --test-concurrency=1 --test-timeout=600000 \"tests/load/**/*.test.js\"",
     "test:launch-gate": "node --test --test-concurrency=1 --test-timeout=600000 \"tests/unit/**/*.test.js\" \"tests/integration/**/*.test.js\" \"tests/security/**/*.test.js\" \"tests/load/**/*.test.js\"",
