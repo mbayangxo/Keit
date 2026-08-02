@@ -18,7 +18,7 @@ import { useCountUp, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/an
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { useToast } from '../components/Toast';
 import { cashIn, cashOut, depositNational, createStripeDepositSession, getMe } from '../lib/api-client';
-import { formatKori } from '../lib/kori.js';
+import KoriAmount from '../components/KoriAmount';
 
 const QUICK_AMOUNTS = [2000, 5000, 10000, 25000];
 
@@ -99,7 +99,11 @@ function AmountStep({
           </Text>
           <AmountChips options={QUICK_AMOUNTS} value={amount} onChange={setAmount} style={styles.quickRow} />
           {mode === 'out' ? (
-            <Text style={styles.balanceNote}>Solde disponible : {formatKori(balance)} · retrait en F CFA</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, marginTop: spacing.xl }}>
+              <Text style={[styles.balanceNote, { marginTop: 0 }]}>Solde disponible : </Text>
+              <KoriAmount value={balance} textStyle={[styles.balanceNote, { marginTop: 0 }]} size={11} />
+              <Text style={[styles.balanceNote, { marginTop: 0 }]}> · retrait en F CFA</Text>
+            </View>
           ) : null}
           <View style={styles.keypadWrap}>
             <Keypad onDigit={pressDigit} onBackspace={pressBackspace} />
@@ -245,8 +249,8 @@ function SuccessStep({ mode, amount, operator, oldBalance, newBalance, onDone, b
           rows={[
             { key: 'op', label: 'Opérateur', value: op?.name ?? (beta ? 'Crédit test' : '—') },
             { key: 'amount', label: 'Montant', value: `${formatAmount(amount)} F CFA`, color: colors.greenDark },
-            { key: 'kori', label: mode === 'in' ? 'Crédité en Kori' : 'Débité en Kori', value: formatKori(Math.floor(amount / 10)), color: colors.greenDark },
-            { key: 'balance', label: 'Nouveau solde', value: formatKori(balanceCount) },
+            { key: 'kori', label: mode === 'in' ? 'Crédité en Kori' : 'Débité en Kori', kori: Math.floor(amount / 10), color: colors.greenDark },
+            { key: 'balance', label: 'Nouveau solde', kori: balanceCount },
           ]}
         />
       </Animated.View>

@@ -25,6 +25,7 @@ import { useLocale } from '../context/LocaleContext';
 import { transferSend, lookupUser } from '../lib/api-client';
 import { toE164, isValidLocalPhone } from '../lib/phone';
 import { formatKori, KORI_SYMBOL } from '../lib/kori.js';
+import KoriAmount from '../components/KoriAmount';
 
 const RECIPIENT_MODES = [
   { key: 'scan', icon: '📷', label: 'Scanner' },
@@ -87,9 +88,7 @@ function AmountStep({
           <View style={styles.amountHero}>
             <Text style={styles.ahLbl}>Combien ?</Text>
             <Animated.View style={[popIn, styles.ahRow]}>
-              <Text style={styles.ahNum}>
-                {formatKori(amount)}
-              </Text>
+              <KoriAmount value={amount} textStyle={styles.ahNum} />
             </Animated.View>
           </View>
 
@@ -235,9 +234,7 @@ function ConfirmStep({ amount, reason, balance, recipientProfile, onConfirm, onC
         <Text style={styles.csHandle}>{displayHandle(recipientProfile?.handle)}</Text>
         <Text style={styles.csPhone}>{formatPhoneDisplay(recipientProfile?.phone, true)}</Text>
         {arrLabel ? <Text style={styles.csArr}>{arrLabel}</Text> : null}
-        <Text style={styles.csAmount}>
-          {formatKori(amount)}
-        </Text>
+        <KoriAmount value={amount} textStyle={styles.csAmount} style={{ justifyContent: 'center' }} />
         <View style={styles.csFree}>
           <Text style={styles.csFreeText}>✦ Zéro frais{reason ? ` · ${reason}` : ''}</Text>
         </View>
@@ -263,7 +260,7 @@ function ConfirmStep({ amount, reason, balance, recipientProfile, onConfirm, onC
         </View>
         <View style={styles.csRow}>
           <Text style={styles.csrL}>Montant</Text>
-          <Text style={[styles.csrR, { color: colors.green }]}>{formatKori(amount)}</Text>
+          <KoriAmount value={amount} textStyle={[styles.csrR, { color: colors.green }]} />
         </View>
         <View style={styles.csRow}>
           <Text style={styles.csrL}>Frais</Text>
@@ -271,7 +268,7 @@ function ConfirmStep({ amount, reason, balance, recipientProfile, onConfirm, onC
         </View>
         <View style={[styles.csRow, { borderBottomWidth: 0 }]}>
           <Text style={styles.csrL}>Solde après</Text>
-          <Text style={[styles.csrR, { color: 'rgba(5,8,5,0.6)' }]}>{formatKori(solde)}</Text>
+          <KoriAmount value={solde} textStyle={[styles.csrR, { color: 'rgba(5,8,5,0.6)' }]} />
         </View>
       </View>
 
@@ -317,7 +314,7 @@ function SuccessStep({ amount, reason, reference, recipientProfile, onDone, onMa
             style={{ marginBottom: spacing.lg }}
             rows={[
               { key: 'to', label: 'À', value: label },
-              { key: 'amount', label: 'Montant', value: formatKori(amount), color: colors.green },
+              { key: 'amount', label: 'Montant', kori: amount, color: colors.green },
               { key: 'fee', label: 'Frais', value: '₭0 ✦', color: colors.green },
               { key: 'reason', label: 'Motif', value: reason || '—' },
               { key: 'ref', label: 'Référence', value: reference, small: true },

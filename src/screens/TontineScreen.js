@@ -13,6 +13,7 @@ import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { createTontineGroup, getTontineGroups, lookupUser, releaseTontinePot } from '../lib/api-client';
 import { formatKori } from '../lib/kori.js';
+import KoriAmount from '../components/KoriAmount';
 import { parseK21Qr } from '../lib/k21-qr';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useEntrance, useFillIn, usePopIn } from '../hooks/animations';
@@ -56,7 +57,7 @@ function GroupItem({ item, delay, onPress }) {
             </View>
           </View>
           <View style={styles.groupAmountBox}>
-            <Text style={[styles.groupAmount, { color: item.totalColor }]}>{formatKori(item.total)}</Text>
+            <KoriAmount value={item.total} textStyle={[styles.groupAmount, { color: item.totalColor }]} />
             <Text style={styles.groupAmountLabel}>{item.totalLabel}</Text>
           </View>
         </View>
@@ -100,7 +101,10 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
               </View>
               <View style={styles.statBox}>
                 <Text style={[styles.statNum, { color: colors.terracotta, fontSize: 13 }]}>Ce mois</Text>
-                <Text style={styles.statLabel}>{formatKori(receivedThisMonth)} reçu</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                  <KoriAmount value={receivedThisMonth} textStyle={styles.statLabel} size={10} />
+                  <Text style={styles.statLabel}> reçu</Text>
+                </View>
               </View>
               <View style={styles.statBox}>
                 <Text style={styles.statNum}>{totalMembers}</Text>
@@ -513,9 +517,7 @@ function ReleaseStep({ group, onBack, onReceive, receiving }) {
               <Text style={styles.releaseBadgeBigText}>C'est ton tour !</Text>
             </View>
             <Text style={styles.releaseName}>{group?.name}</Text>
-            <Text style={styles.releaseAmount}>
-              {formatKori(potAmount)}
-            </Text>
+            <KoriAmount value={potAmount} textStyle={styles.releaseAmount} style={{ justifyContent: 'center' }} />
             <Text style={styles.releaseRecipient}>Pot collecté · Versement automatique</Text>
           </Animated.View>
         </View>

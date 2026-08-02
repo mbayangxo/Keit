@@ -2,11 +2,13 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { usePreferences } from '../context/PreferencesContext';
 import { scaleFont } from '../lib/type-scale';
+import KoriAmount from './KoriAmount';
 
 // Shared label/value receipt block used on every success screen (Send,
 // Pay Merchant, Cash) — was three near-identical implementations that
 // only differed in row content, not structure.
-// `rows`: [{ key, label, value, color?, small? }]
+// `rows`: [{ key, label, value, color?, small?, kori? }] — pass `kori` (a
+// number) instead of `value` to render the Cauris shell glyph.
 export default function ReceiptCard({ rows, style }) {
   const { largeText } = usePreferences();
   const labelSize = scaleFont(11, largeText);
@@ -18,16 +20,29 @@ export default function ReceiptCard({ rows, style }) {
       {rows.map((r) => (
         <View key={r.key ?? r.label} style={styles.row}>
           <Text style={[styles.label, { fontSize: labelSize }]}>{r.label}</Text>
-          <Text
-            style={[
-              styles.value,
-              { fontSize: r.small ? valueSmallSize : valueSize },
-              r.color && { color: r.color },
-              r.small && styles.valueSmall,
-            ]}
-          >
-            {r.value}
-          </Text>
+          {r.kori != null ? (
+            <KoriAmount
+              value={r.kori}
+              color={r.color ?? colors.ink}
+              textStyle={[
+                styles.value,
+                { fontSize: r.small ? valueSmallSize : valueSize },
+                r.color && { color: r.color },
+                r.small && styles.valueSmall,
+              ]}
+            />
+          ) : (
+            <Text
+              style={[
+                styles.value,
+                { fontSize: r.small ? valueSmallSize : valueSize },
+                r.color && { color: r.color },
+                r.small && styles.valueSmall,
+              ]}
+            >
+              {r.value}
+            </Text>
+          )}
         </View>
       ))}
     </View>

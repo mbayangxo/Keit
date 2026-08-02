@@ -8,7 +8,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { useToast } from '../components/Toast';
 import { createAgentDeposit, getAgentDepositStatus } from '../lib/api-client';
-import { formatKori } from '../lib/kori.js';
+import KoriAmount from '../components/KoriAmount';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
@@ -106,9 +106,10 @@ export default function AgentDepositQrScreen({ navigation, route }) {
             <View style={styles.successBlock}>
               <Text style={styles.successIcon}>✓</Text>
               <Text style={styles.successTitle}>Wallet crédité</Text>
-              <Text style={styles.successSub}>
-                +{formatAmount(amount)} F · {formatKori(Math.floor(amount / 10))}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                <Text style={styles.successSub}>+{formatAmount(amount)} F · </Text>
+                <KoriAmount value={Math.floor(amount / 10)} textStyle={styles.successSub} />
+              </View>
               <GlowButton label="Terminer" onPress={() => navigation.popToTop()} style={{ marginTop: spacing.xxl }} />
             </View>
           ) : (

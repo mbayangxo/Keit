@@ -14,6 +14,7 @@ import { useBlink, useEntrance, usePopIn, useSuccessHaptic } from '../hooks/anim
 import { useToast } from '../components/Toast';
 import { transferRequest, getTransferRequests, acceptTransferRequest, denyTransferRequest } from '../lib/api-client';
 import { formatKori } from '../lib/kori.js';
+import KoriAmount from '../components/KoriAmount';
 
 const QUICK_AMOUNTS = [100, 200, 500, 1000];
 
@@ -37,9 +38,7 @@ function RequestStep({ amount, setAmount, reason, setReason, handle, setHandle, 
             <Text style={styles.ahLbl}>Combien demander ?</Text>
             <PressScale scaleTo={0.98} onPress={() => inputRef.current?.focus()}>
               <Animated.View style={[popIn, styles.ahRow]}>
-                <Text style={styles.ahNum}>
-                  {formatKori(amount)}
-                </Text>
+                <KoriAmount value={amount} textStyle={styles.ahNum} />
                 {!focused && <AmountCursor />}
               </Animated.View>
             </PressScale>

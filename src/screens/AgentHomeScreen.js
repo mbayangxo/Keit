@@ -16,7 +16,7 @@ import ReceiptCard from '../components/ReceiptCard';
 import { useToast } from '../components/Toast';
 import { agentConfirmDeposit, agentScanDeposit, getAgentMe } from '../lib/api-client';
 import { parseK21Qr } from '../lib/k21-qr';
-import { formatKori } from '../lib/kori.js';
+import KoriAmount from '../components/KoriAmount';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
 function formatAmount(n) {
@@ -145,7 +145,10 @@ export default function AgentHomeScreen({ navigation, route }) {
               <Text style={styles.pendingTitle}>Confirmer le dépôt</Text>
               <Text style={styles.pendingRow}>Client · {pending.user?.name || pending.user?.phone}</Text>
               <Text style={styles.pendingRow}>Montant · {formatAmount(pending.amountXof)} F CFA</Text>
-              <Text style={styles.pendingRow}>Kori · {formatKori(Math.floor(pending.amountXof / 10))}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: spacing.xs }}>
+                <Text style={[styles.pendingRow, { marginBottom: 0 }]}>Kori · </Text>
+                <KoriAmount value={Math.floor(pending.amountXof / 10)} textStyle={[styles.pendingRow, { marginBottom: 0 }]} />
+              </View>
               {pending.user?.verified ? (
                 <Text style={styles.verified}>✓ Identité vérifiée K21</Text>
               ) : (

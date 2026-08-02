@@ -17,7 +17,7 @@ const BUSINESS_STEPS = [
   { key: 'stats', icon: '📊', label: 'Stats' },
 ];
 
-import { formatKori } from '../lib/kori.js';
+import KoriAmount from '../components/KoriAmount';
 
 export default function WelcomeCelebrationScreen({ accountType = 'personal', name, businessName, afriId, keboId, arrondissement, fundAmount, onEnter }) {
   useSuccessHaptic();
@@ -66,9 +66,7 @@ export default function WelcomeCelebrationScreen({ accountType = 'personal', nam
             <Text style={[styles.balanceLabel, { color: isBusiness ? ob.orange : ob.green }]}>
               {isBusiness ? 'Solde de ton commerce' : 'Ton solde K21'}
             </Text>
-            <Text style={[styles.balanceAmount, { color: accent }]}>
-              {formatKori(fundAmount ?? 0)}
-            </Text>
+            <KoriAmount value={fundAmount ?? 0} textStyle={[styles.balanceAmount, { color: accent }]} style={{ justifyContent: 'center' }} />
             <Text style={[styles.balanceNote, { color: ob.muted }]}>
               {(fundAmount ?? 0) > 0
                 ? isBusiness

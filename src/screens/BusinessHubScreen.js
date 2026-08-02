@@ -10,6 +10,7 @@ import { useAppState } from '../state/AppState';
 import { createBusiness, createFlashDeal, setBusinessStatus } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { formatKori, formatNationalEquivalent } from '../lib/kori.js';
+import KoriAmount from '../components/KoriAmount';
 import {
   getMyBusinesses,
   getPayrollEmployees,
@@ -560,7 +561,7 @@ export default function BusinessHubScreen({ navigation }) {
                 ))}
               </ScrollView>
             ) : null}
-            <Text style={styles.balance}>{formatKori(kebuBalance)}</Text>
+            <KoriAmount value={kebuBalance} textStyle={styles.balance} />
             <Text style={styles.balanceLabel}>Solde KEBU · {business.kebuId ?? '—'}</Text>
             <Text style={styles.creditPill}>Crédit KEBU · {creditTier}</Text>
           </View>

@@ -21,6 +21,7 @@ import StepUpOverlay from '../components/StepUpOverlay';
 import { useSecurity } from '../context/SecurityContext';
 import { merchantPay, getBusinesses, getMerchantPublic } from '../lib/api-client';
 import { formatKori, KORI_SYMBOL } from '../lib/kori.js';
+import KoriAmount from '../components/KoriAmount';
 
 // design/k21-four-flows.html, FLOW 4 — MERCHANT QR PAYMENT (Screens M1-M3):
 // Scan QR (merchant card + scanner + amount) -> Confirm payment -> Payment done.
@@ -123,7 +124,7 @@ function ScanStep({ merchant, merchants, onSelectMerchant, amount, setAmount, on
         <View style={styles.amountSection}>
           <Text style={styles.amountSectionLabel}>Montant à payer</Text>
           <View style={styles.amountDisplay}>
-            <Text style={styles.amountNum}>{formatKori(amount)}</Text>
+            <KoriAmount value={amount} textStyle={styles.amountNum} style={{ flex: 1 }} />
           </View>
           <AmountChips options={QUICK_AMOUNTS} value={amount} onChange={setAmount} style={styles.quickRow} />
 
@@ -147,7 +148,7 @@ function ScanStep({ merchant, merchants, onSelectMerchant, amount, setAmount, on
                     <Text style={{ fontSize: 14 }}>{tx.icon}</Text>
                   </View>
                   <Text style={styles.historySub}>{tx.subtitle}</Text>
-                  <Text style={styles.historyAmount}>{formatKori(Math.abs(tx.amount))}</Text>
+                  <KoriAmount value={Math.abs(tx.amount)} textStyle={styles.historyAmount} />
                 </View>
               ))}
             </View>
@@ -176,9 +177,7 @@ function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting })
             </View>
             <Text style={styles.confirmMerchantName}>{merchant.name}</Text>
             <Text style={styles.confirmMerchantArr}>📍 {merchant.arr} · {verifyLabel}</Text>
-            <Text style={styles.confirmAmount}>
-              {formatKori(amount)}
-            </Text>
+            <KoriAmount value={amount} textStyle={styles.confirmAmount} style={{ justifyContent: 'center' }} />
             <View style={styles.freePill}>
               <Text style={styles.freePillText}>✦ Zéro frais sur ce paiement</Text>
             </View>
@@ -192,7 +191,7 @@ function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting })
           </View>
           <View style={styles.confirmRow}>
             <Text style={styles.confirmRowLabel}>Montant</Text>
-            <Text style={[styles.confirmRowVal, { color: colors.greenDark }]}>{formatKori(amount)}</Text>
+            <KoriAmount value={amount} textStyle={[styles.confirmRowVal, { color: colors.greenDark }]} />
           </View>
           <View style={styles.confirmRow}>
             <Text style={styles.confirmRowLabel}>Frais</Text>
@@ -200,7 +199,7 @@ function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting })
           </View>
           <View style={[styles.confirmRow, { borderBottomWidth: 0 }]}>
             <Text style={styles.confirmRowLabel}>Ton solde après</Text>
-            <Text style={styles.confirmRowBal}>{formatKori(balance - amount)}</Text>
+            <KoriAmount value={balance - amount} textStyle={styles.confirmRowBal} />
           </View>
         </View>
       </ScrollView>
@@ -245,9 +244,9 @@ function SuccessStep({ merchant, amount, oldBalance, newBalance, reference, onDo
           style={{ marginBottom: spacing.lg }}
           rows={[
             { key: 'merchant', label: 'Marchand', value: merchant.name },
-            { key: 'amount', label: 'Montant', value: formatKori(amount), color: colors.greenDark },
+            { key: 'amount', label: 'Montant', kori: amount, color: colors.greenDark },
             { key: 'fee', label: 'Frais', value: '₭0 ✦', color: colors.greenDark },
-            { key: 'balance', label: 'Nouveau solde', value: formatKori(balanceCount) },
+            { key: 'balance', label: 'Nouveau solde', kori: balanceCount },
             { key: 'ref', label: 'Référence', value: reference, small: true },
           ]}
         />
