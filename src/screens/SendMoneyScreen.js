@@ -9,6 +9,7 @@ import Keypad from '../components/Keypad';
 import ScreenHeader from '../components/ScreenHeader';
 import AmountChips from '../components/AmountChips';
 import ReceiptCard from '../components/ReceiptCard';
+import ConfettiBurst from '../components/ConfettiBurst';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
@@ -295,7 +296,7 @@ function SuccessStep({ amount, reason, reference, recipientProfile, onDone, onMa
 
   return (
     <View style={styles.successRoot}>
-      <View style={styles.successBg} />
+      {!undone ? <ConfettiBurst /> : null}
       <View style={styles.successContent}>
         <Animated.View style={[styles.ssRing, ring]}>
           <Text style={{ fontSize: 38, color: colors.green }}>{undone ? '↩' : '✓'}</Text>
@@ -638,7 +639,6 @@ const styles = StyleSheet.create({
 
   // Success step
   successRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl + 14 },
-  successBg: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.ink },
   successContent: { alignItems: 'center', width: '100%' },
   ssRing: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.greenA08, borderWidth: 3, borderColor: colors.green, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xxxl, shadowColor: colors.green, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 50, elevation: 8 },
   ssTitle: { fontFamily: fontFamily.displayBlack, fontSize: 24, letterSpacing: -0.8, color: colors.ink, marginBottom: spacing.md, textAlign: 'center' },

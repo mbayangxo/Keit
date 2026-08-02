@@ -7,7 +7,9 @@ import Svg, { Circle } from 'react-native-svg';
 import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
 import KoriAmount from '../components/KoriAmount';
+import ConfettiBurst from '../components/ConfettiBurst';
 import { getTontineGroups, getTransactions } from '../lib/api-client';
+import { getLastCelebratedReceiveId, setLastCelebratedReceiveId } from '../lib/celebration-storage';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
 // One tap deeper than Home: the things you look at when you WANT to check
@@ -156,16 +158,29 @@ export default function WalletScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [txs, setTxs] = useState([]);
   const [nattaGroups, setNattaGroups] = useState([]);
+  const [celebrate, setCelebrate] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       setLoading(true);
       Promise.all([getTransactions(100), getTontineGroups()])
-        .then(([txList, groups]) => {
+        .then(async ([txList, groups]) => {
           if (cancelled) return;
-          setTxs(Array.isArray(txList) ? txList : []);
+          const list = Array.isArray(txList) ? txList : [];
+          setTxs(list);
           setNattaGroups(Array.isArray(groups) ? groups : []);
+
+          // A real pop of confetti the first time you SEE that someone sent
+          // you money — not on every visit, and not for your own cash-ins.
+          const latestReceive = list.find((tx) => tx.type === 'receive');
+          if (latestReceive) {
+            const lastCelebrated = await getLastCelebratedReceiveId();
+            if (lastCelebrated !== latestReceive.key && !cancelled) {
+              setCelebrate(true);
+              await setLastCelebratedReceiveId(latestReceive.key);
+            }
+          }
         })
         .catch(() => {
           if (!cancelled) {
@@ -185,6 +200,7 @@ export default function WalletScreen({ navigation }) {
   return (
     <View style={styles.root}>
       <ScreenBackground />
+      {celebrate ? <ConfettiBurst /> : null}
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.header}>
           <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.backBtn}>
