@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
+import StoryAvatar from '../components/StoryAvatar';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useScalePulse, useColorPulse, useEntrance } from '../hooks/animations';
 import { createMboloThread, getMboloThreads, getMe } from '../lib/api-client';
@@ -42,6 +43,9 @@ function threadToRow(thread, userId) {
     threadId: thread.id,
     avaBg: '#fff5ee',
     emoji,
+    avatarUrl: thread.type === 'group' ? null : others[0]?.avatarUrl ?? null,
+    initial: name?.trim()?.[0]?.toUpperCase(),
+    isGroup: thread.type === 'group',
     name,
     time: formatThreadTime(last?.createdAt ?? thread.updatedAt),
     preview:
@@ -96,9 +100,13 @@ function ConversationRow({ item, delay, onPress }) {
     <Animated.View style={entrance}>
       <PressScale scaleTo={0.98} onPress={onPress} style={styles.convItem}>
         <View style={styles.ciAvaWrap}>
-          <View style={[styles.ciAva, { backgroundColor: item.avaBg }]}>
-            <Text style={{ fontSize: 24 }}>{item.emoji}</Text>
-          </View>
+          {item.isGroup ? (
+            <View style={[styles.ciAva, { backgroundColor: item.avaBg }]}>
+              <Text style={{ fontSize: 24 }}>{item.emoji}</Text>
+            </View>
+          ) : (
+            <StoryAvatar photoUrl={item.avatarUrl} emoji={item.emoji} initial={item.initial} size={54} spin={false} />
+          )}
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={styles.ciTop}>
@@ -111,6 +119,24 @@ function ConversationRow({ item, delay, onPress }) {
         </View>
       </PressScale>
     </Animated.View>
+  );
+}
+
+// Instagram-Direct-style row of recent DM partners up top — real people,
+// tap to jump straight into that conversation. Groups don't fit a single
+// face so they're skipped here (they already lead with the list below).
+function RecentPeopleTray({ conversations, onOpen }) {
+  const recent = conversations.filter((c) => !c.isGroup).slice(0, 10);
+  if (!recent.length) return null;
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.peopleTrayRow}>
+      {recent.map((c) => (
+        <PressScale key={c.key} scaleTo={0.92} onPress={() => onOpen(c)} style={styles.peopleTrayItem}>
+          <StoryAvatar photoUrl={c.avatarUrl} emoji={c.emoji} initial={c.initial} size={62} />
+          <Text style={styles.peopleTrayName} numberOfLines={1}>{c.name.split(' ')[0]}</Text>
+        </PressScale>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -228,6 +254,10 @@ export default function MbooloHomeScreen({ navigation }) {
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
+          {!loading && conversations.length > 0 ? (
+            <RecentPeopleTray conversations={conversations} onOpen={openChat} />
+          ) : null}
+
           <View style={{ paddingHorizontal: spacing.huge, paddingTop: spacing.lg }}>
             <SearchBar query={query} setQuery={setQuery} inputRef={searchRef} />
           </View>
@@ -295,6 +325,9 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.huge, paddingTop: spacing.lg, paddingBottom: spacing.md },
   logo: { fontFamily: fontFamily.displayBlack, fontSize: 20, letterSpacing: -0.5, color: colors.orange },
   mbIcon: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.greenA10, borderWidth: 1.5, borderColor: colors.greenA20, alignItems: 'center', justifyContent: 'center' },
+  peopleTrayRow: { paddingHorizontal: spacing.huge, gap: spacing.lg, paddingBottom: spacing.md, paddingTop: spacing.sm },
+  peopleTrayItem: { alignItems: 'center', gap: 5, width: 66 },
+  peopleTrayName: { fontFamily: fontFamily.bodySemiBold, fontSize: 10.5, color: colors.mboolo.ink2, maxWidth: 66, textAlign: 'center' },
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.appCanvas.surface, borderWidth: 2, borderColor: colors.appCanvas.border, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, height: 42, marginBottom: spacing.xxxl, shadowColor: colors.orange, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 2 },
   searchInput: { flex: 1, fontSize: 13, color: colors.mboolo.ink },
   noResults: { textAlign: 'center', fontSize: 12, color: colors.mboolo.ink3 },

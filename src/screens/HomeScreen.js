@@ -3,23 +3,23 @@ import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
-import ProfileAvatar from '../components/ProfileAvatar';
+import StoryAvatar from '../components/StoryAvatar';
 import { useAppState } from '../state/AppState';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { usePlatformFeatures } from '../lib/platform-features';
 import { getFriends, getMboloThreads, getMe, getTontineGroups, getTransactions } from '../lib/api-client';
-import { colors, fontFamily, radius, spacing, type, motion } from '../theme';
+import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { navigateFromRoot } from '../lib/root-navigation';
 import { formatKori } from '../lib/kori.js';
 import {
   useFloatLoop,
   useBlink,
   useScalePulse,
-  useColorPulse,
   useEntrance,
+  useGlowPulse,
 } from '../hooks/animations';
 
 const PRIMARY_ACTIONS = [
@@ -123,14 +123,19 @@ function ActionButton({ icon, label, gradient, glow, delay, onPress, compact }) 
 }
 
 function MbooloPulseCard({ thread, userId, onPress }) {
-  const borderColor = useColorPulse(colors.terracottaA20, colors.terracottaA45, motion.pulse);
   const badgeScale = useScalePulse(1500, 1.15);
+  const sheenPulse = useGlowPulse(2600, 1);
 
   if (!thread) return null;
   const { name, preview, avatars, memberCount } = mbooloThreadPreview(thread, userId);
 
   return (
-    <PressScale onPress={onPress} scaleTo={0.98} style={[styles.mbooloMini, { borderColor }]}>
+    <PressScale onPress={onPress} scaleTo={0.97} style={styles.mbooloMini}>
+      <LinearGradient
+        colors={[colors.terracottaLight, colors.terracotta, colors.terracottaDark]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={styles.mmAvaStack}>
         {avatars.length ? (
           avatars.map((emoji, i) => (
@@ -152,20 +157,19 @@ function MbooloPulseCard({ thread, userId, onPress }) {
         <Animated.View style={[styles.mmBadge, { transform: [{ scale: badgeScale }] }]}>
           <Text style={styles.mmBadgeText}>{memberCount}</Text>
         </Animated.View>
-      ) : null}
+      ) : (
+        <Animated.Text style={[styles.mmArrow, { opacity: Animated.add(0.55, Animated.multiply(sheenPulse, 0.45)) }]}>→</Animated.Text>
+      )}
     </PressScale>
   );
 }
 
-const QUICK_SEND_TONES = [
-  { bg: 'rgba(26,240,96,0.16)', border: 'rgba(15,188,72,0.45)', text: colors.greenDark },
-  { bg: 'rgba(247,183,49,0.18)', border: 'rgba(232,146,10,0.45)', text: colors.goldDark },
-  { bg: 'rgba(232,92,26,0.14)', border: 'rgba(232,92,26,0.4)', text: colors.terracottaDark },
-];
+const QUICK_SEND_LIMIT = 10;
 
-const QUICK_SEND_LIMIT = 8;
-
-function QuickSendRow({ navigation }) {
+// The people tray — real friends up top, Instagram-tray grammar with K21's
+// own tricolor ring (StoryAvatar), never a fake "online" claim. This is the
+// first thing under the header: money app or not, K21 opens on people.
+function PeopleTray({ navigation }) {
   const open = (route, params) => navigateFromRoot(navigation, route, params);
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -193,49 +197,36 @@ function QuickSendRow({ navigation }) {
   const quickFriends = friends.slice(0, QUICK_SEND_LIMIT);
 
   return (
-    <View style={styles.qs}>
-      <View style={styles.discHead}>
-        <Text style={styles.discLabel}>Yónnee rapide</Text>
-        {friends.length > QUICK_SEND_LIMIT ? (
-          <PressScale scaleTo={0.97} onPress={() => open('Friends')}>
-            <Text style={styles.discAll}>Tous</Text>
-          </PressScale>
-        ) : null}
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.qsRow}>
-        <PressScale scaleTo={0.9} onPress={() => open('SendMoney')} style={styles.qsItem}>
-          <View style={styles.qsAddDisc}>
-            <Text style={styles.qsAddPlus}>+</Text>
+    <View style={styles.tray}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trayRow}>
+        <PressScale scaleTo={0.92} onPress={() => open('Friends')} style={styles.trayItem}>
+          <View style={styles.trayAddDisc}>
+            <Text style={styles.trayAddPlus}>+</Text>
           </View>
-          <Text style={styles.qsName}>Yónnee</Text>
+          <Text style={styles.trayName}>Amis</Text>
         </PressScale>
         {loading ? (
-          <ActivityIndicator color={colors.greenDark} style={styles.qsLoading} />
+          <ActivityIndicator color={colors.greenDark} style={styles.trayLoading} />
         ) : quickFriends.length === 0 ? (
-          <PressScale scaleTo={0.97} onPress={() => open('Friends')} style={styles.qsEmpty}>
-            <Text style={styles.qsEmptyText}>Ajoute un ami pour envoyer en un tap</Text>
+          <PressScale scaleTo={0.97} onPress={() => open('Friends')} style={styles.trayEmpty}>
+            <Text style={styles.trayEmptyText}>Ajoute tes premiers amis →</Text>
           </PressScale>
         ) : (
-          quickFriends.map((friend, i) => {
-            const tone = QUICK_SEND_TONES[i % QUICK_SEND_TONES.length];
+          quickFriends.map((friend) => {
             const label = friend.name?.trim() || friend.handle;
             return (
               <PressScale
                 key={friend.id}
-                scaleTo={0.9}
+                scaleTo={0.92}
                 onPress={() => open('SendMoney', { recipientHandle: friend.handle })}
-                style={styles.qsItem}
+                style={styles.trayItem}
               >
-                <View style={[styles.qsDisc, { backgroundColor: tone.bg, borderColor: tone.border }]}>
-                  <ProfileAvatar
-                    photoUrl={friend.avatarUrl}
-                    initial={label[0]?.toUpperCase() ?? '?'}
-                    size={54}
-                    style={styles.qsAvatar}
-                    textStyle={{ color: tone.text }}
-                  />
-                </View>
-                <Text style={styles.qsName} numberOfLines={2}>{label}</Text>
+                <StoryAvatar
+                  photoUrl={friend.avatarUrl}
+                  initial={label[0]?.toUpperCase() ?? '?'}
+                  size={64}
+                />
+                <Text style={styles.trayName} numberOfLines={1}>{label.split(' ')[0]}</Text>
               </PressScale>
             );
           })
@@ -299,7 +290,12 @@ function TontineGoalCard({ group, open }) {
   const dueLabel = group.nextDueAt ? `Prochain tour · ${formatTontineDue(group.nextDueAt)}` : 'Tontine active';
 
   return (
-    <PressScale scaleTo={0.98} onPress={() => open('Tontine')} style={styles.goalCard}>
+    <PressScale scaleTo={0.97} onPress={() => open('Tontine')} style={styles.goalCard}>
+      <LinearGradient
+        colors={['#ffe45c', colors.flagGold, colors.goldDark]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={styles.goalRing}>
         <Text style={styles.goalRingText}>{roundLabel}</Text>
       </View>
@@ -338,6 +334,7 @@ export default function HomeScreen({ navigation }) {
   const { feature } = usePlatformFeatures();
   const notifBlink = useBlink();
   const balanceEntrance = useEntrance(0, 1000, 12);
+  const balanceGlow = useGlowPulse(3400, 0.4);
   const { profile, balance, transactions, refreshWallet } = useAppState();
   const firstName = profile.name.split(' ')[0];
   const [recentTxs, setRecentTxs] = useState([]);
@@ -408,7 +405,20 @@ export default function HomeScreen({ navigation }) {
                 </PressScale>
               </View>
 
+              <PeopleTray navigation={navigation} />
+
               <View style={styles.balanceDisplay}>
+                <Animated.View style={[styles.balanceGlow, { opacity: balanceGlow }]}>
+                  <Svg width="100%" height="100%" viewBox="0 0 100 100">
+                    <Defs>
+                      <RadialGradient id="balGlow" cx="50%" cy="50%" r="50%">
+                        <Stop offset="0%" stopColor={colors.green} stopOpacity={0.5} />
+                        <Stop offset="100%" stopColor={colors.green} stopOpacity={0} />
+                      </RadialGradient>
+                    </Defs>
+                    <Rect width="100" height="100" fill="url(#balGlow)" />
+                  </Svg>
+                </Animated.View>
                 <Text style={styles.balanceEye}>👁 Solde</Text>
                 <Animated.Text style={[styles.balanceAmount, balanceEntrance]}>
                   {formatKori(balance)}
@@ -451,8 +461,6 @@ export default function HomeScreen({ navigation }) {
             <View style={[styles.flagSeg, { backgroundColor: colors.flagGold }]} />
             <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
           </View>
-
-          <QuickSendRow navigation={navigation} />
 
           <View style={styles.homeCards}>
             <SpendingRing spending={spending} />
@@ -502,7 +510,11 @@ const styles = StyleSheet.create({
   notifBtn: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(5,8,5,0.05)', borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', alignItems: 'center', justifyContent: 'center' },
   notifDot: { position: 'absolute', top: 8, right: 9, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.orange, borderWidth: 1.5, borderColor: colors.appCanvas.base },
 
-  balanceDisplay: { alignItems: 'center', marginBottom: spacing.giant },
+  balanceDisplay: { alignItems: 'center', marginBottom: spacing.giant, marginTop: spacing.xl },
+  balanceGlow: {
+    position: 'absolute', top: -20, width: 220, height: 100, borderRadius: 100,
+    backgroundColor: colors.green, alignSelf: 'center',
+  },
   balanceEye: { ...type.bodySmall, color: 'rgba(5,8,5,0.45)', marginBottom: spacing.sm },
   balanceAmount: { ...type.balanceAmount, color: colors.ink, textAlign: 'center', textShadowColor: 'rgba(26,240,96,0.3)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 18 },
   balanceCurrency: { fontFamily: fontFamily.bodyRegular, fontSize: 16, fontWeight: '400', color: colors.greenDark },
@@ -553,37 +565,35 @@ const styles = StyleSheet.create({
   wmBar: { height: 4, backgroundColor: 'rgba(5,8,5,0.08)', borderRadius: 2, overflow: 'hidden', marginTop: spacing.sm },
   wmStar: { fontSize: 20, color: colors.goldDark },
 
-  mbooloMini: { backgroundColor: 'rgba(232,92,26,0.1)', borderWidth: 1, borderRadius: radius.xxl, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
+  mbooloMini: {
+    overflow: 'hidden', borderRadius: radius.xxl, borderBottomRightRadius: 11,
+    paddingHorizontal: spacing.xxxl, paddingVertical: spacing.xl,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xl,
+    shadowColor: colors.terracotta, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.28, shadowRadius: 16, elevation: 6,
+  },
   mmAvaStack: { flexDirection: 'row' },
-  mmAva: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.appCanvas.surface, borderWidth: 2, borderColor: colors.appCanvas.base, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
-  mmAvaText: { fontSize: 13 },
+  mmAva: { width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.92)', borderWidth: 2, borderColor: colors.terracotta, alignItems: 'center', justifyContent: 'center', marginLeft: -9 },
+  mmAvaText: { fontSize: 14 },
   mmBody: { flex: 1 },
-  mmTitle: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.terracottaDark },
-  mmSub: { ...type.caption, color: 'rgba(5,8,5,0.5)' },
-  mmBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.terracotta, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
-  mmBadgeText: { fontFamily: fontFamily.bodyBold, fontSize: 10, color: colors.white },
+  mmTitle: { fontFamily: fontFamily.displayBold, fontSize: 13, color: colors.white },
+  mmSub: { ...type.caption, color: 'rgba(255,255,255,0.8)', marginTop: 1 },
+  mmBadge: { minWidth: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(5,8,5,0.28)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  mmBadgeText: { fontFamily: fontFamily.bodyBold, fontSize: 10.5, color: colors.white },
+  mmArrow: { fontSize: 17, color: colors.white, fontFamily: fontFamily.bodyBold },
 
-  qs: { paddingTop: spacing.xl },
-  discHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xxxl, marginBottom: spacing.md },
-  discLabel: { fontFamily: fontFamily.bodyBold, fontSize: 11, letterSpacing: 0.8, color: 'rgba(5,8,5,0.5)', textTransform: 'uppercase' },
-  discAll: { fontFamily: fontFamily.bodyBold, fontSize: 11, color: colors.greenDark },
-  qsRow: { paddingHorizontal: spacing.xxxl, gap: spacing.xl, paddingBottom: spacing.lg },
-  qsItem: { alignItems: 'center', gap: 5 },
-  qsAddDisc: {
-    width: 54, height: 54, borderRadius: 27, borderBottomRightRadius: 9, backgroundColor: colors.ink,
+  tray: { marginBottom: spacing.xl },
+  trayRow: { gap: spacing.lg, paddingBottom: spacing.xs },
+  trayItem: { alignItems: 'center', gap: 6, width: 68 },
+  trayAddDisc: {
+    width: 64, height: 64, borderRadius: 32, backgroundColor: colors.ink,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 5,
   },
-  qsAddPlus: { fontSize: 22, color: colors.flagGold, marginTop: -2 },
-  qsDisc: {
-    width: 54, height: 54, borderRadius: 27, borderBottomRightRadius: 9, borderWidth: 1.5,
-    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-  },
-  qsAvatar: { borderWidth: 0, backgroundColor: 'transparent', borderRadius: 27, borderBottomRightRadius: 9 },
-  qsName: { fontFamily: fontFamily.bodySemiBold, fontSize: 10.5, color: 'rgba(5,8,5,0.6)', maxWidth: 64, textAlign: 'center', lineHeight: 13 },
-  qsLoading: { alignSelf: 'center', marginLeft: spacing.lg },
-  qsEmpty: { justifyContent: 'center', paddingHorizontal: spacing.lg, maxWidth: 200 },
-  qsEmptyText: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: 'rgba(5,8,5,0.45)', lineHeight: 15 },
+  trayAddPlus: { fontSize: 26, color: colors.flagGold, marginTop: -2 },
+  trayName: { fontFamily: fontFamily.bodySemiBold, fontSize: 10.5, color: 'rgba(5,8,5,0.65)', maxWidth: 68, textAlign: 'center', lineHeight: 13 },
+  trayLoading: { alignSelf: 'center', marginLeft: spacing.lg },
+  trayEmpty: { justifyContent: 'center', paddingHorizontal: spacing.lg, maxWidth: 220 },
+  trayEmptyText: { fontFamily: fontFamily.bodySemiBold, fontSize: 12, color: 'rgba(5,8,5,0.5)', lineHeight: 16 },
 
   spendCard: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.xxl,
@@ -603,21 +613,21 @@ const styles = StyleSheet.create({
   spendLegendPct: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.ink },
 
   goalCard: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.xl,
-    backgroundColor: 'rgba(247,183,49,0.14)', borderWidth: 1, borderColor: 'rgba(232,146,10,0.28)',
-    borderRadius: radius.xxl, borderBottomRightRadius: 10, paddingHorizontal: spacing.xxl, paddingVertical: spacing.xl,
+    overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: spacing.xl,
+    borderRadius: radius.xxl, borderBottomRightRadius: 11, paddingHorizontal: spacing.xxl, paddingVertical: spacing.xl,
+    shadowColor: colors.goldDark, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.28, shadowRadius: 16, elevation: 6,
   },
   goalRing: {
-    width: 46, height: 46, borderRadius: 23, borderWidth: 2.5, borderColor: colors.goldDark,
-    borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center',
+    width: 48, height: 48, borderRadius: 24, borderWidth: 2.5, borderColor: 'rgba(5,8,5,0.35)',
+    borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.22)',
   },
-  goalRingText: { fontFamily: fontFamily.displayBlack, fontSize: 12, color: colors.goldDark },
-  goalTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
-  goalSub: { fontFamily: fontFamily.bodyRegular, fontSize: 10.5, color: 'rgba(5,8,5,0.55)', marginBottom: 6 },
-  goalBar: { height: 5, borderRadius: 3, backgroundColor: 'rgba(5,8,5,0.08)', overflow: 'hidden' },
-  goalFill: { height: '100%', borderRadius: 3, backgroundColor: colors.goldDark },
+  goalRingText: { fontFamily: fontFamily.displayBlack, fontSize: 12, color: colors.ink },
+  goalTitle: { fontFamily: fontFamily.displayBold, fontSize: 13, color: colors.ink },
+  goalSub: { fontFamily: fontFamily.bodySemiBold, fontSize: 10.5, color: 'rgba(5,8,5,0.65)', marginBottom: 6 },
+  goalBar: { height: 5, borderRadius: 3, backgroundColor: 'rgba(5,8,5,0.16)', overflow: 'hidden' },
+  goalFill: { height: '100%', borderRadius: 3, backgroundColor: colors.ink },
   goalAmount: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
-  goalAmountText: { fontFamily: fontFamily.displayBlack, fontSize: 17, letterSpacing: -0.5, color: colors.goldDark },
+  goalAmountText: { fontFamily: fontFamily.displayBlack, fontSize: 17, letterSpacing: -0.5, color: colors.ink },
   goalAmountF: { fontFamily: fontFamily.bodySemiBold, fontSize: 10, color: 'rgba(5,8,5,0.5)' },
 
   txSection: { paddingHorizontal: spacing.huge, paddingBottom: spacing.xxxl },
