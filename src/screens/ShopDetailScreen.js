@@ -15,7 +15,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { coordsFromArrondissement } from '../lib/dakar-coords';
-import { getMarketplaceShop, placeMarketplaceOrder } from '../lib/api-client';
+import { getMarketplaceShop, placeMarketplaceOrder, setBusinessCommunityStatus } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
 function ProductRow({ product, qty, onChangeQty }) {
@@ -64,6 +64,9 @@ export default function ShopDetailScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [shop, setShop] = useState(null);
   const [products, setProducts] = useState([]);
+  const [communityStatuses, setCommunityStatuses] = useState([]);
+  const [communityDraft, setCommunityDraft] = useState('');
+  const [communitySaving, setCommunitySaving] = useState(false);
   const [cart, setCart] = useState({});
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [fulfillment, setFulfillment] = useState('delivery');
@@ -78,6 +81,8 @@ export default function ShopDetailScreen({ navigation, route }) {
       const data = await getMarketplaceShop(businessId, { lat: coords.lat, lng: coords.lng });
       setShop(data.shop);
       setProducts(Array.isArray(data.products) ? data.products : []);
+      setCommunityStatuses(Array.isArray(data.communityStatuses) ? data.communityStatuses : []);
+      setCommunityDraft(data.shop?.viewerStatusText ?? '');
     } catch (err) {
       showToast(err.message ?? 'Commerce introuvable');
       navigation.goBack();
@@ -89,6 +94,21 @@ export default function ShopDetailScreen({ navigation, route }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  const publishCommunityStatus = async (textOverride) => {
+    const text = textOverride ?? communityDraft;
+    setCommunitySaving(true);
+    try {
+      await setBusinessCommunityStatus(businessId, text);
+      setCommunityDraft(text.trim());
+      await load();
+      showToast(text.trim() ? 'Statut publié ✓' : 'Statut effacé');
+    } catch (err) {
+      showToast(err.message ?? 'Publication impossible');
+    } finally {
+      setCommunitySaving(false);
+    }
+  };
 
   const cartItems = useMemo(
     () =>
@@ -184,6 +204,51 @@ export default function ShopDetailScreen({ navigation, route }) {
             ) : null}
           </View>
         </View>
+
+        {(communityStatuses.length > 0 || shop?.viewerCanPostStatus) ? (
+          <View style={styles.communitySection}>
+            <Text style={styles.communityLabel}>
+              {shop?.type === 'school' ? '🎓 Statuts étudiants' : '✦ Statuts de l’équipe'}
+            </Text>
+            {communityStatuses.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
+                {communityStatuses.map((c) => (
+                  <View key={c.userId} style={styles.communityCard}>
+                    <Text style={styles.communityName} numberOfLines={1}>{c.name}</Text>
+                    <Text style={styles.communityText} numberOfLines={3}>{c.text}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : null}
+            {shop?.viewerCanPostStatus ? (
+              <>
+                <View style={styles.communityComposer}>
+                  <TextInput
+                    style={styles.communityInput}
+                    value={communityDraft}
+                    onChangeText={setCommunityDraft}
+                    placeholder={shop?.type === 'school' ? 'Ton statut ici (ex : en cours, inscriptions ouvertes...)' : 'Ton statut ici'}
+                    placeholderTextColor={colors.appCanvas.textFaint}
+                    maxLength={80}
+                  />
+                  <PressScale
+                    scaleTo={0.95}
+                    onPress={() => publishCommunityStatus()}
+                    disabled={communitySaving}
+                    style={[styles.communityPublishBtn, communitySaving && { opacity: 0.6 }]}
+                  >
+                    <Text style={styles.communityPublishText}>{communitySaving ? '…' : 'Publier'}</Text>
+                  </PressScale>
+                </View>
+                {communityDraft ? (
+                  <PressScale scaleTo={0.95} onPress={() => publishCommunityStatus('')} disabled={communitySaving}>
+                    <Text style={styles.communityClear}>Effacer mon statut</Text>
+                  </PressScale>
+                ) : null}
+              </>
+            ) : null}
+          </View>
+        ) : null}
 
         <ScrollView contentContainerStyle={styles.body}>
           {products.map((p) => (
@@ -304,6 +369,43 @@ const styles = StyleSheet.create({
     borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3,
   },
   statusPillText: { fontFamily: fontFamily.bodyBold, fontSize: 10.5, color: colors.goldDark },
+  communitySection: {
+    paddingHorizontal: spacing.huge,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  communityLabel: { ...type.caption, fontFamily: fontFamily.bodySemiBold, color: 'rgba(5,8,5,0.55)' },
+  communityCard: {
+    maxWidth: 160,
+    backgroundColor: colors.appCanvas.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(5,8,5,0.08)',
+    padding: spacing.md,
+    gap: 2,
+  },
+  communityName: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: colors.greenDark },
+  communityText: { ...type.caption, color: colors.ink },
+  communityComposer: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
+  communityInput: {
+    flex: 1,
+    ...type.bodySmall,
+    color: colors.ink,
+    backgroundColor: colors.appCanvas.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(5,8,5,0.1)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  communityPublishBtn: {
+    backgroundColor: colors.gold,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  communityPublishText: { fontFamily: fontFamily.bodySemiBold, fontSize: 12, color: colors.ink },
+  communityClear: { ...type.caption, color: colors.terracottaDark, alignSelf: 'flex-start' },
   body: { paddingHorizontal: spacing.huge, paddingBottom: 120, gap: spacing.md },
   productRow: {
     flexDirection: 'row',

@@ -575,6 +575,16 @@ export function setBusinessStatus(businessId, statusText) {
   });
 }
 
+/** Community status — posted by a student (K21 Pass linked here) or staff
+ * member, not the business itself. Shows alongside the official status. */
+export function setBusinessCommunityStatus(businessId, statusText) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/community-status`, {
+    method: 'POST',
+    body: { statusText: statusText?.trim() || null },
+    skipCache: true,
+  });
+}
+
 export function getMyBusinesses() {
   return apiFetch('/api/businesses/mine', { skipCache: true });
 }

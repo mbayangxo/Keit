@@ -48,6 +48,7 @@ model User {
   emailVerifiedAt        DateTime?
   afriId                 String?   @unique
   studentPassSchool      String?
+  studentPassBusinessId  String?
   studentPassStatus      String?
   studentPassRequestedAt DateTime?
   studentPassVerifiedAt  DateTime?
@@ -67,6 +68,8 @@ model User {
   workerProfile         WorkerProfile?
   businessMemberships   BusinessMember[]
   ownedBusinesses       Business[]             @relation("BusinessOwner")
+  studentPassBusiness   Business?              @relation("StudentPassLink", fields: [studentPassBusinessId], references: [id])
+  communityStatuses     BusinessCommunityStatus[]
   sentMessages          MboloMessage[]
   mboloMemberships      MboloMember[]
   createdThreads        MboloThread[]          @relation("ThreadCreator")
@@ -255,6 +258,8 @@ model Business {
   wallet           BusinessWallet?
   businessLedger   BusinessLedgerEntry[]
   ledgerCounterparty BusinessLedgerEntry[] @relation("BusinessLedgerCounterparty")
+  studentPassHolders User[]                @relation("StudentPassLink")
+  communityStatuses  BusinessCommunityStatus[]
 
   @@index([ownerId])
   @@index([category])
@@ -274,6 +279,27 @@ model BusinessMember {
 
   @@unique([businessId, userId, role])
   @@index([userId])
+}
+
+/**
+ * A status posted by someone affiliated with a business rather than the
+ * business itself — a student whose K21 Pass is linked to that school, or a
+ * staff member. One row per person per business (overwritten in place, same
+ * "regular status" mental model as User.statusText / Business.statusText).
+ */
+model BusinessCommunityStatus {
+  id         String   @id @default(cuid())
+  businessId String
+  userId     String
+  text       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([businessId, updatedAt])
 }
 
 /** KEBU business wallet — separate from owner personal AFRI wallet. */
