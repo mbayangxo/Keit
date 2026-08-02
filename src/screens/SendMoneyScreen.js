@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
@@ -10,9 +11,10 @@ import ScreenHeader from '../components/ScreenHeader';
 import AmountChips from '../components/AmountChips';
 import ReceiptCard from '../components/ReceiptCard';
 import ConfettiBurst from '../components/ConfettiBurst';
+import StoryAvatar from '../components/StoryAvatar';
 import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
-import { useEntrance, usePopIn, useSuccessHaptic } from '../hooks/animations';
+import { useEntrance, useGlowPulse, usePopIn, useSuccessHaptic } from '../hooks/animations';
 import ReceiptShareButtons from '../components/ReceiptShareButtons';
 import UndoTransferBar from '../components/UndoTransferBar';
 import { usePreferences } from '../context/PreferencesContext';
@@ -57,6 +59,18 @@ function displayHandle(handle) {
   return h ? `@${h}` : '';
 }
 
+function RecentRecipientChip({ item, onPress, delay }) {
+  const entrance = useEntrance(delay, 350, 10);
+  return (
+    <Animated.View style={entrance}>
+      <PressScale scaleTo={0.92} onPress={() => onPress(item)} style={styles.recentChip}>
+        <StoryAvatar initial={item.name?.[0]?.toUpperCase() ?? '?'} size={52} spin={false} />
+        <Text style={styles.recentChipName} numberOfLines={1}>{item.name?.split(' ')[0] ?? item.handle}</Text>
+      </PressScale>
+    </Animated.View>
+  );
+}
+
 function AmountStep({
   amount,
   setAmount,
@@ -70,12 +84,17 @@ function AmountStep({
   recipientProfile,
   lookupLoading,
   lookupError,
+  recentRecipients,
+  onPickRecent,
   onContinue,
   onBack,
   onScan,
   reduceMotion,
 }) {
   const popIn = usePopIn(0, 400, 0.8);
+  const heroGlow = useGlowPulse(3200, 0.35);
+  const recipientEntrance = useEntrance(80, 400, 12);
+  const reasonEntrance = useEntrance(160, 400, 12);
   const pressDigit = (d) => setAmount((prev) => Math.min(999999, Number(`${prev === 0 ? '' : prev}${d}`)));
   const pressBackspace = () => setAmount((prev) => Math.floor(prev / 10));
 
@@ -86,6 +105,17 @@ function AmountStep({
           <ScreenHeader onBack={onBack} title="Envoyer" style={styles.shTop} />
 
           <View style={styles.amountHero}>
+            <Animated.View style={[styles.amountGlow, { opacity: heroGlow }]}>
+              <Svg width="100%" height="100%" viewBox="0 0 100 100">
+                <Defs>
+                  <RadialGradient id="sendGlow" cx="50%" cy="50%" r="50%">
+                    <Stop offset="0%" stopColor={colors.green} stopOpacity={0.5} />
+                    <Stop offset="100%" stopColor={colors.green} stopOpacity={0} />
+                  </RadialGradient>
+                </Defs>
+                <Rect width="100" height="100" fill="url(#sendGlow)" />
+              </Svg>
+            </Animated.View>
             <Text style={styles.ahLbl}>Combien ?</Text>
             <Animated.View style={[popIn, styles.ahRow]}>
               <KoriAmount value={amount} textStyle={styles.ahNum} />
@@ -99,8 +129,20 @@ function AmountStep({
           </View>
         </View>
 
-        <View style={styles.recipientSection}>
+        <Animated.View style={[styles.recipientSection, recipientEntrance]}>
           <Text style={styles.lbl}>À qui ?</Text>
+
+          {recentRecipients.length > 0 && !recipientQuery ? (
+            <>
+              <Text style={styles.recentLbl}>Envoyé récemment</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recentRow}>
+                {recentRecipients.map((r, i) => (
+                  <RecentRecipientChip key={r.handle} item={r} onPress={onPickRecent} delay={i * 40} />
+                ))}
+              </ScrollView>
+            </>
+          ) : null}
+
           <View style={styles.modeRow}>
             {RECIPIENT_MODES.map((m) => (
               <PressScale
@@ -185,9 +227,9 @@ function AmountStep({
           {lookupError && !lookupLoading && recipientQuery.length >= 3 && (
             <Text style={styles.lookupError}>{lookupError}</Text>
           )}
-        </View>
+        </Animated.View>
 
-        <View style={styles.reasonWrap}>
+        <Animated.View style={[styles.reasonWrap, reasonEntrance]}>
           <Text style={styles.lbl}>Pour quoi ? (optionnel)</Text>
           <TextInput
             style={styles.reasonField}
@@ -196,7 +238,7 @@ function AmountStep({
             value={reason}
             onChangeText={setReason}
           />
-        </View>
+        </Animated.View>
 
         <View style={{ paddingHorizontal: spacing.huge, paddingBottom: spacing.giant }}>
           <GlowButton
@@ -366,8 +408,28 @@ export default function SendMoneyScreen({ navigation, route }) {
   const [submitting, setSubmitting] = useState(false);
   const [stepUpVisible, setStepUpVisible] = useState(false);
   const lookupTimer = useRef(null);
-  const { balance, refreshWallet, setPendingMboloShare } = useAppState();
+  const { balance, refreshWallet, setPendingMboloShare, transactions } = useAppState();
   const countryDial = country?.dial ?? '+221';
+
+  const recentRecipients = useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    for (const tx of transactions ?? []) {
+      if (tx.type !== 'send' || !tx.counterpartyHandle) continue;
+      const handle = tx.counterpartyHandle.replace(/^@/, '');
+      if (!handle || seen.has(handle)) continue;
+      seen.add(handle);
+      list.push({ handle, name: tx.counterpartyName || handle });
+      if (list.length >= 8) break;
+    }
+    return list;
+  }, [transactions]);
+
+  const pickRecentRecipient = (item) => {
+    setRecipientMode('handle');
+    setRecipientQuery(item.handle);
+    setLookupError('');
+  };
 
   const runLookup = useCallback(
     async (q, mode) => {
@@ -489,6 +551,8 @@ export default function SendMoneyScreen({ navigation, route }) {
               recipientProfile={recipientProfile}
               lookupLoading={lookupLoading}
               lookupError={lookupError}
+              recentRecipients={recentRecipients}
+              onPickRecent={pickRecentRecipient}
               onContinue={() => setStep('confirm')}
               onBack={() => navigation.goBack()}
               onScan={() => navigation.navigate('QrScan', { prefilledAmount: amount, note: reason })}
@@ -537,6 +601,10 @@ const styles = StyleSheet.create({
   shTop: { marginBottom: spacing.giant },
 
   amountHero: { alignItems: 'center' },
+  amountGlow: {
+    position: 'absolute', top: -10, width: 200, height: 90, borderRadius: 90,
+    backgroundColor: colors.green, alignSelf: 'center',
+  },
   ahLbl: { fontFamily: fontFamily.bodyBold, fontSize: 9, letterSpacing: 1.5, color: 'rgba(26,240,96,0.6)', textTransform: 'uppercase', marginBottom: spacing.lg },
   ahRow: { flexDirection: 'row', alignItems: 'center' },
   ahNum: { fontFamily: fontFamily.displayBlack, fontSize: 52, letterSpacing: -3, lineHeight: 52, color: colors.green },
@@ -546,6 +614,10 @@ const styles = StyleSheet.create({
   quickRow: { justifyContent: 'center', marginTop: spacing.xl },
 
   recipientSection: { paddingHorizontal: spacing.huge, paddingVertical: spacing.xxl },
+  recentLbl: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5, color: 'rgba(5,8,5,0.4)', marginTop: spacing.md, marginBottom: spacing.sm },
+  recentRow: { gap: spacing.lg, paddingBottom: spacing.md, paddingRight: spacing.lg },
+  recentChip: { alignItems: 'center', width: 60, gap: spacing.xs },
+  recentChipName: { fontSize: 10, fontFamily: fontFamily.bodyBold, color: colors.ink },
   modeRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, marginBottom: spacing.lg },
   modePill: {
     flex: 1,
