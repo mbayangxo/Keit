@@ -7,13 +7,13 @@ import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 import ScreenBackground from '../components/ScreenBackground';
 import PressScale from '../components/PressScale';
 import StoryAvatar from '../components/StoryAvatar';
+import KoriAmount from '../components/KoriAmount';
 import { useAppState } from '../state/AppState';
 import { useScreenshotBlock } from '../hooks/useScreenshotBlock';
 import { usePlatformFeatures } from '../lib/platform-features';
 import { getFriends, getMboloThreads, getMe, getTontineGroups, getTransactions } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { navigateFromRoot } from '../lib/root-navigation';
-import { formatKori } from '../lib/kori.js';
 import {
   useFloatLoop,
   useBlink,
@@ -266,7 +266,7 @@ function SpendingRing({ spending }) {
         </Svg>
         <View style={styles.spendCenter}>
           <Text style={styles.spendMonth}>{spending.monthLabel}</Text>
-          <Text style={styles.spendTotal}>{formatKori(spending.total)}</Text>
+          <KoriAmount value={spending.total} textStyle={styles.spendTotal} gap={2} style={{ justifyContent: 'center' }} />
         </View>
       </View>
       <View style={styles.spendLegend}>
@@ -306,14 +306,12 @@ function TontineGoalCard({ group, open }) {
           <View style={[styles.goalFill, { width: `${progress}%` }]} />
         </View>
       </View>
-      <View style={styles.goalAmount}>
-        <Text style={styles.goalAmountText}>{formatKori(group.potBalance || group.expectedPot)}</Text>
-      </View>
+      <KoriAmount value={group.potBalance || group.expectedPot} textStyle={styles.goalAmountText} gap={2} style={styles.goalAmount} />
     </PressScale>
   );
 }
 
-function TransactionRow({ icon, iconBg, title, subtitle, amount, amountColor }) {
+function TransactionRow({ icon, iconBg, title, subtitle, value, positive, amountColor }) {
   return (
     <View style={styles.txRow}>
       <View style={[styles.txIcon, { backgroundColor: iconBg }]}>
@@ -323,7 +321,7 @@ function TransactionRow({ icon, iconBg, title, subtitle, amount, amountColor }) 
         <Text style={styles.txTitle}>{title}</Text>
         <Text style={styles.txSub}>{subtitle}</Text>
       </View>
-      <Text style={[styles.txAmount, { color: amountColor }]}>{amount}</Text>
+      <KoriAmount value={value} prefix={positive ? '+' : ''} textStyle={[styles.txAmount, { color: amountColor }]} color={amountColor} gap={2} />
     </View>
   );
 }
@@ -420,9 +418,9 @@ export default function HomeScreen({ navigation }) {
                   </Svg>
                 </Animated.View>
                 <Text style={styles.balanceEye}>👁 Solde</Text>
-                <Animated.Text style={[styles.balanceAmount, balanceEntrance]}>
-                  {formatKori(balance)}
-                </Animated.Text>
+                <Animated.View style={balanceEntrance}>
+                  <KoriAmount value={balance} textStyle={styles.balanceAmount} style={{ justifyContent: 'center' }} />
+                </Animated.View>
                 <View style={styles.zeroFeesPill}>
                   <Text style={styles.zeroFeesText}>✦ Zéro frais sur tous tes envois</Text>
                 </View>
@@ -485,7 +483,8 @@ export default function HomeScreen({ navigation }) {
                     iconBg={tx.iconBg}
                     title={tx.title}
                     subtitle={tx.subtitle}
-                    amount={`${tx.amount > 0 ? '+' : ''}${formatKori(Math.abs(tx.amount))}`}
+                    value={Math.abs(tx.amount)}
+                    positive={tx.amount > 0}
                     amountColor={tx.amount > 0 ? colors.greenDark : colors.terracottaDark}
                   />
                 ))}
