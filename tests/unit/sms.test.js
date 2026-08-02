@@ -28,7 +28,7 @@ test('parseInboundKeyword recognizes balance and help in FR/EN/Wolof', () => {
 test('formatBalanceMessage shows national + Kori', () => {
   const msg = formatBalanceMessage({ balance: 12500, koriBalance: 1200, currency: 'XOF' });
   assert.match(msg, /12[\s\u202f]?500 XOF/);
-  assert.match(msg, /₭[\s\u202f]?1[\s\u202f]?200/);
+  assert.match(msg, /C[\s\u202f]?1[\s\u202f]?200/);
   assert.match(msg, /SOLDE/);
 });
 
