@@ -565,6 +565,16 @@ export function createBusiness({ name, type = 'merchant', category, arrondisseme
   });
 }
 
+/** Business status update (owner/admin) — same idea as a personal status,
+ * for the place itself: a promo, "on recrute", inscriptions ouvertes, etc. */
+export function setBusinessStatus(businessId, statusText) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/status`, {
+    method: 'POST',
+    body: { statusText: statusText?.trim() || null },
+    skipCache: true,
+  });
+}
+
 export function getMyBusinesses() {
   return apiFetch('/api/businesses/mine', { skipCache: true });
 }

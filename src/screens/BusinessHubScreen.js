@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -7,7 +7,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
-import { createBusiness, createFlashDeal } from '../lib/api-client';
+import { createBusiness, createFlashDeal, setBusinessStatus } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { formatKori, formatNationalEquivalent } from '../lib/kori.js';
 import {
@@ -112,6 +112,9 @@ export default function BusinessHubScreen({ navigation }) {
   const [flashHours, setFlashHours] = useState(4);
   const [flashSaving, setFlashSaving] = useState(false);
 
+  const [statusDraft, setStatusDraft] = useState('');
+  const [statusSaving, setStatusSaving] = useState(false);
+
   const [kebuBalance, setKebuBalance] = useState(0);
   const [kebuLedger, setKebuLedger] = useState([]);
   const [creditTier, setCreditTier] = useState('starter');
@@ -155,6 +158,27 @@ export default function BusinessHubScreen({ navigation }) {
 
   const business = businesses.find((b) => b.id === activeId) ?? businesses[0] ?? profile.business;
   const type = business?.type ?? 'merchant';
+
+  useEffect(() => {
+    setStatusDraft(business?.statusText ?? '');
+  }, [business?.id, business?.statusText]);
+
+  const publishStatus = async (textOverride) => {
+    if (!business?.id) return;
+    const text = textOverride ?? statusDraft;
+    setStatusSaving(true);
+    try {
+      await setBusinessStatus(business.id, text);
+      showToast(text.trim() ? 'Statut publié ✓' : 'Statut effacé ✓');
+      const updated = { ...business, statusText: text.trim() || null };
+      setBusinesses((prev) => prev.map((b) => (b.id === business.id ? updated : b)));
+      setStatusDraft(text.trim());
+    } catch (err) {
+      showToast(err.message ?? 'Publication impossible');
+    } finally {
+      setStatusSaving(false);
+    }
+  };
 
   const loadBusinesses = useCallback(async () => {
     try {
@@ -565,6 +589,28 @@ export default function BusinessHubScreen({ navigation }) {
                   <Text style={styles.actionLabel}>Gérer</Text>
                 </PressScale>
               </View>
+              <SectionCard title="✦ Statut — visible sur ta page publique">
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex : Inscriptions ouvertes, on recrute, promo ce week-end…"
+                  placeholderTextColor={'rgba(5,8,5,0.45)'}
+                  value={statusDraft}
+                  onChangeText={setStatusDraft}
+                  maxLength={80}
+                />
+                <GlowButton
+                  tone="gold"
+                  label={statusSaving ? '…' : 'Publier le statut →'}
+                  onPress={publishStatus}
+                  disabled={statusSaving}
+                />
+                {business?.statusText ? (
+                  <PressScale scaleTo={0.96} onPress={() => publishStatus('')}>
+                    <Text style={styles.flashHint}>Effacer le statut actuel</Text>
+                  </PressScale>
+                ) : null}
+              </SectionCard>
+
               <SectionCard title="⚡ Offre flash — visible dans Discover">
                 <TextInput
                   style={styles.input}

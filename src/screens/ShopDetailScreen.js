@@ -177,6 +177,11 @@ export default function ShopDetailScreen({ navigation, route }) {
             <Text style={styles.meta}>
               {[shop?.arrondissement, shop?.distanceLabel, shop?.address].filter(Boolean).join(' · ')}
             </Text>
+            {shop?.statusText ? (
+              <View style={styles.statusPill}>
+                <Text style={styles.statusPillText} numberOfLines={2}>✦ {shop.statusText}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
@@ -293,6 +298,12 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: fontFamily.displayBlack, fontSize: 18, color: colors.ink },
   meta: { ...type.bodySmall, color: 'rgba(5,8,5,0.5)' },
+  statusPill: {
+    marginTop: spacing.sm, alignSelf: 'flex-start',
+    backgroundColor: 'rgba(250,216,54,0.16)', borderWidth: 1, borderColor: 'rgba(232,146,10,0.3)',
+    borderRadius: radius.round, paddingHorizontal: spacing.lg, paddingVertical: 3,
+  },
+  statusPillText: { fontFamily: fontFamily.bodyBold, fontSize: 10.5, color: colors.goldDark },
   body: { paddingHorizontal: spacing.huge, paddingBottom: 120, gap: spacing.md },
   productRow: {
     flexDirection: 'row',

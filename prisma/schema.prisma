@@ -230,6 +230,7 @@ model Business {
   arrondissement String?
   kebuId         String?  @unique
   description    String?
+  statusText     String?
   address        String?
   lat            Float?
   lng            Float?
