@@ -397,7 +397,7 @@ export default function MoiScreen({ navigation }) {
                   <Text style={styles.hiName}>Nouveau</Text>
                 </PressScale>
                 <Text style={[styles.hiEmpty, { flex: 1 }]}>
-                  Tes billets, tontines et pass apparaîtront ici au fur et à mesure.
+                  Tes billets, ta Natta et ton pass apparaîtront ici au fur et à mesure.
                 </Text>
               </View>
             )}

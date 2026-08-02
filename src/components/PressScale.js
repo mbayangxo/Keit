@@ -15,7 +15,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 export default function PressScale({ children, style, onPress, scaleTo = 0.9, haptic = 'light' }) {
   const scale = useRef(new Animated.Value(1)).current;
   const pressIn = () => {
-    Animated.timing(scale, { toValue: scaleTo, duration: 100, useNativeDriver: true }).start();
+    Animated.spring(scale, { toValue: scaleTo, useNativeDriver: true, speed: 60, bounciness: 0 }).start();
     if (haptic && Platform.OS !== 'web') {
       const impactStyle =
         haptic === 'medium'
@@ -26,7 +26,9 @@ export default function PressScale({ children, style, onPress, scaleTo = 0.9, ha
       Haptics.impactAsync(impactStyle);
     }
   };
-  const pressOut = () => Animated.timing(scale, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+  // A soft overshoot on release — snaps back past 1.0 before settling — is
+  // what makes a tap read as tactile instead of a flat scale-reset.
+  const pressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 14, bounciness: 9 }).start();
   return (
     <AnimatedPressable
       onPress={onPress}

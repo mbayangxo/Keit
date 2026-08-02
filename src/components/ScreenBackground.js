@@ -1,14 +1,14 @@
 import { StyleSheet, View } from 'react-native';
 import Svg, { Defs, RadialGradient, Rect, Stop, LinearGradient } from 'react-native-svg';
-import WaxPattern from './WaxPattern';
-import { colors, motion } from '../theme';
+import { colors } from '../theme';
 
 // One K21 canvas everywhere: bright green-tinted base with vivid green,
 // gold, and orange blooms — black ink text, same vibe on every tab.
+// One flat, textureless surface everywhere — no crosshatch lines.
 //
-// `soft` = the splash/onboarding treatment: one continuous color with only
-// faint sunrise light, no texture — first impressions stay calm and clean.
-export default function ScreenBackground({ wax = true, soft = false }) {
+// `soft` = the splash/onboarding treatment: wider, warmer light on the same
+// flat base — first impressions stay calm and clean.
+export default function ScreenBackground({ soft = false }) {
   const c = colors.appCanvas;
   // Soft = sunnier but calmer: wider, warmer light on the same flat base.
   const glow = soft
@@ -47,7 +47,6 @@ export default function ScreenBackground({ wax = true, soft = false }) {
         {soft && <Rect width="100" height="100" fill="url(#sbSky)" />}
         <Rect width="100" height="100" fill="url(#sbOrange)" />
       </Svg>
-      {wax && !soft && <WaxPattern color="rgba(5,8,5,0.035)" size={20} durationMs={motion.waxDrift} />}
     </View>
   );
 }

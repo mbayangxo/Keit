@@ -6,7 +6,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
-import WaxPattern from '../components/WaxPattern';
 import StepTransition from '../components/StepTransition';
 import ScreenHeader from '../components/ScreenHeader';
 import AmountChips from '../components/AmountChips';
@@ -18,7 +17,7 @@ import { parseK21Qr } from '../lib/k21-qr';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useBlink, useEntrance, useFillIn, usePopIn } from '../hooks/animations';
 
-// design/k21-four-flows.html, FLOW 1 — TONTINE DIGITALE (Screens T1-T3):
+// design/k21-four-flows.html, FLOW 1 — NATTA DIGITALE (Screens T1-T3):
 // My Tontines list -> Create Group -> Pot Release.
 
 const AMOUNT_CHIPS = ['10k F', '25k F', '50k F', '100k F'];
@@ -83,7 +82,6 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
           end={{ x: 0.8, y: 1 }}
           style={styles.hero}
         >
-          <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
           <ScreenHeader onBack={onBack} style={styles.topRow} />
           <Animated.View style={heroEntrance}>
             <View style={styles.flagStripe}>
@@ -91,14 +89,14 @@ function HomeStep({ groups, loading, onOpenGroup, onCreate, onBack }) {
               <View style={[styles.flagBar, { backgroundColor: colors.flagGold }]} />
               <View style={[styles.flagBar, { backgroundColor: colors.terracotta }]} />
             </View>
-            <Text style={styles.eyebrow}>TONTINE DIGITALE</Text>
+            <Text style={styles.eyebrow}>NATTA DIGITALE</Text>
             <Text style={styles.title}>Mes groupes</Text>
             <Text style={styles.sub}>Épargne collective · Automatique</Text>
 
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
                 <Text style={styles.statNum}>{groups.length}</Text>
-                <Text style={styles.statLabel}>Tontines actives</Text>
+                <Text style={styles.statLabel}>Natta actives</Text>
               </View>
               <View style={styles.statBox}>
                 <Text style={[styles.statNum, { color: colors.terracotta, fontSize: 13 }]}>Ce mois</Text>
@@ -379,7 +377,7 @@ function CreateStep({ navigation, creatorHandle, pendingMember, onConsumePending
             value={name}
             onChangeText={setName}
             style={[styles.fieldInput, name.length > 0 && styles.fieldInputFilled]}
-            placeholder="Tontine Médina"
+            placeholder="Natta Médina"
             placeholderTextColor={'rgba(5,8,5,0.4)'}
           />
         </View>
@@ -508,7 +506,6 @@ function ReleaseStep({ group, onBack, onReceive, receiving }) {
     <View style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.releaseHero}>
-          <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
           <ScreenHeader onBack={onBack} style={styles.topRow} />
           <Animated.View style={[{ alignItems: 'center' }, heroEntrance]}>
             <View style={styles.releaseBadgeBig}>
@@ -617,7 +614,7 @@ export default function TontineScreen({ navigation, route }) {
       } else if (result.partial) {
         showToast('Collecte partielle — certains membres n\'ont pas assez de solde');
       } else {
-        showToast('Tontine traitée ✓');
+        showToast('Natta traitée ✓');
       }
       setStep('home');
       await loadGroups();
@@ -632,7 +629,7 @@ export default function TontineScreen({ navigation, route }) {
     setCreating(true);
     try {
       await createTontineGroup(payload);
-      showToast('Tontine créée ✓');
+      showToast('Natta créée ✓');
       setStep('home');
       await loadGroups();
     } catch (err) {

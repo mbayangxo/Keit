@@ -5,7 +5,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
-import WaxPattern from '../components/WaxPattern';
 import StepTransition from '../components/StepTransition';
 import Keypad from '../components/Keypad';
 import ScreenHeader from '../components/ScreenHeader';
@@ -79,7 +78,6 @@ function ScanStep({ merchant, merchants, onSelectMerchant, amount, setAmount, on
           end={{ x: 1, y: 1 }}
           style={styles.payHero}
         >
-          <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
           <ScreenHeader onBack={onBack} title="Payer un marchand" titleStyle={styles.payHeroTitle} style={styles.payHeroTop} />
 
           <Animated.View style={[styles.merchantCard, entrance]}>
@@ -172,7 +170,6 @@ function ConfirmStep({ merchant, amount, balance, onPay, onCancel, submitting })
     <View style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.confirmHero}>
-          <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
           <Animated.View style={[{ alignItems: 'center' }, entrance]}>
             <View style={styles.confirmAva}>
               <Text style={{ fontSize: 28 }}>{merchant.emoji}</Text>
@@ -233,7 +230,6 @@ function SuccessStep({ merchant, amount, oldBalance, newBalance, reference, onDo
 
   return (
     <View style={styles.successRoot}>
-      <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
       <Animated.View style={[styles.ssRing, ring]}>
         <Text style={{ fontSize: 38, color: colors.greenDark }}>{undone ? '↩' : '✓'}</Text>
       </Animated.View>

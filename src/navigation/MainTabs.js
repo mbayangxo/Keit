@@ -10,9 +10,13 @@ const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
-      <Tab.Screen name="HomeTab" component={HomeScreen} />
+    <Tab.Navigator
+      initialRouteName="HomeTab"
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <TabBar {...props} />}
+    >
       <Tab.Screen name="MbooloTab" component={MbooloStack} />
+      <Tab.Screen name="HomeTab" component={HomeScreen} />
       <Tab.Screen name="MarketplaceTab" component={MarketplaceStack} />
       <Tab.Screen name="NotificationsTab" component={NotificationsScreen} />
       <Tab.Screen name="MoiTab" component={MoiScreen} />

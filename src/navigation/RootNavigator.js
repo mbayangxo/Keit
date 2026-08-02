@@ -17,6 +17,7 @@ import WorkerProfileScreen from '../screens/WorkerProfileScreen';
 import NuLekkScreen from '../screens/NuLekkScreen';
 import ReceiveScreen from '../screens/ReceiveScreen';
 import TontineScreen from '../screens/TontineScreen';
+import WalletScreen from '../screens/WalletScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ComingSoonScreen from '../screens/ComingSoonScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
@@ -183,6 +184,7 @@ export default function RootNavigator() {
       <Stack.Screen name="NuLekk" component={NuLekkScreen} />
       <Stack.Screen name="Receive" component={ReceiveScreen} />
       <Stack.Screen name="Tontine" component={TontineScreen} />
+      <Stack.Screen name="Wallet" component={WalletScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Accessibility" component={AccessibilityScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />

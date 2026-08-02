@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
@@ -80,7 +79,6 @@ function AmountStep({
 
   return (
     <View style={{ flex: 1 }}>
-      <WaxPattern color="rgba(26,240,96,0.04)" size={18} animated={!reduceMotion} />
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.sendHero}>
           <ScreenHeader onBack={onBack} title="Envoyer" style={styles.shTop} />
@@ -224,7 +222,6 @@ function ConfirmStep({ amount, reason, balance, recipientProfile, onConfirm, onC
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.csHero}>
-        <WaxPattern color="rgba(26,240,96,0.03)" size={18} animated={false} />
         <View style={styles.csAva}>
           <ProfileAvatar
             photoUrl={recipientProfile?.avatarUrl}

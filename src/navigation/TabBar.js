@@ -6,16 +6,16 @@ import { getNotifications } from '../lib/api-client';
 import { colors, fontFamily, spacing } from '../theme';
 
 const TAB_ICONS = {
-  HomeTab: '🏠',
   MbooloTab: '💬',
+  HomeTab: '💰',
   MarketplaceTab: '🛒',
   NotificationsTab: '🔔',
   MoiTab: '😊',
 };
 
 const TAB_LABELS = {
-  HomeTab: 'Accueil',
   MbooloTab: 'Mboolo',
+  HomeTab: 'Argent',
   MarketplaceTab: 'Marché',
   NotificationsTab: 'Alertes',
   MoiTab: 'Moi',

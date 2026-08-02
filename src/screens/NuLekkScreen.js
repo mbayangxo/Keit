@@ -1,7 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
 import GlowButton from '../components/GlowButton';
 import { colors, fontFamily, radius, spacing } from '../theme';
@@ -15,7 +14,6 @@ export default function NuLekkScreen({ navigation }) {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
           <LinearGradient colors={['#ffe08a', '#ffb347', '#ff8c52']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={styles.hero}>
-            <WaxPattern color="rgba(255,255,255,0.08)" size={14} durationMs={25000} />
             <View style={styles.heroBackRow}>
               <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.heroBack}>
                 <Text style={{ fontSize: 14, color: '#fff' }}>←</Text>

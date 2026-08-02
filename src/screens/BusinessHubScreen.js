@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import GlowButton from '../components/GlowButton';
@@ -514,7 +513,6 @@ export default function BusinessHubScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-      <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>

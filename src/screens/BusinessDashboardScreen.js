@@ -1,6 +1,5 @@
 import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import { useAppState } from '../state/AppState';
@@ -73,7 +72,6 @@ export default function BusinessDashboardScreen({ navigation }) {
   return (
     <View style={styles.root}>
       <ScreenBackground />
-      <WaxPattern color="rgba(5,8,5,0.03)" size={18} animated={false} />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>

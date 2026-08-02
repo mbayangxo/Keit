@@ -4,7 +4,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
-import WaxPattern from '../components/WaxPattern';
 import PressScale from '../components/PressScale';
 import MbooloAttachSheet from '../components/MbooloAttachSheet';
 import { colors, fontFamily, radius, spacing } from '../theme';
@@ -419,7 +418,6 @@ export default function MbooloChatScreen({ navigation, route }) {
 
   return (
     <View style={styles.root}>
-      <WaxPattern color="rgba(232,92,26,0.04)" size={14} durationMs={25000} animated={false} />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
