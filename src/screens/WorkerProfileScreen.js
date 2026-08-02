@@ -13,6 +13,7 @@ import {
   getWorkerCreditSummary,
   getWorkerProfile as fetchWorkerProfile,
 } from '../lib/api-client';
+import { formatKori } from '../lib/kori.js';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
 const MODE_OPTIONS = [
@@ -225,7 +226,7 @@ export default function WorkerProfileScreen({ navigation }) {
                       </View>
                       <View style={{ alignItems: 'flex-end' }}>
                         <Text style={styles.receiptAmt}>+{formatAmount(r.amountNational)} F</Text>
-                        {r.koriAmount ? <Text style={styles.receiptKori}>+₭{r.koriAmount}</Text> : null}
+                        {r.koriAmount ? <Text style={styles.receiptKori}>+{formatKori(r.koriAmount)}</Text> : null}
                       </View>
                     </View>
                   ))}

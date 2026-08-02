@@ -16,6 +16,7 @@
 | **Backend API** | `/api` + `/lib` | Vercel serverless + Node; **source of truth** |
 | **Database** | `/prisma` | Postgres — **Supabase, Neon, or Vercel Postgres** via `DATABASE_URL` |
 | **Scheduled jobs** | `/api/cron/*` | Vercel Cron; optional Supabase pg_cron triggers same URLs |
+| **Product docs** | `/docs/K21-*.md` | [`K21-TRADE-PORTAL.md`](K21-TRADE-PORTAL.md) · [`K21-EVENTS-APP.md`](K21-EVENTS-APP.md) |
 | **Frontend contract** | `/src/state/AppState.js` | Wire to `/api/*` (session restore + wallet refresh) |
 | **Legacy** | `/server` | Old Express app — **do not use** |
 
@@ -44,10 +45,10 @@
 | Surface | Job | Examples |
 |---------|-----|----------|
 | **Wallet** | Balances & P2P / cash rails | Send to @handle, receive, Cash in/out, tontine, pay merchant QR |
-| **Marketplace** | **Paid commerce & work** — one place for “I pay for something” | Delivery (Mouvement), rides, driver gigs, seller shop, event tickets, cooperative payouts, Ñu Lekk settle-to-merchant, Cayor market orders |
+| **Marketplace** | **Paid commerce & work** — one place for “I pay for something” | Delivery (Mouvement), rides, driver gigs, seller shop, **B2B trade portal**, cooperative payouts, Ñu Lekk settle-to-merchant, Cayor market orders |
 | **Mboolo** | **Chat & calls** — messages, voice notes, photos, stickers, **voice call, video call**, groups | Friends, DMs, group threads; 📞/🎥 from chat header; optional receipt *share* only |
 
-**Rule:** If it **costs money** and is a **product, ride, delivery, ticket, or job** → **marketplace** (+ wallet settlement). If it **moves money person-to-person** → **wallet**. If it **messages or calls (voice/video)** → **Mboolo**.
+**Rule:** If it **costs money** and is a **product, ride, delivery, or job** → **marketplace** (+ wallet settlement). **Event tickets** → separate **K21 Events** app ([`K21-EVENTS-APP.md`](K21-EVENTS-APP.md)). If it **moves money person-to-person** → **wallet**. If it **messages or calls (voice/video)** → **Mboolo**.
 
 Discover/Tendances in this repo today is wired into the **Marketplace** tab — paid commerce and regional alerts. Long term **Rect** owns culture browse; **K21 marketplace** owns the paid side (order, deliver, ride, checkout).
 
@@ -74,7 +75,7 @@ Mboolo is **WhatsApp-class messaging + calls inside K21** (including **video cha
 
 **Cross-app flows (target):**
 
-- Rect: pay / buy ticket / tip creator → **K21 wallet** (Accueil, Payer, Send — not Mboolo)
+- Rect: pay / buy ticket / tip creator → **K21 wallet** (Accueil, Payer, Send — not Mboolo) — *ticket purchase UI moves to **K21 Events** app*
 - Rect: “Message @awa” → **K21 Mboolo** (chat lives in K21, not Rect)
 - K21 wallet: optional **post to Mboolo** after send (receipt card in thread) — convenience, not required
 - Shared session: same refresh token / SSO where OS allows (Universal Links / App Links)
@@ -146,7 +147,7 @@ See `server/src/lib/regulatory.ts` and `server/README.md` for rail placeholders.
 - Requester notified of accept/deny
 - Optional **voice note** on request (more personal than typing)
 
-**Backend today:** `POST /transfers/request` creates notification only — **no accept/deny endpoints yet**.
+**Backend today:** `POST /transfers/request`, `POST /transfers/requests/:id/accept|cancel`, inbox in Receive screen, notifications with `refId`.
 
 ---
 
@@ -214,6 +215,63 @@ All of this lives in the **Mboolo** tab — not wallet, not marketplace.
 
 ---
 
+## Scheduled jobs (cron)
+
+**Vercel schedule (`vercel.json`):**
+
+| Cron URL | Schedule | What runs |
+|----------|----------|-----------|
+| `/api/cron/daily` | `0 6 * * *` (06:00 UTC daily) | **All** jobs below in one batch (`runAllDailyCronJobs`) |
+| `/api/cron/scheduled-payments` | `0 * * * *` (hourly) | Recurring scheduled payments only |
+
+**Jobs inside daily batch** (`lib/cron/http-handlers.js`):
+
+| Job | Purpose |
+|-----|---------|
+| `financial_integrity` | Kori reserve vs ledger sanity |
+| `pending_transactions` | Stuck rail txs → resolve or fail |
+| `fraud_monitor` | Velocity / hold review |
+| `tontine_processor` | Auto collect / rotate *(partial product)* |
+| `rider_status` | Mark stale riders offline |
+| `daily_financial_report` | Admin report snapshot |
+| `delivery_auto_release` | Release escrow after confirm window |
+| `kyc_purge` | Expired KYC image metadata |
+| `payroll_processor` | Scheduled business payroll runs |
+| `scheduled_payments` | Also runs in daily batch *(hourly route is primary)* |
+| `agent_monthly_payout` | Agent commission payout |
+| `school_fee_reminders` | Fee period nudges |
+| `youtube_chart_refresh` | Charts cache |
+
+**Manual / on-demand:** Each job also exposed at `GET|POST /api/cron/<name>` with `CRON_SECRET` header (`lib/cron-auth.js`).
+
+**Gaps (honest):**
+
+- No cron for **trade invoice overdue reminders**, **B2B route planning**, or **delivery SMS ETA** — planned with Trade Portal phase 3
+- Hobby plan = **one daily** + **one hourly** Vercel cron; everything else relies on daily batch or manual ping
+- `api-disabled/cron/*` duplicates are **legacy** — live router is `lib/api-router.js` → `lib/cron/http-handlers.js`
+
+---
+
+## B2B Trade Portal (distribution)
+
+Full product spec: [`docs/K21-TRADE-PORTAL.md`](K21-TRADE-PORTAL.md)
+
+**Mantra:** Order · Pay · Deliver · Track · Share
+
+**Built in this repo (Aug 2026):**
+
+- Brand registration + default agro catalog (granulés, beurre de cacahuète)
+- B2B/B2C channels, wholesale pricing, trade accounts, invoices (net15/30/monthly)
+- Checkout → supplier **KEBU**; invoice pay with step-up
+- Merchant order fulfillment + rider pickup/deliver in Mouvement
+- Business Hub → Distribution hub + payroll link
+
+**Not built yet:** GPS route board, SMS ETA, proof-of-delivery photo, batch QR traceability, worker/co-op equity dashboards, 30-day price lock subscription.
+
+**UI entry:** Marché → **Distribution** · Business Hub → **Hub distribution** · **Factures B2B** · B2B shop checkout (date + COD)
+
+---
+
 ## Worker profile (travailleur) & marketplace
 
 K21 **marketplace** covers delivery, riding, gigs, seller orders, and any paid service — not a separate product per vertical.
@@ -224,9 +282,9 @@ K21 **marketplace** covers delivery, riding, gigs, seller orders, and any paid s
 - Escrow on delivery → release on confirm; disputes + admin resolve
 - Completed paid jobs → **WorkerReceipt** (`WR-…`) for loan documentation
 - **Credit tier**: starter → building → established
-- APIs: `/workers/*`, `/deliveries/*`, seller/market routes, `/events/*` tickets
+- APIs: `/workers/*`, `/deliveries/*`, seller/market routes, `/distribution/*` trade
 
-**Backend today:** ✅ delivery escrow + receipts; seller/gig settlement — partial; Movement UI in app.
+**Backend today:** ✅ delivery escrow + receipts; ✅ B2B trade + KEBU settlement; seller/gig — partial; Movement UI wired for accept → pickup → deliver.
 
 ---
 
@@ -287,10 +345,10 @@ K21 **marketplace** covers delivery, riding, gigs, seller orders, and any paid s
 Send/receive + safety screen · Merchant QR pay · Cash in/out (Julaya) · Basic Mboolo · CNI onboarding · Kori dual balance · Profile
 
 ### Within 90 days
-Tontine · Ñu Lekk · Voice notes · Money request accept/deny · LemFi international · Events/tickets · Cayor Market + rider signup
+Tontine · Ñu Lekk · Voice notes · LemFi international · **Trade portal phase 2** (delivery date, COD, routes) · Cayor Market + rider signup · **K21 Events app** (tickets — separate install)
 
 ### Within 6 months
-Family wallet locks · Float · Agent network · Rider dispatch · Full Kori earn · native Mboolo video (custom build)
+Family wallet locks · Float · Agent network · Rider dispatch · Full Kori earn · native Mboolo video (custom build) · **Trade portal phase 3–5** (traceability, co-op dashboards, price locks)
 
 ### Year 2
 K21 Charts · Alkebulan ID · TAALI · K21 Pass card · Défis · Leaderboards · K21 Junior · Xel ak Sago · Ataya rooms · Cayor checkpoints
@@ -314,10 +372,12 @@ K21 Charts · Alkebulan ID · TAALI · K21 Pass card · Défis · Leaderboards �
 | Earn ₭ on send/merchant/delivery | ✅ |
 | Delivery escrow (accept → pickup → deliver → confirm / auto-release) | ✅ `/api/deliveries/*` |
 | Delivery disputes + evidence + admin resolve | ✅ |
-| Money request (create only) | ✅ |
-| Money request accept/deny/cancel | ✅ |
+| Money request (create + accept/deny/cancel) | ✅ |
+| B2B trade portal (brand, invoices, wholesale) | ⚠️ phase 1 — [`K21-TRADE-PORTAL.md`](K21-TRADE-PORTAL.md) |
+| Distribution fulfillment + rider UI | ✅ |
+| Business payroll (KEBU) | ✅ |
 | Family wallet locks | ❌ |
-| Tontine (basic) | ⚠️ partial |
+| Tontine (basic) | ⚠️ partial — cron exists |
 | Ñu Lekk | ❌ |
 | Merchant pay XOF/₭ | ⚠️ partial |
 | QR / offline token | ❌ |
@@ -325,7 +385,7 @@ K21 Charts · Alkebulan ID · TAALI · K21 Pass card · Défis · Leaderboards �
 | Voice/video calls (Mboolo, LiveKit) | ⚠️ web + API; env required |
 | Float | ❌ |
 | Wakhna points | ❌ |
-| Events/tickets | ⚠️ basic |
+| Events/tickets in **main K21 app** | 🚫 removed — [`K21-EVENTS-APP.md`](K21-EVENTS-APP.md) |
 | Pre-launch test suite (unit / integration / load / security) | ✅ `tests/` |
 
 ---
@@ -371,4 +431,4 @@ Tests use `tests/helpers/setup.js` (JWT secrets, `pgbouncer=true` for the dev pr
 
 ---
 
-*Last updated: July 2026 — consolidated from product sessions.*
+*Last updated: August 2026 — trade portal, cron audit, events split to separate app.*

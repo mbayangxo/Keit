@@ -14,7 +14,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import ScreenHeader from '../components/ScreenHeader';
 import ReceiptCard from '../components/ReceiptCard';
 import { useToast } from '../components/Toast';
-import { agentConfirmDeposit, agentScanDeposit, getAgentMe } from '../lib/api-client';
+import { agentConfirmDeposit, agentScanDeposit, getAgentMe, getAgentPayouts } from '../lib/api-client';
 import { parseK21Qr } from '../lib/k21-qr';
 import KoriAmount from '../components/KoriAmount';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
@@ -31,11 +31,14 @@ export default function AgentHomeScreen({ navigation, route }) {
   const [pending, setPending] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const [lastReceipt, setLastReceipt] = useState(null);
+  const [payoutInfo, setPayoutInfo] = useState(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      setAgentData(await getAgentMe());
+      const [me, payouts] = await Promise.all([getAgentMe(), getAgentPayouts().catch(() => null)]);
+      setAgentData(me);
+      setPayoutInfo(payouts);
     } catch (err) {
       showToast(err.message ?? 'Accès agent refusé');
       navigation.goBack();
@@ -128,6 +131,25 @@ export default function AgentHomeScreen({ navigation, route }) {
             </Text>
             {agent?.locationLabel ? <Text style={styles.floatMeta}>{agent.locationLabel}</Text> : null}
           </View>
+
+          {payoutInfo?.currentMonthPreview ? (
+            <View style={styles.payoutCard}>
+              <Text style={styles.payoutTitle}>Prime mensuelle (estimation)</Text>
+              <Text style={styles.payoutValue}>
+                {formatAmount(payoutInfo.currentMonthPreview.totalPaidXof ?? 0)} F
+              </Text>
+              <Text style={styles.payoutMeta}>
+                Volume ce mois · {formatAmount(payoutInfo.currentMonthPreview.totalVolumeXof ?? 0)} F
+                {' · '}
+                {payoutInfo.currentMonthPreview.depositCount ?? 0} dépôts
+              </Text>
+              <Text style={styles.payoutHint}>
+                Forfait {formatAmount(payoutInfo.terms?.flatFeeXof ?? 25_000)} F si ≥{' '}
+                {formatAmount(payoutInfo.terms?.minVolumeForFlatFee ?? 100_000)} F +{' '}
+                {(payoutInfo.terms?.volumeBonusBps ?? 50) / 100}% du volume. Payé le 1er sur ton wallet.
+              </Text>
+            </View>
+          ) : null}
 
           {lastReceipt ? (
             <ReceiptCard
@@ -223,6 +245,18 @@ const styles = StyleSheet.create({
   floatLabel: { ...type.caption, color: colors.muted, textTransform: 'uppercase', letterSpacing: 1 },
   floatValue: { fontFamily: fontFamily.display, fontSize: 32, color: colors.greenDark, marginTop: spacing.xs },
   floatMeta: { ...type.caption, color: colors.muted, marginTop: spacing.xs },
+  payoutCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  payoutTitle: { ...type.caption, color: colors.muted, textTransform: 'uppercase', letterSpacing: 1 },
+  payoutValue: { fontFamily: fontFamily.display, fontSize: 26, color: colors.ink, marginTop: spacing.xs },
+  payoutMeta: { ...type.caption, color: colors.muted, marginTop: spacing.sm },
+  payoutHint: { ...type.caption, color: colors.muted, marginTop: spacing.sm, lineHeight: 18 },
   scanLabel: { ...type.body, color: colors.ink, fontFamily: fontFamily.semibold, marginBottom: spacing.sm },
   input: {
     borderWidth: 1,

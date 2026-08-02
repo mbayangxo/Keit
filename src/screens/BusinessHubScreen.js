@@ -96,7 +96,7 @@ function SectionCard({ title, children, delay = 0 }) {
   );
 }
 
-export default function BusinessHubScreen({ navigation }) {
+export default function BusinessHubScreen({ navigation, route }) {
   const { profile, balance, transactions, refreshWallet, setProfile } = useAppState();
   const { showToast } = useToast();
   const [businesses, setBusinesses] = useState(profile.businesses?.length ? profile.businesses : profile.business ? [profile.business] : []);
@@ -182,6 +182,11 @@ export default function BusinessHubScreen({ navigation }) {
     setStatusDraft(business?.statusText ?? '');
   }, [business?.id, business?.statusText]);
 
+  useEffect(() => {
+    if (route.params?.tab) setTab(route.params.tab);
+    if (route.params?.businessId) setActiveId(route.params.businessId);
+  }, [route.params?.tab, route.params?.businessId]);
+
   const publishStatus = async (textOverride) => {
     if (!business?.id) return;
     const text = textOverride ?? statusDraft;
@@ -197,6 +202,14 @@ export default function BusinessHubScreen({ navigation }) {
     } finally {
       setStatusSaving(false);
     }
+  };
+
+  const openDistributionHub = () => {
+    navigation.navigate('Main', { screen: 'MarketplaceTab', params: { screen: 'DistributionHub' } });
+  };
+
+  const openB2BOrderPortal = () => {
+    navigation.navigate('Main', { screen: 'MarketplaceTab', params: { screen: 'B2BOrderPortal' } });
   };
 
   const loadBusinesses = useCallback(async () => {
@@ -622,6 +635,16 @@ export default function BusinessHubScreen({ navigation }) {
                 ) : null}
               </SectionCard>
 
+              <SectionCard title="📦 Distribution & B2B">
+                <Text style={styles.hintText}>
+                  Enregistre ta marque, vends en gros (granulés, beurre de cacahuète), facture tes clients et paie tes employés.
+                </Text>
+                <GlowButton label="Hub distribution" onPress={openDistributionHub} />
+                <GlowButton label="Portail commandes B2B" onPress={openB2BOrderPortal} />
+                <PressScale scaleTo={0.98} onPress={() => navigation.navigate('Main', { screen: 'MarketplaceTab', params: { screen: 'TradeInvoices' } })} style={styles.linkRow}>
+                  <Text style={styles.linkText}>Mes factures B2B à payer →</Text>
+                </PressScale>
+              </SectionCard>
               <SectionCard title="⚡ Offre flash — visible dans Discover" delay={70}>
                 <TextInput
                   style={styles.input}
@@ -687,7 +710,7 @@ export default function BusinessHubScreen({ navigation }) {
           {tab === 'wallet' && (
             <View style={styles.panel}>
               <SectionCard title="Alimenter depuis ton AFRI">
-                <TextInput style={styles.input} placeholder="Montant ₭" placeholderTextColor={'rgba(5,8,5,0.45)'} keyboardType="number-pad" value={transferAmount} onChangeText={setTransferAmount} />
+                <TextInput style={styles.input} placeholder="Montant C" placeholderTextColor={'rgba(5,8,5,0.45)'} keyboardType="number-pad" value={transferAmount} onChangeText={setTransferAmount} />
                 <TextInput style={styles.input} placeholder="Note (optionnel)" placeholderTextColor={'rgba(5,8,5,0.45)'} value={transferNote} onChangeText={setTransferNote} />
                 <GlowButton label="AFRI → KEBU" onPress={fundKebuFromPersonal} disabled={loading} />
               </SectionCard>
@@ -924,4 +947,7 @@ const styles = StyleSheet.create({
   rowSub: { fontSize: 10, color: 'rgba(5,8,5,0.5)', marginTop: 2 },
   payChip: { backgroundColor: colors.greenA12, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.lg },
   payChipText: { fontSize: 10, fontWeight: '800', color: colors.greenDark },
+  hintText: { fontSize: 11, color: 'rgba(5,8,5,0.55)', lineHeight: 16 },
+  linkRow: { paddingVertical: spacing.sm },
+  linkText: { fontSize: 12, color: colors.greenDark, fontFamily: fontFamily.bodyBold },
 });

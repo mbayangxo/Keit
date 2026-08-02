@@ -72,14 +72,23 @@ export function buildAgentDepositUrl(token) {
 export function resolveAccountQuery(raw) {
   const text = String(raw ?? '').trim();
   if (!text) return '';
-  // Only try to parse as a link/code when it actually looks like one — a
-  // bare numeric string (a phone number) must not be mistaken for a handle
-  // by the permissive handle-only pattern inside parseK21Qr.
   const looksLikeLink = /^k21:\/\//i.test(text) || /^https?:\/\//i.test(text);
   if (!looksLikeLink) return text;
   const parsed = parseK21Qr(text);
   if (parsed?.handle) return `@${parsed.handle}`;
   return text;
+}
+
+export function buildTicketPassUrl(scanCode) {
+  const code = String(scanCode ?? '').trim().toUpperCase();
+  if (!code) throw new Error('Scan code required');
+  return `k21://ticket/${code}`;
+}
+
+export function buildAgentWithdrawUrl(token) {
+  const t = String(token ?? '').trim();
+  if (!t) throw new Error('Token required');
+  return `k21://agent-withdraw/${t}`;
 }
 
 export function parseK21Qr(raw) {
@@ -100,6 +109,18 @@ export function parseK21Qr(raw) {
     if (path === 'pass' && rest) return { kind: 'student_pass', handle: rest.toLowerCase() };
     if (path === 'merchant' && rest) return { kind: 'pay_merchant', businessId: rest };
     if (path === 'agent-deposit' && rest) return { kind: 'agent_deposit', token: rest };
+    if (path === 'agent-withdraw' && rest) return { kind: 'agent_withdraw', token: rest };
+    if (path === 'aff' && rest) return { kind: 'affiliate_link', linkCode: rest.toUpperCase().split('?')[0] };
+    if (path === 'shop' && rest) {
+      const parts = rest.split('?')[0].split('/').filter(Boolean);
+      const businessId = parts[0];
+      let productId;
+      const productIdx = parts.indexOf('product');
+      if (productIdx >= 0 && parts[productIdx + 1]) productId = parts[productIdx + 1];
+      const refMatch = rest.match(/[?&]ref=([^&]+)/i);
+      const linkCode = refMatch ? refMatch[1].toUpperCase() : undefined;
+      return { kind: 'affiliate_shop', businessId, productId, linkCode };
+    }
   }
 
   try {
@@ -111,8 +132,8 @@ export function parseK21Qr(raw) {
     if (parts[0] === 'u' && parts[1]) {
       return { kind: 'add_user', handle: normalizeHandle(parts[1]) };
     }
-    if (parts[0] === 'invite' && parts[1]) {
-      return { kind: 'add_user', handle: normalizeHandle(parts[1]) };
+    if (parts[0] === 'join' && u.searchParams.get('ref')) {
+      return { kind: 'invite_ref', inviteCode: u.searchParams.get('ref').toUpperCase() };
     }
     if (parts[0] === 'merchant' && parts[1]) {
       return { kind: 'pay_merchant', businessId: parts[1] };

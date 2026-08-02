@@ -68,6 +68,45 @@ export async function routeQrScan({ raw, mode, navigation, route, api, showToast
     return { ok: false };
   }
 
+  if (mode === 'ticket' || parsed?.kind === 'ticket_pass') {
+    showToast('Billets dans l’app K21 Events (bientôt) — pas dans K21 principal');
+    navigation.goBack();
+    return { ok: false };
+  }
+
+  if (parsed?.kind === 'affiliate_shop' || parsed?.kind === 'affiliate_link') {
+    let businessId = parsed.businessId;
+    let productId = parsed.productId;
+    let linkCode = parsed.linkCode;
+    if (parsed.kind === 'affiliate_link' && linkCode) {
+      try {
+        const resolved = await api.resolveAffiliate(linkCode);
+        businessId = resolved.business?.id ?? businessId;
+        productId = resolved.product?.id ?? productId;
+      } catch {
+        showToast('Lien affilié invalide');
+        return { ok: false };
+      }
+    }
+    if (businessId) {
+      navigation.navigate('Main', {
+        screen: 'MarketplaceTab',
+        params: {
+          screen: 'ShopDetail',
+          params: {
+            businessId,
+            affiliateRef: linkCode,
+            highlightProductId: productId,
+          },
+        },
+      });
+      if (linkCode) api.trackAffiliateClick(linkCode).catch(() => {});
+      return { ok: true };
+    }
+    showToast('Lien affilié incomplet');
+    return { ok: false };
+  }
+
   const handle = parsed?.handle ?? text.replace(/^@/, '').trim();
   const profile = await api.lookupUser(handle);
   navigation.replace('SendMoney', {

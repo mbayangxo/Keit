@@ -390,7 +390,7 @@ export default function CashScreen({ navigation }) {
               stripeEnabled={stripeEnabled}
               cardLoading={cardLoading}
               onBetaDeposit={completeBetaDeposit}
-              onAgentDeposit={() => navigation.navigate('AgentDepositQr', { amount })}
+              onAgentDeposit={() => navigation.navigate('AgentDiscovery', { amount })}
               onCardDeposit={startCardDeposit}
               onContinue={() => setStep('operator')}
               onBack={() => navigation.goBack()}

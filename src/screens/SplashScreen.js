@@ -150,8 +150,8 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
           </View>
         </View>
 
-        {/* Center — logo + headline + ticker */}
         <View style={styles.center}>
+        <View style={styles.heroBlock}>
           <Animated.View
             style={[
               styles.hero,
@@ -197,33 +197,36 @@ export default function SplashScreen({ onCreateAccount, onHaveAccount }) {
               {t(langCode, `splashTicker${tickerIx + 1}`)}
             </Text>
           </Animated.View>
+        </View>
 
-          <Animated.View style={[styles.ctaRow, ctaStyle]}>
-            <PressScale scaleTo={0.97} onPress={onCreateAccount} style={styles.primaryBtn}>
-              <LinearGradient
-                colors={['#ffe45c', colors.flagGold, colors.goldDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <Text style={styles.primaryBtnText} numberOfLines={2}>
-                {t(langCode, 'splashCreateAccount')}
-              </Text>
-              <View style={styles.primaryBtnStripe}>
-                <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
-                <View style={[styles.flagSeg, { backgroundColor: colors.ink }]} />
-                <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
-              </View>
-            </PressScale>
+        {/* CTAs side-by-side — mid-screen, not pinned to bottom */}
+        <Animated.View style={[styles.ctaRow, ctaStyle]}>
+          <PressScale scaleTo={0.97} onPress={onCreateAccount} style={styles.primaryBtn}>
+            <LinearGradient
+              colors={['#ffe45c', colors.flagGold, colors.goldDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <Text style={styles.primaryBtnText} numberOfLines={2}>
+              {t(langCode, 'splashCreateAccount')}
+            </Text>
+            <View style={styles.primaryBtnStripe}>
+              <View style={[styles.flagSeg, { backgroundColor: colors.green }]} />
+              <View style={[styles.flagSeg, { backgroundColor: colors.ink }]} />
+              <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
+            </View>
+          </PressScale>
 
-            <PressScale scaleTo={0.97} onPress={onHaveAccount} style={styles.secondaryBtn}>
-              <Text style={styles.secondaryBtnText} numberOfLines={2}>
-                {t(langCode, 'splashHaveAccount')}
-              </Text>
-            </PressScale>
-          </Animated.View>
+          <PressScale scaleTo={0.97} onPress={onHaveAccount} style={styles.secondaryBtn}>
+            <Text style={styles.secondaryBtnText} numberOfLines={2}>
+              {t(langCode, 'splashHaveAccount')}
+            </Text>
+          </PressScale>
+        </Animated.View>
 
-          <Animated.Text style={[styles.caption, ctaStyle]}>{t(langCode, 'splashCaption')}</Animated.Text>
+        <Animated.Text style={[styles.caption, ctaStyle]}>{t(langCode, 'splashCaption')}</Animated.Text>
+        <View style={styles.bottomSpacer} />
         </View>
       </SafeAreaView>
     </View>
@@ -280,11 +283,16 @@ const styles = StyleSheet.create({
 
   center: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: spacing.giant,
-    paddingVertical: spacing.lg,
+    paddingTop: spacing.xl,
   },
+  heroBlock: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  bottomSpacer: { flex: 1, minHeight: spacing.lg },
 
   hero: { alignItems: 'center', marginBottom: spacing.lg },
   ringOuter: {
@@ -359,10 +367,12 @@ const styles = StyleSheet.create({
 
   ctaRow: {
     flexDirection: 'row',
+    flexWrap: 'nowrap',
     alignItems: 'stretch',
     gap: spacing.sm,
     width: '100%',
-    marginTop: spacing.xl,
+    marginTop: spacing.xxl,
+    paddingHorizontal: spacing.xs,
   },
   primaryBtn: {
     flex: 1,

@@ -81,6 +81,7 @@ model User {
   hubParcels            HubParcel[]
   moneyRequestsSent     MoneyRequest[]         @relation("MoneyRequester")
   moneyRequestsReceived MoneyRequest[]         @relation("MoneyPayer")
+  merchantVouchers      MerchantVoucher[]
   railTransactions      RailTransaction[]
   apiIdempotencyKeys    ApiIdempotency[]
   apiAuditLogs          ApiAuditLog[]
@@ -93,6 +94,7 @@ model User {
   smsMessages           SmsMessage[]
   supportTickets        SupportTicket[]
   supportTicketMessages SupportTicketMessage[]
+  supportCallLogs       SupportCallLog[]
   adminRefundsReceived  AdminRefund[]          @relation("RefundRecipient")
   transferUndosSent     TransferUndo[]         @relation("UndoSender")
   transferUndosReceived TransferUndo[]         @relation("UndoRecipient")
@@ -116,6 +118,15 @@ model User {
   agentProfile           AgentProfile?
   agentDeposits          AgentDeposit[]
   stripeDeposits         StripeDeposit[]
+  paymentFunds           PaymentFund[]
+  scheduledPayments      ScheduledPayment[]
+  productViews           ProductView[]
+  solidarityCampaigns    SolidarityCampaign[]   @relation("SolidarityCreator")
+  solidarityBeneficiary  SolidarityCampaign[]   @relation("SolidarityBeneficiary")
+  solidarityDonations    SolidarityContribution[] @relation("SolidarityDonor")
+  affiliateProfile       AffiliateProfile?
+  tradeAccountsAsBuyer   TradeAccount[]           @relation("TradeBuyer")
+  tradeInvoicesAsBuyer   TradeInvoice[]           @relation("TradeInvoiceBuyer")
 
   @@index([phone])
   @@index([afriId])
@@ -183,6 +194,9 @@ model KoriTransaction {
   status          String   @default("completed")
   reference       String   @unique
   note            String?
+  attachmentUrl   String?  @db.Text
+  attachmentType  String?
+  giftCardTheme   String?
   createdAt       DateTime @default(now())
 
   sender    User? @relation("KoriSender", fields: [senderId], references: [id])
@@ -213,6 +227,9 @@ model LedgerEntry {
   counterpartyName   String?
   counterpartyHandle String?
   note               String?
+  attachmentUrl      String?  @db.Text
+  attachmentType     String?
+  giftCardTheme      String?
   reference          String   @unique
   createdAt          DateTime @default(now())
 
@@ -239,6 +256,10 @@ model Business {
   lng            Float?
   imageUrl       String?
   verified       Boolean  @default(false)
+  acceptOrdersWhenOutOfStock Boolean @default(false)
+  pauseOrders                Boolean @default(false)
+  lowStockAlertEnabled       Boolean @default(true)
+  distributionEnabled        Boolean @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -260,6 +281,15 @@ model Business {
   ledgerCounterparty BusinessLedgerEntry[] @relation("BusinessLedgerCounterparty")
   studentPassHolders User[]                @relation("StudentPassLink")
   communityStatuses  BusinessCommunityStatus[]
+  productViews       ProductView[]
+  affiliateLinks     AffiliateLink[]
+  merchantVouchers   MerchantVoucher[]
+  lockedMoneyRequests MoneyRequest[] @relation("LockedMoneyRequests")
+  tradeAccountsSupplied TradeAccount[] @relation("TradeSupplier")
+  tradeAccountsAsBuyer  TradeAccount[] @relation("TradeBuyerBusiness")
+  tradeInvoicesSupplied TradeInvoice[] @relation("TradeInvoiceSupplier")
+  tradeInvoicesAsBuyer  TradeInvoice[] @relation("TradeInvoiceBuyerBusiness")
+  ordersAsBuyer         Order[]        @relation("OrderBuyerBusiness")
 
   @@index([ownerId])
   @@index([category])
@@ -424,15 +454,25 @@ model Product {
   price       Int
   category    String?
   inventory   Int      @default(0)
+  trackInventory      Boolean  @default(true)
+  allowBackorder      Boolean  @default(false)
+  lowStockThreshold   Int      @default(5)
+  viewCount           Int      @default(0)
   active      Boolean  @default(true)
   flashPrice  Int?
   flashExpiresAt DateTime?
+  unitLabel   String?
+  b2bPrice    Int?
+  b2bMinQty   Int      @default(1)
+  saleChannel String   @default("both")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   seller     SellerProfile? @relation(fields: [sellerId], references: [id])
   business   Business?      @relation(fields: [businessId], references: [id])
   orderItems OrderItem[]
+  views      ProductView[]
+  affiliateLinks AffiliateLink[]
 
   @@index([sellerId])
   @@index([businessId])
@@ -443,24 +483,39 @@ model Order {
   id               String   @id @default(cuid())
   buyerId          String
   businessId       String?
+  buyerBusinessId  String?
   status           String   @default("pending")
+  channel          String   @default("b2c")
+  paymentTerm      String   @default("immediate")
+  paymentStatus    String   @default("paid")
+  paidAmount       Int      @default(0)
+  paymentSource    String   @default("personal")
+  preferredDeliveryDate DateTime?
+  orderReference   String?  @unique
   fulfillmentType  String   @default("delivery")
   totalAmount      Int
   deliveryAddress  String?
   hubId            String?
   notes            String?
+  affiliateLinkCode String?
+  mboloThreadId     String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   business Business?     @relation(fields: [businessId], references: [id])
+  buyerBusiness Business? @relation("OrderBuyerBusiness", fields: [buyerBusinessId], references: [id])
   hub      DeliveryHub?  @relation(fields: [hubId], references: [id])
   items    OrderItem[]
   delivery DeliveryTask?
   hubParcelLastMile HubParcel? @relation("HubParcelLastMile")
+  tradeInvoice TradeInvoice?
 
   @@index([buyerId])
   @@index([businessId])
+  @@index([buyerBusinessId])
   @@index([status])
+  @@index([paymentStatus])
+  @@index([preferredDeliveryDate])
   @@index([hubId])
 }
 
@@ -536,6 +591,63 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+/** B2B buyer account with a supplier brand — pricing tier and payment terms. */
+model TradeAccount {
+  id                 String   @id @default(cuid())
+  supplierBusinessId String
+  buyerUserId        String
+  buyerBusinessId    String?
+  buyerLabel         String?
+  buyerType          String   @default("merchant")
+  paymentTerm        String   @default("net30")
+  creditLimitKori    Int      @default(0)
+  codEnabled         Boolean  @default(false)
+  trustTier          String   @default("new")
+  codLimitKori       Int      @default(50000)
+  priceLockUntil     DateTime?
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  supplier      Business       @relation("TradeSupplier", fields: [supplierBusinessId], references: [id], onDelete: Cascade)
+  buyer         User           @relation("TradeBuyer", fields: [buyerUserId], references: [id], onDelete: Cascade)
+  buyerBusiness Business?      @relation("TradeBuyerBusiness", fields: [buyerBusinessId], references: [id], onDelete: SetNull)
+  invoices      TradeInvoice[]
+
+  @@unique([supplierBusinessId, buyerUserId])
+  @@index([buyerUserId])
+  @@index([supplierBusinessId, active])
+}
+
+/** Open invoice for B2B orders — collect later per trade terms. */
+model TradeInvoice {
+  id                 String    @id @default(cuid())
+  supplierBusinessId String
+  buyerUserId        String
+  buyerBusinessId    String?
+  tradeAccountId     String?
+  orderId            String?   @unique
+  reference          String    @unique
+  amountKori         Int
+  amountPaid         Int       @default(0)
+  status             String    @default("open")
+  dueAt              DateTime
+  paidAt             DateTime?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  supplier      Business      @relation("TradeInvoiceSupplier", fields: [supplierBusinessId], references: [id], onDelete: Cascade)
+  buyer         User          @relation("TradeInvoiceBuyer", fields: [buyerUserId], references: [id], onDelete: Cascade)
+  buyerBusiness Business?     @relation("TradeInvoiceBuyerBusiness", fields: [buyerBusinessId], references: [id], onDelete: SetNull)
+  tradeAccount  TradeAccount? @relation(fields: [tradeAccountId], references: [id], onDelete: SetNull)
+  order         Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([buyerUserId, status])
+  @@index([supplierBusinessId, status])
+  @@index([dueAt])
 }
 
 model DeliveryTask {
@@ -642,6 +754,7 @@ model Event {
   title       String
   description String?
   venue       String?
+  coverImageUrl String?
   startsAt    DateTime
   ticketPrice Int
   capacity    Int?
@@ -665,11 +778,69 @@ model Ticket {
   status    String   @default("paid")
   createdAt DateTime @default(now())
 
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  buyer User  @relation(fields: [buyerId], references: [id])
+  event  Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  buyer  User         @relation(fields: [buyerId], references: [id])
+  passes TicketPass[]
 
   @@index([eventId])
   @@index([buyerId])
+}
+
+/** One scannable admission per ticket unit — door check-in. */
+model TicketPass {
+  id          String    @id @default(cuid())
+  ticketId    String
+  scanCode    String    @unique
+  status      String    @default("valid")
+  checkedInAt DateTime?
+  checkedInBy String?
+  createdAt   DateTime  @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([status])
+}
+
+/** Jëkkal — community help / crowdfunding (Senegalese GoFundMe). */
+model SolidarityCampaign {
+  id                String    @id @default(cuid())
+  creatorId         String
+  beneficiaryUserId String
+  title             String
+  story             String?   @db.Text
+  goalAmount        Int
+  raisedAmount      Int       @default(0)
+  coverPhotoUrl     String?
+  status            String    @default("active")
+  fundedAt          DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  creator     User                     @relation("SolidarityCreator", fields: [creatorId], references: [id])
+  beneficiary User                     @relation("SolidarityBeneficiary", fields: [beneficiaryUserId], references: [id])
+  contributions SolidarityContribution[]
+
+  @@index([creatorId])
+  @@index([beneficiaryUserId])
+  @@index([status, createdAt])
+}
+
+model SolidarityContribution {
+  id         String   @id @default(cuid())
+  campaignId String
+  donorId    String
+  amount     Int
+  message    String?
+  anonymous  Boolean  @default(false)
+  reference  String   @unique
+  createdAt  DateTime @default(now())
+
+  campaign SolidarityCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  donor    User               @relation("SolidarityDonor", fields: [donorId], references: [id])
+
+  @@index([campaignId, createdAt])
+  @@index([donorId])
 }
 
 model MboloThread {
@@ -832,24 +1003,102 @@ model TrendingArticle {
 }
 
 model MoneyRequest {
-  id           String    @id @default(cuid())
-  requesterId  String
-  payerId      String
-  amount       Int
-  currency     String    @default("national")
-  note         String?
-  voiceNoteUrl String?
-  status       String    @default("pending")
-  reference    String    @unique
-  respondedAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  requesterId       String
+  payerId           String
+  amount            Int
+  currency          String    @default("national")
+  purposeCategory   String?
+  note              String?
+  voiceNoteUrl      String?   @db.Text
+  photoUrl          String?   @db.Text
+  videoUrl          String?   @db.Text
+  lockToBusinessId  String?
+  status            String    @default("pending")
+  reference         String    @unique
+  respondedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  requester User @relation("MoneyRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  payer     User @relation("MoneyPayer", fields: [payerId], references: [id], onDelete: Cascade)
+  requester      User      @relation("MoneyRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  payer          User      @relation("MoneyPayer", fields: [payerId], references: [id], onDelete: Cascade)
+  lockToBusiness Business? @relation("LockedMoneyRequests", fields: [lockToBusinessId], references: [id], onDelete: SetNull)
 
   @@index([requesterId, status, createdAt])
   @@index([payerId, status, createdAt])
+}
+
+/** Locked balance spendable only at one K21 merchant (from money requests). */
+model MerchantVoucher {
+  id          String   @id @default(cuid())
+  userId      String
+  businessId  String
+  balanceKori Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, businessId])
+  @@index([userId])
+}
+
+model ProductView {
+  id         String   @id @default(cuid())
+  productId  String
+  businessId String
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId, createdAt])
+  @@index([businessId, createdAt])
+  @@index([userId])
+}
+
+/** Dedicated pot for recurring / scheduled payments (rent, family support, etc.). */
+model PaymentFund {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  category    String?
+  balanceKori Int      @default(0)
+  targetKori  Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scheduledPayments ScheduledPayment[]
+
+  @@index([userId])
+}
+
+model ScheduledPayment {
+  id              String    @id @default(cuid())
+  userId          String
+  fundId          String?
+  kind            String    @default("send")
+  recipientHandle String?
+  recipientId     String?
+  amountKori      Int
+  note            String?
+  scheduleType    String
+  scheduleDay     Int
+  nextRunAt       DateTime
+  active          Boolean   @default(true)
+  lastRunAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fund PaymentFund? @relation(fields: [fundId], references: [id], onDelete: SetNull)
+
+  @@index([userId, active])
+  @@index([nextRunAt, active])
 }
 
 model RailTransaction {
@@ -1078,6 +1327,7 @@ model AdminUser {
   tickets   SupportTicket[]        @relation("TicketAssignee")
   messages  SupportTicketMessage[]
   refunds   AdminRefund[]
+  supportCallLogs SupportCallLog[]
 
   @@index([active])
 }
@@ -1115,21 +1365,26 @@ model AdminAuditLog {
 }
 
 model SupportTicket {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   userId          String
   subject         String
-  status          String   @default("open")
-  priority        String   @default("normal")
+  status          String    @default("open")
+  priority        String    @default("normal")
+  channel         String    @default("app")
+  csPhone         String?
   assignedAdminId String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  resolvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   user     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   assignee AdminUser?             @relation("TicketAssignee", fields: [assignedAdminId], references: [id], onDelete: SetNull)
   messages SupportTicketMessage[]
+  callLogs SupportCallLog[]
 
   @@index([userId, status])
   @@index([status, createdAt])
+  @@index([channel, createdAt])
   @@index([assignedAdminId])
 }
 
@@ -1147,6 +1402,28 @@ model SupportTicketMessage {
   user   User?         @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
 
   @@index([ticketId, createdAt])
+}
+
+/** Inbound/outbound customer-service call log (phone, WhatsApp, etc.). */
+model SupportCallLog {
+  id          String   @id @default(cuid())
+  phone       String
+  userId      String?
+  ticketId    String?
+  adminUserId String?
+  direction   String   @default("inbound")
+  durationSec Int?
+  outcome     String?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  user   User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ticket SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  admin  AdminUser?     @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([phone])
+  @@index([userId])
 }
 
 /**
@@ -1585,18 +1862,46 @@ model AgentProfile {
   agentCode     String   @unique
   displayName   String
   locationLabel String?
-  floatBalance  Int      @default(0)
-  floatLimit    Int      @default(500000)
-  commissionBps Int      @default(100)
-  status        String   @default("active")
+  arrondissement  String?
+  lat             Float?
+  lng             Float?
+  floatBalance       Int      @default(0)
+  floatLimit         Int      @default(500000)
+  commissionBps      Int      @default(100)
+  monthlyFlatFeeXof  Int      @default(25000)
+  volumeBonusBps     Int      @default(50)
+  status             String   @default("active")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   deposits     AgentDeposit[]
   floatEntries AgentFloatEntry[]
+  payouts      AgentPayout[]
 
   @@index([status])
+  @@index([lat, lng])
+}
+
+/** Monthly agent compensation — flat fee + volume bonus on processed cash-ins. */
+model AgentPayout {
+  id              String   @id @default(cuid())
+  agentId         String
+  periodYear      Int
+  periodMonth     Int
+  totalVolumeXof  Int      @default(0)
+  depositCount    Int      @default(0)
+  flatFeeXof      Int      @default(0)
+  volumeBonusXof  Int      @default(0)
+  totalPaidXof    Int      @default(0)
+  status          String   @default("paid")
+  reference       String   @unique
+  createdAt       DateTime @default(now())
+
+  agent AgentProfile @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, periodYear, periodMonth])
+  @@index([periodYear, periodMonth])
 }
 
 model AgentDeposit {
@@ -1655,4 +1960,68 @@ model StripeDeposit {
 
   @@index([userId, createdAt])
   @@index([status])
+}
+
+/** TikTok-style affiliate — earn commission when referred users purchase. */
+model AffiliateProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  affiliateCode String   @unique
+  displayName   String?
+  commissionBps Int      @default(500)
+  totalEarned   Int      @default(0)
+  status        String   @default("active")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links        AffiliateLink[]
+  commissions  AffiliateCommission[]
+
+  @@index([status])
+}
+
+model AffiliateLink {
+  id          String   @id @default(cuid())
+  affiliateId String
+  productId   String?
+  businessId  String?
+  linkCode    String   @unique
+  label       String?
+  clickCount  Int      @default(0)
+  orderCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  affiliate AffiliateProfile @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  product   Product?         @relation(fields: [productId], references: [id])
+  business  Business?        @relation(fields: [businessId], references: [id])
+
+  @@index([affiliateId])
+  @@index([businessId])
+  @@index([productId])
+}
+
+model AffiliateCommission {
+  id             String   @id @default(cuid())
+  affiliateId    String
+  orderId        String?
+  buyerId        String
+  amount         Int
+  orderTotal     Int
+  commissionBps  Int
+  source         String
+  linkCode       String?
+  productId      String?
+  businessId     String?
+  mboloThreadId  String?
+  mboloMessageId String?
+  status         String   @default("paid")
+  reference      String   @unique
+  createdAt      DateTime @default(now())
+
+  affiliate AffiliateProfile @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+
+  @@index([affiliateId, createdAt])
+  @@index([buyerId])
+  @@index([orderId])
 }

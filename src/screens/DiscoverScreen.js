@@ -4,29 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
 import { useToast } from '../components/Toast';
-import { useAppState } from '../state/AppState';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 import { useEntrance, useBlink, useScalePulse } from '../hooks/animations';
-import { getEvents, getProducts, getBusinesses, purchaseEventTickets, getCultureFeed, submitBusinessReview, getFlashDeals } from '../lib/api-client';
+import { getProducts, getBusinesses, getCultureFeed, submitBusinessReview, getFlashDeals } from '../lib/api-client';
 import { useLocale } from '../context/LocaleContext';
 
-// design/k21-complete-redesign.html Discover/Eat/Events sections, merged
-// into one tabbed hub matching the Phase 1 scope (events, tickets, merchant
-// discovery, flash deals) plus Culture and Gigs/Hustle from the brief's
-// app structure. Défis and Ataya tiles from the original Discover grid are
-// swapped for in-scope content (Phase 1 excludes both).
+// Discover hub: Culture, Eat, Gigs, flash deals. Event tickets live in separate K21 Events app.
 
-const TABS = ['Tout', 'Culture', 'Eat', 'Gigs', 'Events'];
-
-function formatEventDate(iso) {
-  const d = new Date(iso);
-  return {
-    day: String(d.getDate()).padStart(2, '0'),
-    mon: d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', ''),
-    time: d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-    full: d.toLocaleString('fr-FR'),
-  };
-}
+const TABS = ['Tout', 'Culture', 'Eat', 'Gigs'];
 
 const CATEGORY_ICONS = {
   restaurant: '🍖',
@@ -47,24 +32,8 @@ function businessIcon(category) {
   return '🏬';
 }
 
-function buildDiscoverGrid({ events, deals, restaurants, gigs }) {
+function buildDiscoverGrid({ deals, restaurants, gigs }) {
   const tiles = [];
-  const ev = events[0];
-  if (ev) {
-    const when = formatEventDate(ev.startsAt);
-    tiles.push({
-      key: `ev-${ev.id}`,
-      wide: true,
-      bg: ['rgba(26,240,96,0.16)'],
-      icon: '🎤',
-      cat: 'ÉVÉNEMENT',
-      catColor: colors.greenDark,
-      title: ev.title,
-      meta: `${ev.venue ?? 'Dakar'} · ${when.time}`,
-      live: new Date(ev.startsAt) - Date.now() < 24 * 3600 * 1000,
-      tab: 'Events',
-    });
-  }
   const deal = deals[0];
   if (deal) {
     tiles.push({
@@ -104,19 +73,6 @@ function buildDiscoverGrid({ events, deals, restaurants, gigs }) {
       tab: 'Gigs',
     });
   }
-  if (events[1]) {
-    const when = formatEventDate(events[1].startsAt);
-    tiles.push({
-      key: `ev2-${events[1].id}`,
-      bg: ['rgba(232,92,26,0.14)'],
-      icon: '🌙',
-      cat: 'Event',
-      catColor: colors.terracottaDark,
-      title: events[1].title,
-      meta: `${events[1].venue ?? 'Dakar'} · ${when.time}`,
-      tab: 'Events',
-    });
-  }
   return tiles;
 }
 
@@ -153,7 +109,7 @@ function AllTab({ query, onOpenTab, gridItems, loading }) {
       {loading && <Text style={styles.noResults}>Chargement…</Text>}
       {!loading && filtered.length === 0 && (
         <Text style={styles.noResults}>
-          {query.trim() ? `Rien pour "${query}"` : 'Rien publié pour l’instant — les vrais événements, deals et gigs de Dakar apparaîtront ici.'}
+          {query.trim() ? `Rien pour "${query}"` : 'Rien publié pour l’instant — deals, restaurants et gigs de Dakar apparaîtront ici.'}
         </Text>
       )}
       {filtered.map((item, i) => (
@@ -346,139 +302,6 @@ function EatTab() {
   );
 }
 
-function EventHeroCard({ title = 'Événement K21', meta = 'Dakar · bientôt' }) {
-  const liveDot = useBlink(1000, 0.3);
-  const entrance = useEntrance(0, 450, 10);
-  return (
-    <Animated.View style={[styles.ehcCard, entrance]}>
-      <Text style={styles.ehcBg}>🎤</Text>
-      <View style={styles.ehcOverlay} />
-      <View style={styles.ehcLive}>
-        <Animated.View style={[styles.ldDot, { opacity: liveDot }]} />
-        <Text style={styles.ehcLiveText}>À VENIR</Text>
-      </View>
-      <View style={styles.ehcBody}>
-        <Text style={styles.ehcCat}>Concert · Dakar</Text>
-        <Text style={styles.ehcTitle}>{title}</Text>
-        <View style={styles.ehcMetaRow}>
-          <Text style={styles.ehcMeta}>🕗 {meta}</Text>
-        </View>
-      </View>
-    </Animated.View>
-  );
-}
-
-function EventRow({ item, delay, onBuyTicket, buying }) {
-  const entrance = useEntrance(delay, 350, 8);
-  const [going, setGoing] = useState(false);
-  const price =
-    item.ticketPrice === 0
-      ? 'Gratuit K21'
-      : `${item.ticketPrice.toLocaleString('fr-FR')} F via K21`;
-
-  const handleTicket = async () => {
-    if (going || buying) return;
-    if (item.ticketPrice === 0) {
-      setGoing(true);
-      return;
-    }
-    try {
-      await onBuyTicket(item.id);
-      setGoing(true);
-    } catch {
-      // toast handled by parent
-    }
-  };
-
-  return (
-    <Animated.View style={[styles.evItem, entrance]}>
-      <View style={styles.evDateBox}>
-        <Text style={styles.evdDay}>{item.day}</Text>
-        <Text style={styles.evdMon}>{item.mon}</Text>
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={styles.evTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.evMeta}>{item.meta}</Text>
-        <Text style={styles.evPrice}>{going ? 'Billet confirmé ✓' : price}</Text>
-      </View>
-      <PressScale
-        scaleTo={0.9}
-        onPress={handleTicket}
-        disabled={buying || going}
-        style={[styles.evGoing, going && styles.evGoingOn]}
-      >
-        <Text style={{ fontSize: 12 }}>{going ? '✓' : buying ? '…' : '🎟️'}</Text>
-      </PressScale>
-    </Animated.View>
-  );
-}
-
-function EventsTab({ onBuyTicket, buyingTicketId }) {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    getEvents()
-      .then((list) => {
-        if (cancelled) return;
-        const mapped = (Array.isArray(list) ? list : []).map((ev) => {
-          const when = formatEventDate(ev.startsAt);
-          return {
-            id: ev.id,
-            day: when.day,
-            mon: when.mon,
-            title: ev.title,
-            meta: `${ev.venue ?? 'Dakar'} · ${when.time}`,
-            ticketPrice: ev.ticketPrice ?? 0,
-            description: ev.description,
-          };
-        });
-        setEvents(mapped);
-      })
-      .catch(() => setEvents([]))
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const hero = events[0];
-
-  return (
-    <View>
-      {hero ? (
-        <EventHeroCard
-          title={hero.title}
-          meta={`${hero.meta}${hero.ticketPrice === 0 ? ' · Gratuit K21' : ''}`}
-        />
-      ) : (
-        !loading && (
-          <Text style={[styles.noResults, { paddingHorizontal: spacing.huge, paddingTop: spacing.lg }]}>
-            Aucun événement publié — les promoteurs peuvent en créer via l’API.
-          </Text>
-        )
-      )}
-      {loading && (
-        <Text style={[styles.noResults, { padding: spacing.giant }]}>Chargement…</Text>
-      )}
-      <View style={styles.eventList}>
-        {events.map((item, i) => (
-          <EventRow
-            key={item.id}
-            item={item}
-            delay={i * 60}
-            onBuyTicket={onBuyTicket}
-            buying={buyingTicketId === item.id}
-          />
-        ))}
-      </View>
-    </View>
-  );
-}
-
 function ListRow({ icon, title, meta, tag, tagColor, delay }) {
   const entrance = useEntrance(delay, 350, 8);
   return (
@@ -536,7 +359,7 @@ function CultureTab({ navigation }) {
         <Text style={[styles.noResults, { textAlign: 'left', paddingVertical: 0, marginBottom: spacing.sm }]}>{note}</Text>
       ) : (
         <Text style={[styles.noResults, { textAlign: 'left', paddingVertical: 0, marginBottom: spacing.sm }]}>
-          Aperçu local — pas de billetterie ici. Les vrais événements sont dans Events.
+          Aperçu local — sport, culture et musique K21 Charts.
         </Text>
       )}
       {items.length === 0 ? (
@@ -604,27 +427,23 @@ function GigsTab() {
 }
 
 export default function DiscoverScreen({ navigation, route }) {
-  const showToast = useToast();
-  const { refreshWallet } = useAppState();
-  const initialTab = route.params?.initialTab ?? 'Tout';
+  const initialTabParam = route.params?.initialTab;
+  const initialTab = initialTabParam === 'Events' ? 'Tout' : (initialTabParam ?? 'Tout');
   const [tab, setTab] = useState(initialTab);
   const [query, setQuery] = useState('');
   const [gridItems, setGridItems] = useState([]);
   const [gridLoading, setGridLoading] = useState(true);
-  const [buyingTicketId, setBuyingTicketId] = useState(null);
 
   const loadGrid = useCallback(async () => {
     setGridLoading(true);
     try {
-      const [events, deals, restaurants, gigs] = await Promise.all([
-        getEvents().catch(() => []),
+      const [deals, restaurants, gigs] = await Promise.all([
         getProducts('deal').catch(() => []),
         getBusinesses('restaurant').catch(() => []),
         getProducts('gig').catch(() => []),
       ]);
       setGridItems(
         buildDiscoverGrid({
-          events: Array.isArray(events) ? events : [],
           deals: Array.isArray(deals) ? deals : [],
           restaurants: Array.isArray(restaurants) ? restaurants : [],
           gigs: Array.isArray(gigs) ? gigs : [],
@@ -642,22 +461,10 @@ export default function DiscoverScreen({ navigation, route }) {
   }, [loadGrid]);
 
   useEffect(() => {
-    if (route.params?.initialTab) setTab(route.params.initialTab);
-  }, [route.params?.initialTab]);
-
-  const buyTicket = async (eventId) => {
-    setBuyingTicketId(eventId);
-    try {
-      await purchaseEventTickets(eventId, 1);
-      await refreshWallet();
-      showToast('Billet acheté ✓');
-    } catch (err) {
-      showToast(err.message ?? 'Achat impossible');
-      throw err;
-    } finally {
-      setBuyingTicketId(null);
+    if (route.params?.initialTab) {
+      setTab(route.params.initialTab === 'Events' ? 'Tout' : route.params.initialTab);
     }
-  };
+  }, [route.params?.initialTab]);
 
   return (
     <View style={styles.root}>
@@ -686,7 +493,6 @@ export default function DiscoverScreen({ navigation, route }) {
           {tab === 'Culture' && <CultureTab navigation={navigation} />}
           {tab === 'Eat' && <EatTab />}
           {tab === 'Gigs' && <GigsTab />}
-          {tab === 'Events' && <EventsTab onBuyTicket={buyTicket} buyingTicketId={buyingTicketId} />}
         </ScrollView>
       </SafeAreaView>
     </View>

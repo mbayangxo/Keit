@@ -15,7 +15,7 @@ export const MBOLO_STICKERS = [
   { id: 'ucad', label: 'UCAD', emoji: '🎓' },
   { id: 'baobab', label: 'Baobab', emoji: '🌳' },
   { id: 'ataya', label: 'Ataya', emoji: '🍵' },
-  { id: 'yónnee-kori', label: '₭', emoji: '💚' },
+  { id: 'yónnee-kori', label: 'C', emoji: '💚' },
   { id: 'wax-adam', label: 'Wax', emoji: '💬' },
 ];
 

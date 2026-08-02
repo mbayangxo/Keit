@@ -27,12 +27,19 @@ import ChartsScreen from '../screens/ChartsScreen';
 import PublicProfileScreen from '../screens/PublicProfileScreen';
 import ChannelsScreen from '../screens/ChannelsScreen';
 import CallScreen from '../screens/CallScreen';
+import AgentApplyScreen from '../screens/AgentApplyScreen';
 import AgentDepositQrScreen from '../screens/AgentDepositQrScreen';
+import AgentDiscoveryScreen from '../screens/AgentDiscoveryScreen';
 import AgentHomeScreen from '../screens/AgentHomeScreen';
 import CniVerificationScreen from '../screens/CniVerificationScreen';
+import SupportScreen from '../screens/SupportScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import StudentPassScreen from '../screens/StudentPassScreen';
 import PinGateScreen from '../screens/PinGateScreen';
+import ScheduledPaymentsScreen from '../screens/ScheduledPaymentsScreen';
+import JekkalScreen from '../screens/JekkalScreen';
+import JekkalDetailScreen from '../screens/JekkalDetailScreen';
+import AffiliateScreen from '../screens/AffiliateScreen';
 import ForgotAccessScreen from '../screens/ForgotAccessScreen';
 import { useAppState } from '../state/AppState';
 import { useSession } from '../context/SessionContext';
@@ -176,6 +183,7 @@ export default function RootNavigator() {
       <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen name="BusinessMain" component={BusinessHubScreen} />
       <Stack.Screen name="SendMoney" component={SendMoneyScreen} />
+      <Stack.Screen name="ScheduledPayments" component={ScheduledPaymentsScreen} />
       <Stack.Screen name="PayMerchant" component={PayMerchantScreen} />
       <Stack.Screen name="Cash" component={CashScreen} />
       <Stack.Screen name="MoreActions" component={MoreActionsScreen} />
@@ -189,7 +197,10 @@ export default function RootNavigator() {
       <Stack.Screen name="Accessibility" component={AccessibilityScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="CniVerification" component={CniVerificationScreen} />
+      <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="AgentDepositQr" component={AgentDepositQrScreen} />
+      <Stack.Screen name="AgentDiscovery" component={AgentDiscoveryScreen} />
+      <Stack.Screen name="AgentApply" component={AgentApplyScreen} />
       <Stack.Screen name="AgentHome" component={AgentHomeScreen} />
       <Stack.Screen name="QrScan" component={QrScanScreen} />
       <Stack.Screen name="MyQr" component={MyQrScreen} />
@@ -198,6 +209,11 @@ export default function RootNavigator() {
       <Stack.Screen name="Channels" component={ChannelsScreen} />
       <Stack.Screen name="Call" component={CallScreen} />
       <Stack.Screen name="StudentPass" component={StudentPassScreen} />
+      <Stack.Screen name="Jekkal" component={JekkalScreen} />
+      <Stack.Screen name="JekkalDetail" component={JekkalDetailScreen} />
+      <Stack.Screen name="MyTickets" component={ComingSoonScreen} initialParams={{ title: 'Billets', subtitle: 'La billetterie arrive dans l’app K21 Events (à part).' }} />
+      <Stack.Screen name="GiftReveal" component={GiftRevealScreen} />
+      <Stack.Screen name="Affiliate" component={AffiliateScreen} />
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="Info" component={ComingSoonScreen} />
     </Stack.Navigator>

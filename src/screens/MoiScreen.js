@@ -15,6 +15,7 @@ import { colors, fontFamily, radius, spacing } from '../theme';
 import { useEntrance, useFillIn, useScalePulse } from '../hooks/animations';
 
 const SETTINGS = [
+  { key: 'merchant', icon: '🛒', title: 'Mon marché', subtitle: 'Catalogue, stock, commandes, analytics' },
   { key: 'business', icon: '🏪', title: 'Mon business (KEBU)', subtitle: 'Crée ou gère ton commerce — caisse séparée' },
   { key: 'accessibility', icon: '👁️', title: 'Accessibilité', subtitle: 'Mode données réduites, grand texte' },
   { key: 'account', icon: '🔐', title: 'Compte & Sécurité', subtitle: 'CNI, biométrie, 2FA pour gros montants' },
@@ -49,7 +50,7 @@ function HighlightRing({ item, onPress }) {
 
 function highlightNavigation(item, open) {
   if (item.type === 'event') {
-    open('MarketplaceTab', { screen: 'Discover', params: { initialTab: 'Events' } });
+    open('MarketplaceTab', { screen: 'Discover', params: { initialTab: 'Culture' } });
     return;
   }
   if (item.type === 'tontine') {
@@ -440,8 +441,16 @@ export default function MoiScreen({ navigation }) {
                     open('AgentHome');
                     return;
                   }
+                  if (s.key === 'merchant') {
+                    open('Main', { screen: 'MarketplaceTab', params: { screen: 'MerchantCatalog' } });
+                    return;
+                  }
                   if (s.key === 'business') {
                     open('BusinessMain');
+                    return;
+                  }
+                  if (s.key === 'help') {
+                    open('Support');
                     return;
                   }
                   if (s.key === 'account') {

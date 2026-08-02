@@ -14,6 +14,9 @@ function inferKind(notification) {
   if (notification.kind === 'alert') return 'alert';
   if (notification.kind === 'friend') return 'friend';
   if (notification.kind === 'call') return 'call';
+  if (notification.kind === 'gift_receive') return 'gift';
+  if (notification.kind === 'affiliate') return 'affiliate';
+  if (notification.kind === 'money_request') return 'money';
   const t = `${notification.title} ${notification.body}`
     .toLowerCase()
     .replace(/[''`´]/g, "'");
@@ -29,8 +32,8 @@ function inferKind(notification) {
 
 function mapNotification(n) {
   const kind = inferKind(n);
-  const icons = { money: '💸', mboolo: '💬', event: '🎉', tontine: '🏦', ngor: '✦', alert: '🌊', friend: '🧑‍🤝‍🧑', call: '📞', generic: '🔔' };
-  const accents = { money: 'g', mboolo: 'r', event: 'o', tontine: 'y', ngor: 'g', alert: 'o', friend: 'g', call: 'o', generic: 'g' };
+  const icons = { money: '💸', gift: '🎁', jekkal: '🤝', affiliate: '🛍️', mboolo: '💬', event: '🎉', tontine: '🏦', ngor: '✦', alert: '🌊', friend: '🧑‍🤝‍🧑', call: '📞', generic: '🔔' };
+  const accents = { money: 'g', gift: 'g', jekkal: 'o', mboolo: 'r', event: 'o', tontine: 'y', ngor: 'g', alert: 'o', friend: 'g', call: 'o', generic: 'g' };
   const time = new Date(n.createdAt).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   return {
     id: n.id,
@@ -43,7 +46,7 @@ function mapNotification(n) {
     iconBg: colors.greenA10,
     text: n.body || n.title,
     time,
-    action: kind === 'money' ? '✓' : kind === 'friend' ? 'Voir' : kind === 'call' ? 'Rejoindre' : kind === 'mboolo' ? 'Répondre' : kind === 'event' || kind === 'alert' ? 'Voir' : null,
+    action: kind === 'money' ? '✓' : kind === 'gift' ? 'Ouvrir' : kind === 'jekkal' ? 'Voir' : kind === 'friend' ? 'Voir' : kind === 'call' ? 'Rejoindre' : kind === 'mboolo' ? 'Répondre' : kind === 'event' || kind === 'alert' ? 'Voir' : null,
     actionStyle: kind === 'money' ? 'g' : 'o',
     refId: n.refId ?? null,
     read: n.read,
@@ -116,7 +119,7 @@ export default function NotificationsScreen({ navigation }) {
       case 'event':
         navigation.navigate('Main', {
           screen: 'MarketplaceTab',
-          params: { screen: 'Discover', params: { initialTab: 'Events' } },
+          params: { screen: 'Discover', params: { initialTab: 'Culture' } },
         });
         break;
       case 'alert':
@@ -133,7 +136,17 @@ export default function NotificationsScreen({ navigation }) {
         }
         break;
       case 'money':
-        navigation.navigate('Receive');
+        navigation.navigate('Receive', { mode: 'inbox', requestId: item.refId ?? undefined });
+        break;
+      case 'gift':
+        navigation.navigate('GiftReveal', { reference: item.refId });
+        break;
+      case 'jekkal':
+        if (item.refId) navigation.navigate('JekkalDetail', { campaignId: item.refId });
+        else navigation.navigate('Jekkal');
+        break;
+      case 'affiliate':
+        navigation.navigate('Affiliate');
         break;
       case 'friend':
         navigation.navigate('Friends');

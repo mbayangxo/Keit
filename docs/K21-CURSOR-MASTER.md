@@ -65,9 +65,20 @@ Wire `AppState` to `GET /api/wallet`, `POST /api/transfers/send`. Keep atomic ru
 
 Groups: messaging, announcements, collecte (tontine link). No voice RTC yet.
 
-### Phase D — Discover (events only)
+### Phase D — Discover (commerce browse)
 
-`Event` model + feed API; Explorer tab consumes it.
+Culture, Eat, Gigs, flash deals — **no event tickets** in main app. Tickets → [`docs/K21-EVENTS-APP.md`](../docs/K21-EVENTS-APP.md).
+
+### Phase D2 — B2B Trade Portal
+
+See [`docs/K21-TRADE-PORTAL.md`](../docs/K21-TRADE-PORTAL.md). Distribution hub, trade accounts, invoices, wholesale checkout.
+
+**Acceptance (phase 1):**
+- [x] Brand register + seed products
+- [x] B2B checkout + payment terms + KEBU settlement
+- [x] Invoice pay + step-up
+- [x] Merchant fulfill + rider pickup/deliver
+- [ ] Preferred delivery date, COD, routes, traceability, co-op dashboards
 
 ### Phase E — Commerce + gigs
 

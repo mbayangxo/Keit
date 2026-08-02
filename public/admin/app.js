@@ -179,8 +179,10 @@ function renderAgents(agentsBlock) {
     return;
   }
   const s = agentsBlock.summary;
+  const pendingCount = (agentsBlock.agents ?? []).filter((a) => a.status === 'pending').length;
   $('agents-stats').innerHTML = `
     <div class="stat"><div class="label">Agents</div><div class="value">${s.agentCount}</div></div>
+    <div class="stat"><div class="label">Pending</div><div class="value">${pendingCount}</div></div>
     <div class="stat"><div class="label">Total float</div><div class="value">${fmtXof(s.totalFloatBalanceXof)}</div></div>
     <div class="stat"><div class="label">Confirmed deposits</div><div class="value">${fmtXof(s.totalConfirmedDepositsXof)}</div></div>
     <div class="stat"><div class="label">Implied cash held</div><div class="value">${fmtXof(s.impliedCashHeldXof)}</div></div>
@@ -188,17 +190,141 @@ function renderAgents(agentsBlock) {
   `;
 
   $('agents-table').innerHTML = tableHtml(
-    ['Code', 'Name', 'Float', 'Limit', 'Deposits', 'Location'],
+    ['Code', 'Name', 'Status', 'Float', 'Limit', 'Deposits', 'Location', 'Actions'],
     agentsBlock.agents,
     (a) => `<tr>
       <td>${a.agentCode}</td>
       <td>${a.displayName}<br><small>${a.user?.phone || a.userId}</small></td>
+      <td><span class="pill ${a.status === 'active' ? 'ok' : a.status === 'pending' ? 'warn' : 'bad'}">${a.status}</span></td>
       <td>${fmtXof(a.floatBalance)}</td>
       <td>${fmtXof(a.floatLimit)}</td>
       <td>${a.confirmedDeposits ?? 0}</td>
       <td>${a.locationLabel || '—'}</td>
+      <td>
+        ${a.status === 'pending' ? `<button type="button" class="link-btn" data-approve-agent="${a.id}">Approve</button>` : ''}
+        ${a.status === 'pending' ? `<button type="button" class="link-btn danger" data-reject-agent="${a.id}">Reject</button>` : ''}
+      </td>
     </tr>`,
   );
+
+  $('agents-table').querySelectorAll('[data-approve-agent]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await api(`/agents/${encodeURIComponent(btn.dataset.approveAgent)}/approve`, { method: 'POST', body: {} });
+        alert('Agent approved');
+        await loadDashboard();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  });
+
+  $('agents-table').querySelectorAll('[data-reject-agent]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const reason = prompt('Reason for rejection?');
+      if (!reason || reason.length < 3) return;
+      try {
+        await api(`/agents/${encodeURIComponent(btn.dataset.rejectAgent)}/reject`, { method: 'POST', body: { reason } });
+        alert('Agent rejected');
+        await loadDashboard();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  });
+}
+
+async function loadSupportTab() {
+  const [stats, calls] = await Promise.all([api('/support/stats'), api('/support/calls')]);
+  $('support-stats').innerHTML = `
+    <div class="stat"><div class="label">Open tickets</div><div class="value">${stats.tickets.open}</div></div>
+    <div class="stat"><div class="label">Pending</div><div class="value">${stats.tickets.pending}</div></div>
+    <div class="stat"><div class="label">Resolved today</div><div class="value">${stats.tickets.resolvedToday}</div></div>
+    <div class="stat"><div class="label">Calls today</div><div class="value">${stats.calls.today}</div></div>
+    <div class="stat"><div class="label">Avg resolution (h)</div><div class="value">${stats.tickets.avgResolutionHours ?? '—'}</div></div>
+  `;
+  $('cs-contact-line').textContent = `CS: ${stats.contact.phone} · ${stats.contact.hours}`;
+  $('support-calls').innerHTML = tableHtml(
+    ['Phone', 'Outcome', 'When'],
+    calls.calls,
+    (c) => `<tr><td>${c.phone}</td><td>${c.outcome ?? '—'}</td><td>${fmtDate(c.createdAt)}</td></tr>`,
+  );
+}
+
+async function loadUsersTab() {
+  const kyc = await api('/kyc/queue');
+  const cniRows = kyc.cniJobs ?? [];
+  const addrRows = kyc.addressReviews ?? [];
+  $('kyc-queue').innerHTML = `
+    <h3 class="section-title">CNI pending (${cniRows.length})</h3>
+    ${tableHtml(['User', 'Submitted', ''], cniRows, (j) => `<tr>
+      <td>${j.user?.phone ?? j.userId}<br><small>${j.user?.handle ?? ''}</small></td>
+      <td>${fmtDate(j.submittedAt)}</td>
+      <td>
+        <button class="btn btn-sm btn-primary" data-kyc-approve="${j.id}">Approve</button>
+        <button class="btn btn-sm btn-danger" data-kyc-reject="${j.id}">Reject</button>
+      </td>
+    </tr>`)}
+    <h3 class="section-title" style="margin-top:20px">Address pending (${addrRows.length})</h3>
+    ${tableHtml(['User', 'Area', ''], addrRows, (u) => `<tr>
+      <td>${u.phone}<br><small>${u.handle ?? ''}</small></td>
+      <td>${u.arrondissement ?? '—'}</td>
+      <td><button class="btn btn-sm btn-primary" data-kyc-addr="${u.userId}">Approve Tier 3</button></td>
+    </tr>`)}
+  `;
+}
+
+async function searchUsers() {
+  const q = $('user-search-q').value.trim();
+  if (q.length < 2) return alert('Enter at least 2 characters');
+  const res = await api(`/users?q=${encodeURIComponent(q)}`);
+  $('users-table').innerHTML = tableHtml(
+    ['User', 'Tier', 'Balance', ''],
+    res.users,
+    (u) => `<tr>
+      <td>${u.phone}<br><small>${u.name ?? ''} ${u.handle ?? ''}</small></td>
+      <td>T${u.verificationTier} · ${u.verificationStatus}${u.frozen ? ' · FROZEN' : ''}</td>
+      <td>${u.koriFormatted}</td>
+      <td><button class="btn btn-sm btn-ghost" data-user-detail="${u.id}">View</button></td>
+    </tr>`,
+  );
+}
+
+async function loadDistributorsTab() {
+  const res = await api('/distributors');
+  $('distributors-table').innerHTML = tableHtml(
+    ['Brand', 'Owner', 'KEBU', 'Receivable', ''],
+    res.distributors,
+    (d) => `<tr>
+      <td>${d.name}${d.pauseOrders ? ' ⏸' : ''}</td>
+      <td>${d.owner?.phone ?? d.owner?.handle ?? '—'}</td>
+      <td>${d.kebuFormatted}</td>
+      <td>${d.totalReceivableFormatted}</td>
+      <td>
+        <button class="btn btn-sm btn-ghost" data-dist-detail="${d.id}">Detail</button>
+        <button class="btn btn-sm btn-danger" data-dist-pause="${d.id}">${d.pauseOrders ? 'Resume' : 'Pause'}</button>
+      </td>
+    </tr>`,
+  );
+}
+
+async function loadOpsTab() {
+  const ops = await api('/ops/health');
+  $('ops-stats').innerHTML = `
+    <div class="stat"><div class="label">Users</div><div class="value">${ops.platform.userCount}</div></div>
+    <div class="stat"><div class="label">Distributors</div><div class="value">${ops.platform.distributorCount}</div></div>
+    <div class="stat"><div class="label">KYC pending</div><div class="value">${ops.platform.pendingKycJobs}</div></div>
+    <div class="stat"><div class="label">Fraud unacked</div><div class="value">${ops.platform.unackedFraudAlerts}</div></div>
+    <div class="stat"><div class="label">API 5xx (24h)</div><div class="value">${ops.platform.apiErrors24h}</div></div>
+    <div class="stat"><div class="label">Calls today</div><div class="value">${ops.support.calls.today}</div></div>
+  `;
+  $('ops-checklist').innerHTML = `<ul style="line-height:1.8;color:var(--muted)">
+    <li>Customer service: <strong style="color:var(--text)">${ops.contact.phone}</strong> · ${ops.contact.hours}</li>
+    <li>Email: ${ops.contact.email}</li>
+    <li>Sentry: ${ops.platform.sentryConfigured ? '✓ configured' : '✗ set SENTRY_DSN on Vercel'}</li>
+    <li>${ops.platform.uptimeMonitorHint}</li>
+    <li>Open support tickets: ${ops.support.tickets.open + ops.support.tickets.pending}</li>
+  </ul>`;
 }
 
 async function loadDashboard() {
@@ -209,6 +335,14 @@ async function loadDashboard() {
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach((p) => show(p, p.id === `tab-${name}`));
+  loadTabData(name).catch((err) => alert(err.message));
+}
+
+async function loadTabData(name) {
+  if (name === 'support') await loadSupportTab();
+  if (name === 'users') await loadUsersTab();
+  if (name === 'distributors') await loadDistributorsTab();
+  if (name === 'ops') await loadOpsTab();
 }
 
 async function enterApp() {
@@ -327,13 +461,73 @@ document.addEventListener('click', async (e) => {
   const ticketBtn = e.target.closest('[data-ticket]');
   if (ticketBtn) {
     const ticket = await api(`/support-tickets/${ticketBtn.dataset.ticket}`);
-    const reply = prompt('Reply to customer:', '');
-    if (reply) {
-      await api(`/support-tickets/${ticket.id}`, { method: 'POST', body: { body: reply } });
+    const actionsHtml = `
+      <button class="btn btn-sm btn-primary" id="modal-resolve">Mark resolved</button>
+      <button class="btn btn-sm btn-ghost" id="modal-reply">Reply</button>
+    `;
+    showModal(`Ticket: ${ticket.subject}`, ticket, actionsHtml);
+    $('modal-resolve')?.addEventListener('click', async () => {
+      await api(`/support-tickets/${ticket.id}`, { method: 'PATCH', body: { status: 'resolved' } });
+      show($('modal'), false);
       await loadDashboard();
-    } else {
-      showModal(`Ticket: ${ticket.subject}`, ticket);
-    }
+      if (document.querySelector('.tab.active')?.dataset.tab === 'support') await loadSupportTab();
+    });
+    $('modal-reply')?.addEventListener('click', async () => {
+      const reply = prompt('Reply to customer:', '');
+      if (!reply) return;
+      await api(`/support-tickets/${ticket.id}`, { method: 'POST', body: { body: reply } });
+      show($('modal'), false);
+      await loadDashboard();
+    });
+    return;
+  }
+
+  const kycApprove = e.target.closest('[data-kyc-approve]');
+  if (kycApprove) {
+    await api(`/kyc/${kycApprove.dataset.kycApprove}/approve`, { method: 'POST', body: {} });
+    await loadUsersTab();
+    return;
+  }
+
+  const kycReject = e.target.closest('[data-kyc-reject]');
+  if (kycReject) {
+    const reason = prompt('Rejection reason:');
+    if (!reason) return;
+    await api(`/kyc/${kycReject.dataset.kycReject}/reject`, { method: 'POST', body: { reason } });
+    await loadUsersTab();
+    return;
+  }
+
+  const kycAddr = e.target.closest('[data-kyc-addr]');
+  if (kycAddr) {
+    await api('/kyc/address/approve', { method: 'POST', body: { userId: kycAddr.dataset.kycAddr } });
+    await loadUsersTab();
+    return;
+  }
+
+  const userDetail = e.target.closest('[data-user-detail]');
+  if (userDetail) {
+    const detail = await api(`/users/${userDetail.dataset.userDetail}`);
+    showModal('User', detail);
+    return;
+  }
+
+  const distDetail = e.target.closest('[data-dist-detail]');
+  if (distDetail) {
+    const detail = await api(`/distributors/${distDetail.dataset.distDetail}`);
+    showModal('Distributor', detail);
+    return;
+  }
+
+  const distPause = e.target.closest('[data-dist-pause]');
+  if (distPause) {
+    const detail = await api(`/distributors/${distPause.dataset.distPause}`);
+    await api(`/distributors/${distPause.dataset.distPause}`, {
+      method: 'PATCH',
+      body: { pauseOrders: !detail.pauseOrders },
+    });
+    await loadDistributorsTab();
+    return;
   }
 });
 
@@ -365,6 +559,27 @@ $('export-report-btn').addEventListener('click', async () => {
 });
 document.querySelectorAll('.tab').forEach((tab) => {
   tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+});
+$('user-search-btn')?.addEventListener('click', () => searchUsers().catch(alert));
+$('call-log-btn')?.addEventListener('click', async () => {
+  try {
+    await api('/support/calls', {
+      method: 'POST',
+      body: {
+        phone: $('call-phone').value.trim(),
+        userId: $('call-user-id').value.trim() || undefined,
+        durationSec: $('call-duration').value ? parseInt($('call-duration').value, 10) : undefined,
+        outcome: $('call-outcome').value.trim() || undefined,
+        note: $('call-note').value.trim() || undefined,
+      },
+    });
+    $('call-phone').value = '';
+    $('call-note').value = '';
+    await loadSupportTab();
+    alert('Call logged');
+  } catch (err) {
+    alert(err.message);
+  }
 });
 $('tx-lookup-btn').addEventListener('click', async () => {
   const id = $('tx-lookup').value.trim();

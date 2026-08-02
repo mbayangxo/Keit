@@ -22,8 +22,11 @@ import { useEntrance } from '../hooks/animations';
 import {
   acceptDelivery,
   createProduct,
+  getMyActiveDeliveries,
   getNearbyDeliveries,
   getProducts,
+  markDeliveryDelivered,
+  markDeliveryPickup,
   registerDriverProfile,
   registerSellerProfile,
   requestDelivery,
@@ -182,7 +185,22 @@ function DrivePanel({ onRequestCourier, refreshKey, navigation, coords }) {
   const [activating, setActivating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState([]);
+  const [activeTasks, setActiveTasks] = useState([]);
   const [acceptingId, setAcceptingId] = useState(null);
+  const [actionId, setActionId] = useState(null);
+
+  const loadActive = useCallback(async () => {
+    if (!online) {
+      setActiveTasks([]);
+      return;
+    }
+    try {
+      const res = await getMyActiveDeliveries();
+      setActiveTasks(Array.isArray(res?.deliveries) ? res.deliveries : []);
+    } catch {
+      setActiveTasks([]);
+    }
+  }, [online]);
 
   const loadJobs = useCallback(async () => {
     if (!online) {
@@ -191,17 +209,20 @@ function DrivePanel({ onRequestCourier, refreshKey, navigation, coords }) {
     }
     setLoading(true);
     try {
-      const list = await getNearbyDeliveries({
-        lat: coords?.lat,
-        lng: coords?.lng,
-      });
+      const [list] = await Promise.all([
+        getNearbyDeliveries({
+          lat: coords?.lat,
+          lng: coords?.lng,
+        }),
+        loadActive(),
+      ]);
       setJobs(Array.isArray(list) ? list : []);
     } catch {
       setJobs([]);
     } finally {
       setLoading(false);
     }
-  }, [online, coords?.lat, coords?.lng]);
+  }, [online, coords?.lat, coords?.lng, loadActive]);
 
   useFocusEffect(
     useCallback(() => {
@@ -245,6 +266,32 @@ function DrivePanel({ onRequestCourier, refreshKey, navigation, coords }) {
     }
   };
 
+  const onPickup = async (taskId) => {
+    setActionId(taskId);
+    try {
+      await markDeliveryPickup(taskId);
+      showToast('Colis récupéré ✓');
+      await loadJobs();
+    } catch (err) {
+      showToast(err.message ?? 'Impossible');
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const onDeliver = async (taskId) => {
+    setActionId(taskId);
+    try {
+      await markDeliveryDelivered(taskId);
+      showToast('Livré — en attente confirmation client ✓');
+      await loadJobs();
+    } catch (err) {
+      showToast(err.message ?? 'Impossible');
+    } finally {
+      setActionId(null);
+    }
+  };
+
   return (
     <View style={styles.panel}>
       <PressScale scaleTo={0.98} onPress={onRequestCourier} style={styles.postBtn}>
@@ -278,6 +325,38 @@ function DrivePanel({ onRequestCourier, refreshKey, navigation, coords }) {
           <Text style={styles.offlineSub}>Active le mode livreur pour gagner sur les courses près de toi.</Text>
         </View>
       )}
+
+      {online && activeTasks.length > 0 ? (
+        <View style={styles.activeBlock}>
+          <Text style={styles.sectionLabel}>Mes courses en cours</Text>
+          {activeTasks.map((task, i) => {
+            const actionLabel =
+              task.status === 'assigned'
+                ? 'Marquer récupéré'
+                : ['picked_up', 'in_transit'].includes(task.status)
+                  ? 'Marquer livré'
+                  : 'En attente client';
+            const canAct =
+              task.status === 'assigned' || ['picked_up', 'in_transit'].includes(task.status);
+            return (
+              <ListRow
+                key={task.id}
+                icon="🛵"
+                title={task.pickupLabel ?? 'Collecte'}
+                meta={`${task.dropoffArea ?? 'Dakar'} · ${task.status}${task.orderNotes ? ` · ${task.orderNotes}` : ''}`}
+                tag={actionId === task.id ? '…' : actionLabel}
+                tagColor={colors.green}
+                delay={i * 40}
+                onPress={
+                  !canAct || actionId
+                    ? undefined
+                    : () => (task.status === 'assigned' ? onPickup(task.id) : onDeliver(task.id))
+                }
+              />
+            );
+          })}
+        </View>
+      ) : null}
 
       {online && loading && <Text style={styles.emptyText}>Recherche de courses…</Text>}
       {online && !loading && jobs.length === 0 && (
@@ -506,6 +585,7 @@ const styles = StyleSheet.create({
   modeBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.appCanvas.textMuted },
   modeBtnTextOn: { color: colors.white },
   panel: { paddingHorizontal: spacing.huge, paddingTop: spacing.lg, gap: spacing.sm },
+  activeBlock: { marginBottom: spacing.md, gap: spacing.xs },
   sectionLabel: { ...type.eyebrow, color: colors.appCanvas.textFaint },
   panelHint: { fontSize: 11, color: colors.appCanvas.textMuted, marginBottom: spacing.sm },
   emptyText: { fontSize: 12, color: colors.appCanvas.textFaint, paddingVertical: spacing.lg },

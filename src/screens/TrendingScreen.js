@@ -283,7 +283,7 @@ export default function TrendingScreen({ navigation, route }) {
               <GlowButton
                 label={t(langCode, 'trendingExplorerBtn')}
                 tone="gold"
-                onPress={() => navigation.navigate('Discover', { initialTab: 'Events' })}
+                onPress={() => navigation.navigate('Discover', { initialTab: 'Eat' })}
                 style={{ marginTop: spacing.lg }}
               />
             </View>

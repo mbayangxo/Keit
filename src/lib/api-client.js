@@ -327,11 +327,11 @@ export function getTransactions(limit = 20, accessToken) {
   return apiFetch(`/api/transactions?limit=${limit}`, { skipCache: true, accessToken, _retry401: !accessToken });
 }
 
-export function transferSend({ recipientHandle, amount, currency = 'kori', note, stepUpToken }) {
+export function transferSend({ recipientHandle, amount, currency = 'kori', note, voiceNoteUrl, photoUrl, videoUrl, giftCardTheme, stepUpToken }) {
   const handle = String(recipientHandle).replace(/^@/, '');
   return apiFetch('/api/transfers/send', {
     method: 'POST',
-    body: { recipientHandle: handle, amount, currency, note },
+    body: { recipientHandle: handle, amount, currency, note, voiceNoteUrl, photoUrl, videoUrl, giftCardTheme },
     stepUpToken,
     skipCache: true,
   });
@@ -341,13 +341,16 @@ export function getMerchantPublic(idOrKebuId) {
   return apiFetch(`/api/merchants/${encodeURIComponent(idOrKebuId)}/public`, { skipCache: true });
 }
 
-export function merchantPay(businessId, { amount, currency = 'kori', stepUpToken }) {
+export function merchantPay(businessId, { amount, currency = 'kori', stepUpToken, useVoucher }) {
   return apiFetch(`/api/merchants/${encodeURIComponent(businessId)}/pay`, {
     method: 'POST',
-    body: { amount, currency },
-    stepUpToken,
+    body: { amount, currency, stepUpToken, useVoucher: useVoucher === true ? true : undefined },
     skipCache: true,
   });
+}
+
+export function getMerchantVouchers() {
+  return apiFetch('/api/merchant-vouchers/mine', { skipCache: true });
 }
 
 export function cashIn({ amount, operator = 'orange_money', phone }) {
@@ -443,6 +446,7 @@ export function sendMboloMessage(threadId, payload) {
   });
 }
 
+// Event tickets — platform API for separate K21 Events app (not used in main K21 UI)
 export function getEvents() {
   return apiFetch('/api/events', { skipCache: true });
 }
@@ -453,6 +457,87 @@ export function purchaseEventTickets(eventId, quantity = 1) {
     body: { quantity },
     skipCache: true,
   });
+}
+
+export function createEvent(body) {
+  return apiFetch('/api/events', { method: 'POST', body, skipCache: true });
+}
+
+export function getMyTickets() {
+  return apiFetch('/api/tickets/mine', { skipCache: true });
+}
+
+export function getMyEvents() {
+  return apiFetch('/api/events/mine', { skipCache: true });
+}
+
+export function checkInEventTicket(scanCode) {
+  const code = String(scanCode).replace(/^.*ticket\//i, '').trim();
+  return apiFetch('/api/tickets/check-in', { method: 'POST', body: { scanCode: code }, skipCache: true });
+}
+
+export function getJekkalCampaigns(status = 'active') {
+  return apiFetch(`/api/jekkal/campaigns?status=${encodeURIComponent(status)}`, { skipCache: true });
+}
+
+export function getJekkalCampaign(id) {
+  return apiFetch(`/api/jekkal/campaigns/${encodeURIComponent(id)}`, { skipCache: true });
+}
+
+export function createJekkalCampaign(body) {
+  return apiFetch('/api/jekkal/campaigns', { method: 'POST', body, skipCache: true });
+}
+
+export function contributeJekkal(campaignId, body) {
+  return apiFetch(`/api/jekkal/campaigns/${encodeURIComponent(campaignId)}/contribute`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function applyAgent(body) {
+  return apiFetch('/api/agent/apply', { method: 'POST', body, skipCache: true });
+}
+
+export function getAgentApplication() {
+  return apiFetch('/api/agent/application', { skipCache: true });
+}
+
+export function getAgentsNearby(lat, lng) {
+  const params = new URLSearchParams();
+  if (lat != null) params.set('lat', String(lat));
+  if (lng != null) params.set('lng', String(lng));
+  const q = params.toString();
+  return apiFetch(`/api/agents/nearby${q ? `?${q}` : ''}`, { skipCache: true });
+}
+
+export function getAgentPayouts() {
+  return apiFetch('/api/agent/payouts', { skipCache: true });
+}
+
+export function getAffiliateMe() {
+  return apiFetch('/api/affiliate/me', { skipCache: true });
+}
+
+export function registerAffiliate(displayName) {
+  return apiFetch('/api/affiliate/me', { method: 'POST', body: displayName ? { displayName } : {}, skipCache: true });
+}
+
+export function createAffiliateLink(body) {
+  return apiFetch('/api/affiliate/links', { method: 'POST', body, skipCache: true });
+}
+
+export function trackAffiliateClick(linkCode) {
+  return apiFetch(`/api/affiliate/links/${encodeURIComponent(linkCode)}/click`, { method: 'POST', skipCache: true });
+}
+
+export function shareAffiliateToMbolo(body) {
+  return apiFetch('/api/affiliate/mbolo-share', { method: 'POST', body, skipCache: true });
+}
+
+export function resolveAffiliate(linkCode) {
+  return apiFetch(`/api/affiliate/resolve/${encodeURIComponent(linkCode)}`, { skipCache: true });
 }
 
 export function getProducts(category) {
@@ -544,8 +629,94 @@ export function hubParcelArrive(parcelId) {
   });
 }
 
-export function placeMarketplaceOrder(body) {
-  return apiFetch('/api/marketplace/orders', { method: 'POST', body, skipCache: true });
+export function placeMarketplaceOrder(body, { stepUpToken } = {}) {
+  return apiFetch('/api/marketplace/orders', { method: 'POST', body, stepUpToken, skipCache: true });
+}
+
+export function getMyMarketplaceOrders() {
+  return apiFetch('/api/marketplace/orders/mine', { skipCache: true });
+}
+
+export function getMerchantOrders(businessId) {
+  return apiFetch(`/api/marketplace/orders/merchant?businessId=${encodeURIComponent(businessId)}`, { skipCache: true });
+}
+
+export function getMerchantCatalog(businessId) {
+  return apiFetch(`/api/marketplace/catalog/mine?businessId=${encodeURIComponent(businessId)}`, { skipCache: true });
+}
+
+export function updateMarketplaceProduct(productId, body) {
+  return apiFetch(`/api/marketplace/products/${encodeURIComponent(productId)}`, {
+    method: 'PATCH',
+    body,
+    skipCache: true,
+  });
+}
+
+export function deleteMarketplaceProduct(productId) {
+  return apiFetch(`/api/marketplace/products/${encodeURIComponent(productId)}`, {
+    method: 'DELETE',
+    skipCache: true,
+  });
+}
+
+export function recordProductView(productId) {
+  return apiFetch(`/api/marketplace/products/${encodeURIComponent(productId)}/view`, {
+    method: 'POST',
+    skipCache: true,
+  });
+}
+
+export function getMerchantAnalytics(businessId) {
+  return apiFetch(`/api/marketplace/analytics?businessId=${encodeURIComponent(businessId)}`, { skipCache: true });
+}
+
+export function updateMarketplaceBusinessSettings(businessId, body) {
+  return apiFetch(`/api/marketplace/business/${encodeURIComponent(businessId)}/settings`, {
+    method: 'PATCH',
+    body,
+    skipCache: true,
+  });
+}
+
+export function getPaymentFunds() {
+  return apiFetch('/api/payment-funds', { skipCache: true });
+}
+
+export function createPaymentFund(body) {
+  return apiFetch('/api/payment-funds', { method: 'POST', body, skipCache: true });
+}
+
+export function fundPaymentPot(fundId, amountKori) {
+  return apiFetch(`/api/payment-funds/${encodeURIComponent(fundId)}/fund`, {
+    method: 'POST',
+    body: { amountKori },
+    skipCache: true,
+  });
+}
+
+export function withdrawPaymentFund(fundId, amountKori) {
+  return apiFetch(`/api/payment-funds/${encodeURIComponent(fundId)}/withdraw`, {
+    method: 'POST',
+    body: { amountKori },
+    skipCache: true,
+  });
+}
+
+export function getScheduledPayments() {
+  return apiFetch('/api/scheduled-payments', { skipCache: true });
+}
+
+export function createScheduledPayment(body) {
+  return apiFetch('/api/scheduled-payments', { method: 'POST', body, skipCache: true });
+}
+
+export function toggleScheduledPayment(scheduleId, active) {
+  return apiFetch(`/api/scheduled-payments/${encodeURIComponent(scheduleId)}`, {
+    method: 'PATCH',
+    body: { active },
+    skipCache: true,
+  });
 }
 
 export function registerSellerProfile(body) {
@@ -833,11 +1004,21 @@ export function markNotificationRead(id) {
   return apiFetch(`/api/notifications/${encodeURIComponent(id)}/read`, { method: 'POST', skipCache: true });
 }
 
-export function transferRequest({ recipientHandle, amount, note }) {
+export function transferRequest({ recipientHandle, amount, note, purposeCategory, lockToBusinessId, voiceNoteUrl, photoUrl, videoUrl }) {
   const handle = String(recipientHandle).replace(/^@/, '');
   return apiFetch('/api/transfers/request', {
     method: 'POST',
-    body: { recipientHandle: handle, amount, currency: 'kori', note },
+    body: {
+      recipientHandle: handle,
+      amount,
+      currency: 'kori',
+      purposeCategory: purposeCategory ?? 'general',
+      note,
+      lockToBusinessId,
+      voiceNoteUrl,
+      photoUrl,
+      videoUrl,
+    },
     skipCache: true,
   });
 }
@@ -846,12 +1027,20 @@ export function getTransferRequests(role = 'all') {
   return apiFetch(`/api/transfers/requests?role=${encodeURIComponent(role)}`, { skipCache: true });
 }
 
-export function acceptTransferRequest(id) {
-  return apiFetch(`/api/transfers/requests/${encodeURIComponent(id)}/accept`, { method: 'POST', skipCache: true });
+export function acceptTransferRequest(id, { stepUpToken } = {}) {
+  return apiFetch(`/api/transfers/requests/${encodeURIComponent(id)}/accept`, {
+    method: 'POST',
+    stepUpToken,
+    skipCache: true,
+  });
 }
 
 export function denyTransferRequest(id) {
   return apiFetch(`/api/transfers/requests/${encodeURIComponent(id)}/deny`, { method: 'POST', skipCache: true });
+}
+
+export function cancelTransferRequest(id) {
+  return apiFetch(`/api/transfers/requests/${encodeURIComponent(id)}/cancel`, { method: 'POST', skipCache: true });
 }
 
 export function authPinSet(pin) {
@@ -897,6 +1086,144 @@ export function getNearbyDeliveries(query = {}) {
 export function acceptDelivery(deliveryId) {
   return apiFetch(`/api/deliveries/${encodeURIComponent(deliveryId)}/accept`, {
     method: 'POST',
+    skipCache: true,
+  });
+}
+
+export function getDeliveryDetail(deliveryId) {
+  return apiFetch(`/api/deliveries/${encodeURIComponent(deliveryId)}`, { skipCache: true });
+}
+
+export function markDeliveryPickup(deliveryId) {
+  return apiFetch(`/api/deliveries/${encodeURIComponent(deliveryId)}/pickup`, {
+    method: 'POST',
+    skipCache: true,
+  });
+}
+
+export function markDeliveryDelivered(deliveryId) {
+  return apiFetch(`/api/deliveries/${encodeURIComponent(deliveryId)}/deliver`, {
+    method: 'POST',
+    skipCache: true,
+  });
+}
+
+export function confirmDelivery(deliveryId) {
+  return apiFetch(`/api/deliveries/${encodeURIComponent(deliveryId)}/confirm`, {
+    method: 'POST',
+    skipCache: true,
+  });
+}
+
+export function getMyActiveDeliveries() {
+  return apiFetch('/api/deliveries/active/mine', { skipCache: true });
+}
+
+export function getMarketplaceOrder(orderId) {
+  return apiFetch(`/api/marketplace/orders/${encodeURIComponent(orderId)}`, { skipCache: true });
+}
+
+export function updateMarketplaceOrderStatus(orderId, status) {
+  return apiFetch(`/api/marketplace/orders/${encodeURIComponent(orderId)}/status`, {
+    method: 'PATCH',
+    body: { status },
+    skipCache: true,
+  });
+}
+
+export function confirmMarketplaceOrder(orderId, { stepUpToken } = {}) {
+  return apiFetch(`/api/marketplace/orders/${encodeURIComponent(orderId)}/confirm`, {
+    method: 'POST',
+    stepUpToken,
+    skipCache: true,
+  });
+}
+
+export function getBuyerTradeSummary(businessId) {
+  return apiFetch(`/api/distribution/trade-summary?businessId=${encodeURIComponent(businessId)}`, {
+    skipCache: true,
+  });
+}
+
+export function getBuyerPortalSuppliers() {
+  return apiFetch('/api/distribution/buyer-portal', { skipCache: true });
+}
+
+export function getBuyerPortalCatalog(businessId) {
+  return apiFetch(
+    `/api/distribution/buyer-portal/catalog?businessId=${encodeURIComponent(businessId)}`,
+    { skipCache: true },
+  );
+}
+
+export function getSupplierReceivables(businessId) {
+  return apiFetch(`/api/distribution/receivables?businessId=${encodeURIComponent(businessId)}`, {
+    skipCache: true,
+  });
+}
+
+export function getSupportContact() {
+  return apiFetch('/api/support/contact', { skipCache: true });
+}
+
+export function getMySupportTickets() {
+  return apiFetch('/api/support/tickets/mine', { skipCache: true });
+}
+
+export function createSupportTicket(body) {
+  return apiFetch('/api/support/tickets', { method: 'POST', body, skipCache: true });
+}
+
+export function getSupportTicket(ticketId) {
+  return apiFetch(`/api/support/tickets/${encodeURIComponent(ticketId)}`, { skipCache: true });
+}
+
+export function replySupportTicket(ticketId, body) {
+  return apiFetch(`/api/support/tickets/${encodeURIComponent(ticketId)}/reply`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function registerDistributionBrand(body) {
+  return apiFetch('/api/distribution/brand/register', { method: 'POST', body, skipCache: true });
+}
+
+export function getMyDistributionBrand() {
+  return apiFetch('/api/distribution/brand/mine', { skipCache: true });
+}
+
+export function getTradeAccounts(businessId) {
+  return apiFetch(`/api/distribution/trade-accounts?businessId=${encodeURIComponent(businessId)}`, {
+    skipCache: true,
+  });
+}
+
+export function upsertTradeAccount(businessId, body) {
+  return apiFetch(`/api/distribution/trade-accounts?businessId=${encodeURIComponent(businessId)}`, {
+    method: 'POST',
+    body,
+    skipCache: true,
+  });
+}
+
+export function getMyTradeInvoices(status) {
+  const q = status ? `?status=${encodeURIComponent(status)}` : '';
+  return apiFetch(`/api/distribution/invoices/mine${q}`, { skipCache: true });
+}
+
+export function getSupplierTradeInvoices(businessId, status) {
+  const params = new URLSearchParams({ businessId });
+  if (status) params.set('status', status);
+  return apiFetch(`/api/distribution/invoices/supplier?${params}`, { skipCache: true });
+}
+
+export function payTradeInvoice(invoiceId, { stepUpToken, paymentSource, buyerBusinessId } = {}) {
+  return apiFetch(`/api/distribution/invoices/${encodeURIComponent(invoiceId)}/pay`, {
+    method: 'POST',
+    body: { paymentSource, buyerBusinessId },
+    stepUpToken,
     skipCache: true,
   });
 }

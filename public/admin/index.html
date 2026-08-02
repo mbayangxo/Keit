@@ -57,9 +57,12 @@
     <div class="tabs" id="main-tabs">
       <button class="tab active" data-tab="overview">Overview</button>
       <button class="tab" data-tab="pending">Pending &amp; fraud</button>
-      <button class="tab" data-tab="support">Support</button>
+      <button class="tab" data-tab="support">Support &amp; CS</button>
+      <button class="tab" data-tab="users">Users &amp; KYC</button>
+      <button class="tab" data-tab="distributors">Distributors</button>
       <button class="tab" data-tab="deliveries">Deliveries &amp; riders</button>
       <button class="tab" data-tab="agents">Agents &amp; cash</button>
+      <button class="tab" data-tab="ops">Ops health</button>
       <button class="tab" data-tab="actions">Actions</button>
     </div>
 
@@ -94,9 +97,57 @@
     </div>
 
     <div id="tab-support" class="tab-panel hidden">
+      <div class="grid-stats" id="support-stats"></div>
+      <div class="panels" style="margin-top:20px">
+        <div class="panel">
+          <div class="panel-head"><h2>Support tickets</h2></div>
+          <div class="panel-body" id="support-tickets"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Log phone / WhatsApp call</h2></div>
+          <div class="panel-body section">
+            <p class="hint" id="cs-contact-line">CS line: —</p>
+            <input id="call-phone" placeholder="Caller phone (+221…)" />
+            <input id="call-user-id" placeholder="User ID (optional)" />
+            <input id="call-duration" type="number" placeholder="Duration seconds" />
+            <input id="call-outcome" placeholder="Outcome (resolved, escalated…)" />
+            <input id="call-note" placeholder="Note" />
+            <button class="btn btn-primary btn-sm" id="call-log-btn">Log call</button>
+          </div>
+          <div class="panel-head" style="margin-top:16px"><h2>Recent calls</h2></div>
+          <div class="panel-body" id="support-calls"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-users" class="tab-panel hidden">
+      <div class="section">
+        <h3 class="section-title">Search users</h3>
+        <input id="user-search-q" placeholder="Phone, @handle, name, or user ID" />
+        <button class="btn btn-primary btn-sm" id="user-search-btn">Search</button>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-head"><h2>Results</h2></div>
+        <div class="panel-body" id="users-table"></div>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-head"><h2>KYC review queue</h2></div>
+        <div class="panel-body" id="kyc-queue"></div>
+      </div>
+    </div>
+
+    <div id="tab-distributors" class="tab-panel hidden">
       <div class="panel">
-        <div class="panel-head"><h2>Support tickets</h2></div>
-        <div class="panel-body" id="support-tickets"></div>
+        <div class="panel-head"><h2>Distribution brands &amp; B2B</h2></div>
+        <div class="panel-body" id="distributors-table"></div>
+      </div>
+    </div>
+
+    <div id="tab-ops" class="tab-panel hidden">
+      <div class="grid-stats" id="ops-stats"></div>
+      <div class="panel" style="margin-top:20px">
+        <div class="panel-head"><h2>Platform checklist</h2></div>
+        <div class="panel-body" id="ops-checklist"></div>
       </div>
     </div>
 

@@ -21,9 +21,18 @@ function formatMsgTime(iso) {
   return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h');
 }
 
-function MessageBubble({ message, isMe, onPlayVoice, onJoinCall }) {
+function MessageBubble({ message, isMe, onPlayVoice, onJoinCall, onOpenAffiliateProduct }) {
   const time = formatMsgTime(message.createdAt);
   const sender = message.sender;
+  const isAffiliateProduct = message.kind === 'affiliate_product';
+  let affiliatePayload = null;
+  if (isAffiliateProduct) {
+    try {
+      affiliatePayload = JSON.parse(message.body);
+    } catch {
+      affiliatePayload = null;
+    }
+  }
   const isMoneyCard = message.body?.startsWith('💸') || message.body?.startsWith('🙏');
   const isCallCard =
     message.kind === 'text' &&
@@ -39,6 +48,19 @@ function MessageBubble({ message, isMe, onPlayVoice, onJoinCall }) {
     if ((isPhoto || isGif) && message.mediaUrl) {
       return (
         <Image source={{ uri: message.mediaUrl }} style={isGif ? styles.msgGif : styles.msgImage} resizeMode="cover" />
+      );
+    }
+    if (isAffiliateProduct && affiliatePayload) {
+      return (
+        <PressScale
+          scaleTo={0.98}
+          onPress={() => onOpenAffiliateProduct?.(affiliatePayload)}
+          style={styles.affiliateCard}
+        >
+          <Text style={isMe ? styles.meText : styles.themText}>🛍️ {affiliatePayload.title}</Text>
+          <Text style={styles.affiliatePrice}>{affiliatePayload.price?.toLocaleString?.('fr-FR') ?? affiliatePayload.price} C̶</Text>
+          <Text style={styles.callJoin}>Voir & commander →</Text>
+        </PressScale>
       );
     }
     if (message.kind === 'voice' && message.mediaUrl) {
@@ -490,6 +512,20 @@ export default function MbooloChatScreen({ navigation, route }) {
                   ring: false,
                 })
               }
+              onOpenAffiliateProduct={(payload) => {
+                open('Main', {
+                  screen: 'MarketplaceTab',
+                  params: {
+                    screen: 'ShopDetail',
+                    params: {
+                      businessId: payload.businessId,
+                      affiliateRef: payload.linkCode,
+                      mboloThreadId: threadId,
+                      highlightProductId: payload.productId,
+                    },
+                  },
+                });
+              }}
             />
           ))}
         </ScrollView>
@@ -598,6 +634,8 @@ const styles = StyleSheet.create({
   chBack: { width: 32, height: 32, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   chName: { fontSize: 13, fontWeight: '700', color: '#fff' },
   callJoin: { fontSize: 11, fontWeight: '700', color: colors.mboolo.terra, marginTop: 4 },
+  affiliateCard: { paddingVertical: 4 },
+  affiliatePrice: { fontSize: 13, fontWeight: '700', color: colors.mboolo.terra, marginTop: 4 },
   chSub: { fontSize: 10, color: 'rgba(255,255,255,0.7)' },
   moneyBar: {
     flexDirection: 'row',

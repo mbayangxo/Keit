@@ -211,6 +211,42 @@ export async function takeMboloPhoto() {
   return takePhotoWithCamera();
 }
 
+async function pickVideoFromLibrary() {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) throw new Error('Accès médias refusé');
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['videos'],
+    videoMaxDuration: 30,
+    quality: 0.5,
+  });
+  if (result.canceled || !result.assets?.[0]?.uri) return null;
+  return readUriAsDataUrl(result.assets[0].uri, result.assets[0].mimeType ?? 'video/mp4');
+}
+
+export async function pickMboloVideo() {
+  if (Platform.OS === 'web') {
+    return new Promise((resolve, reject) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'video/*';
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) {
+          resolve(null);
+          return;
+        }
+        try {
+          resolve(await readFileAsDataUrl(file));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      input.click();
+    });
+  }
+  return pickVideoFromLibrary();
+}
+
 /** Record voice via MediaRecorder (web). Returns { stop } or rejects. */
 export async function startMboloVoiceRecording() {
   if (Platform.OS !== 'web' || typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {

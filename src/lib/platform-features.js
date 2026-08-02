@@ -16,7 +16,7 @@ export const DEFAULT_PLATFORM = {
   features: {
     wallet: { send: true, receive: true, requests: true, undo: true, tontine: true },
     cash: { depositsLive: false, withdrawalsLive: false, betaDeposits: false, available: true, agentDeposits: true, stripeDeposits: false },
-    marketplace: { delivery: true, movement: true, seller: true, events: true, tickets: true, merchantPay: true },
+    marketplace: { delivery: true, movement: true, seller: true, events: false, tickets: false, merchantPay: true },
     mboolo: { chat: true, voiceNotes: true, voiceCalls: false, videoCalls: false },
     comingSoon: { nuLekk: true, familyWallet: true, merchantQrOffline: true, float: true, wakhna: true, lemFiLive: false },
   },

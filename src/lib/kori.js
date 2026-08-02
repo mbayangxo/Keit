@@ -1,5 +1,5 @@
-/** Cauris (C) display helpers — matches lib/kori.js on the backend. */
-export const CAURIS_SYMBOL = 'C';
+/** Cauris — C with horizontal stroke (matches lib/kori.js). */
+export const CAURIS_SYMBOL = 'C\u0336';
 /** @deprecated use CAURIS_SYMBOL */
 export const KORI_SYMBOL = CAURIS_SYMBOL;
 export const KORI_COLOR = '#1af060';
