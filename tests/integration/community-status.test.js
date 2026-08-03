@@ -103,3 +103,36 @@ test('community status: a regular business — owner and staff can post, this is
   const catalog = await getShopCatalog(prisma, biz.id, {});
   assert.equal(catalog.communityStatuses.length, 2);
 });
+
+test('community status: works like a story — expires after 24h and drops out of the board', async () => {
+  const owner = await createUserWithWallet({ name: 'Owner' });
+  const poster = await createUserWithWallet({ name: 'Poster' });
+  const biz = await prisma.business.create({
+    data: { ownerId: owner.id, name: `Biz Test ${Date.now()}`, type: 'merchant', category: 'boutique' },
+  });
+  await prisma.businessMember.create({ data: { businessId: biz.id, userId: poster.id, role: 'staff' } });
+
+  const posted = await call(businessCommunityStatusUpdate, {
+    userId: poster.id,
+    query: { id: biz.id },
+    body: { statusText: 'Ouvert jusqu’à minuit' },
+  });
+  assert.equal(posted.statusCode, 200);
+  const expiresAt = new Date(posted.body.expiresAt);
+  const hoursUntilExpiry = (expiresAt.getTime() - Date.now()) / (60 * 60 * 1000);
+  assert.ok(hoursUntilExpiry > 23.9 && hoursUntilExpiry <= 24.1);
+
+  const fresh = await getShopCatalog(prisma, biz.id, { viewerId: poster.id });
+  assert.equal(fresh.communityStatuses.length, 1);
+  assert.equal(fresh.shop.viewerStatusText, 'Ouvert jusqu’à minuit');
+
+  // Force it into the past, as if 24h had already gone by.
+  await prisma.businessCommunityStatus.updateMany({
+    where: { businessId: biz.id, userId: poster.id },
+    data: { expiresAt: new Date(Date.now() - 1000) },
+  });
+
+  const afterExpiry = await getShopCatalog(prisma, biz.id, { viewerId: poster.id });
+  assert.equal(afterExpiry.communityStatuses.length, 0);
+  assert.equal(afterExpiry.shop.viewerStatusText, null);
+});

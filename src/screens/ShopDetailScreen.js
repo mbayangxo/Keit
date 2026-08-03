@@ -12,11 +12,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressScale from '../components/PressScale';
 import ScreenBackground from '../components/ScreenBackground';
+import StoryAvatar from '../components/StoryAvatar';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { coordsFromArrondissement } from '../lib/dakar-coords';
 import { getMarketplaceShop, placeMarketplaceOrder, setBusinessCommunityStatus } from '../lib/api-client';
+import { getSeenStatusKeys, markStatusSeen } from '../lib/status-seen-storage';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
+
+function statusKey(businessId, c) {
+  return `${businessId}:${c.userId}:${c.updatedAt}`;
+}
 
 function ProductRow({ product, qty, onChangeQty }) {
   return (
@@ -67,6 +73,8 @@ export default function ShopDetailScreen({ navigation, route }) {
   const [communityStatuses, setCommunityStatuses] = useState([]);
   const [communityDraft, setCommunityDraft] = useState('');
   const [communitySaving, setCommunitySaving] = useState(false);
+  const [seenKeys, setSeenKeys] = useState(new Set());
+  const [viewerIndex, setViewerIndex] = useState(null);
   const [cart, setCart] = useState({});
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [fulfillment, setFulfillment] = useState('delivery');
@@ -94,6 +102,30 @@ export default function ShopDetailScreen({ navigation, route }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    getSeenStatusKeys().then((keys) => setSeenKeys(new Set(keys)));
+  }, []);
+
+  useEffect(() => {
+    if (viewerIndex == null) return;
+    const active = communityStatuses[viewerIndex];
+    if (!active) return;
+    const key = statusKey(businessId, active);
+    if (seenKeys.has(key)) return;
+    markStatusSeen(key).then((next) => setSeenKeys(new Set(next)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewerIndex]);
+
+  const advanceStory = (delta) => {
+    setViewerIndex((i) => {
+      if (i == null) return i;
+      const next = i + delta;
+      if (next < 0) return i;
+      if (next >= communityStatuses.length) return null;
+      return next;
+    });
+  };
 
   const publishCommunityStatus = async (textOverride) => {
     const text = textOverride ?? communityDraft;
@@ -211,12 +243,19 @@ export default function ShopDetailScreen({ navigation, route }) {
               {shop?.type === 'school' ? '🎓 Statuts étudiants' : '✦ Statuts de l’équipe'}
             </Text>
             {communityStatuses.length > 0 ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
-                {communityStatuses.map((c) => (
-                  <View key={c.userId} style={styles.communityCard}>
-                    <Text style={styles.communityName} numberOfLines={1}>{c.name}</Text>
-                    <Text style={styles.communityText} numberOfLines={3}>{c.text}</Text>
-                  </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storyRow}>
+                {communityStatuses.map((c, i) => (
+                  <PressScale key={c.userId} scaleTo={0.92} onPress={() => setViewerIndex(i)} style={styles.storyChip}>
+                    <StoryAvatar
+                      photoUrl={c.avatarUrl}
+                      emoji={c.avatarEmoji}
+                      initial={c.name?.[0]?.toUpperCase() ?? '?'}
+                      size={56}
+                      spin={false}
+                      seen={seenKeys.has(statusKey(businessId, c))}
+                    />
+                    <Text style={styles.storyChipName} numberOfLines={1}>{c.name?.split(' ')[0] ?? ''}</Text>
+                  </PressScale>
                 ))}
               </ScrollView>
             ) : null}
@@ -340,6 +379,52 @@ export default function ShopDetailScreen({ navigation, route }) {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={viewerIndex != null}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setViewerIndex(null)}
+      >
+        {viewerIndex != null && communityStatuses[viewerIndex] ? (
+          <View style={styles.storyBackdrop}>
+            <View style={styles.storyTapZones}>
+              <PressScale scaleTo={1} onPress={() => advanceStory(-1)} style={{ flex: 1 }} />
+              <PressScale scaleTo={1} onPress={() => advanceStory(1)} style={{ flex: 1 }} />
+            </View>
+
+            <SafeAreaView style={{ flex: 1 }} pointerEvents="box-none">
+              <View style={styles.storyProgressRow} pointerEvents="none">
+                {communityStatuses.map((_, i) => (
+                  <View key={i} style={styles.storyProgressTrack}>
+                    <View style={[styles.storyProgressFill, i <= viewerIndex && styles.storyProgressFillOn]} />
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.storyHeader} pointerEvents="box-none">
+                <StoryAvatar
+                  photoUrl={communityStatuses[viewerIndex].avatarUrl}
+                  emoji={communityStatuses[viewerIndex].avatarEmoji}
+                  initial={communityStatuses[viewerIndex].name?.[0]?.toUpperCase() ?? '?'}
+                  size={40}
+                  ring={false}
+                />
+                <Text style={styles.storyHeaderName} numberOfLines={1}>{communityStatuses[viewerIndex].name}</Text>
+                <PressScale scaleTo={0.9} onPress={() => setViewerIndex(null)} style={styles.storyClose}>
+                  <Text style={{ fontSize: 16, color: colors.ink }}>✕</Text>
+                </PressScale>
+              </View>
+
+              <View style={styles.storyCardWrap} pointerEvents="none">
+                <View style={styles.storyCard}>
+                  <Text style={styles.storyText}>{communityStatuses[viewerIndex].text}</Text>
+                </View>
+              </View>
+            </SafeAreaView>
+          </View>
+        ) : null}
+      </Modal>
     </View>
   );
 }
@@ -375,17 +460,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   communityLabel: { ...type.caption, fontFamily: fontFamily.bodySemiBold, color: 'rgba(5,8,5,0.55)' },
-  communityCard: {
-    maxWidth: 160,
-    backgroundColor: colors.appCanvas.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(5,8,5,0.08)',
-    padding: spacing.md,
-    gap: 2,
-  },
-  communityName: { fontFamily: fontFamily.bodySemiBold, fontSize: 11, color: colors.greenDark },
-  communityText: { ...type.caption, color: colors.ink },
+  storyRow: { gap: spacing.lg, paddingBottom: spacing.sm, paddingRight: spacing.lg },
+  storyChip: { alignItems: 'center', width: 64, gap: spacing.xs },
+  storyChipName: { fontSize: 10, fontFamily: fontFamily.bodyBold, color: colors.ink },
   communityComposer: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   communityInput: {
     flex: 1,
@@ -507,4 +584,45 @@ const styles = StyleSheet.create({
     backgroundColor: colors.green,
   },
   sheetConfirmText: { fontFamily: fontFamily.bodySemiBold, color: colors.ink },
+
+  storyBackdrop: { flex: 1, backgroundColor: colors.appCanvas.base },
+  storyTapZones: { ...StyleSheet.absoluteFillObject, flexDirection: 'row' },
+  storyProgressRow: { flexDirection: 'row', gap: spacing.xs, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  storyProgressTrack: { flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(5,8,5,0.1)', overflow: 'hidden' },
+  storyProgressFill: { width: 0, height: '100%', backgroundColor: 'rgba(5,8,5,0.15)' },
+  storyProgressFillOn: { width: '100%', backgroundColor: colors.green },
+  storyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  storyHeaderName: { flex: 1, fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink },
+  storyClose: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: colors.appCanvas.surfaceStrong,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  storyCardWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.huge },
+  storyCard: {
+    width: '100%',
+    backgroundColor: colors.appCanvas.surfaceStrong,
+    borderRadius: radius.xxl,
+    borderWidth: 1,
+    borderColor: 'rgba(5,8,5,0.08)',
+    padding: spacing.giant,
+    shadowColor: colors.green,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 6,
+  },
+  storyText: {
+    fontFamily: fontFamily.displayBlack,
+    fontSize: 20,
+    lineHeight: 28,
+    color: colors.ink,
+    textAlign: 'center',
+  },
 });

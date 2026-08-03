@@ -18,6 +18,7 @@ export default function StoryAvatar({
   size = 64,
   ring = true,
   spin = true,
+  seen = false,
   style,
   avatarStyle,
   textStyle,
@@ -33,33 +34,42 @@ export default function StoryAvatar({
   return (
     <View style={[{ width: size, height: size }, style]}>
       {ring ? (
-        <Svg
-          width={size}
-          height={size}
-          viewBox={`0 0 ${size} ${size}`}
-          style={[StyleSheet.absoluteFill, spin ? { transform: [{ rotate: angle }] } : null]}
-        >
-          <Circle
-            cx={size / 2} cy={size / 2} r={r}
-            stroke={colors.green} strokeWidth={strokeW} fill="none" strokeLinecap="round"
-            strokeDasharray={`${segLen - gap} ${gap}`}
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          />
-          <Circle
-            cx={size / 2} cy={size / 2} r={r}
-            stroke={colors.gold} strokeWidth={strokeW} fill="none" strokeLinecap="round"
-            strokeDasharray={`${segLen - gap} ${gap}`}
-            strokeDashoffset={-segLen}
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          />
-          <Circle
-            cx={size / 2} cy={size / 2} r={r}
-            stroke={colors.orange} strokeWidth={strokeW} fill="none" strokeLinecap="round"
-            strokeDasharray={`${segLen - gap} ${gap}`}
-            strokeDashoffset={-segLen * 2}
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          />
-        </Svg>
+        seen ? (
+          <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={StyleSheet.absoluteFill}>
+            <Circle
+              cx={size / 2} cy={size / 2} r={r}
+              stroke="rgba(5,8,5,0.18)" strokeWidth={strokeW} fill="none"
+            />
+          </Svg>
+        ) : (
+          <Svg
+            width={size}
+            height={size}
+            viewBox={`0 0 ${size} ${size}`}
+            style={[StyleSheet.absoluteFill, spin ? { transform: [{ rotate: angle }] } : null]}
+          >
+            <Circle
+              cx={size / 2} cy={size / 2} r={r}
+              stroke={colors.green} strokeWidth={strokeW} fill="none" strokeLinecap="round"
+              strokeDasharray={`${segLen - gap} ${gap}`}
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            />
+            <Circle
+              cx={size / 2} cy={size / 2} r={r}
+              stroke={colors.gold} strokeWidth={strokeW} fill="none" strokeLinecap="round"
+              strokeDasharray={`${segLen - gap} ${gap}`}
+              strokeDashoffset={-segLen}
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            />
+            <Circle
+              cx={size / 2} cy={size / 2} r={r}
+              stroke={colors.orange} strokeWidth={strokeW} fill="none" strokeLinecap="round"
+              strokeDasharray={`${segLen - gap} ${gap}`}
+              strokeDashoffset={-segLen * 2}
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            />
+          </Svg>
+        )
       ) : null}
       <View style={{ position: 'absolute', top: inset, left: inset }}>
         <ProfileAvatar
