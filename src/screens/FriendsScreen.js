@@ -15,11 +15,12 @@ import {
   getMboloThreads,
   createMboloThread,
   getVouchStatus,
+  lookupUser,
 } from '../lib/api-client';
 import { findDirectThreadForUser, navigateToMboloChat } from '../lib/mbolo-social';
 import ProfileShareButtons from '../components/ProfileShareButtons';
 import { useAppState } from '../state/AppState';
-import { buildWebFriendUrl } from '../lib/k21-qr';
+import { buildWebFriendUrl, resolveAccountQuery } from '../lib/k21-qr';
 import { navigateFromRoot } from '../lib/root-navigation';
 import { colors, fontFamily, radius, spacing } from '../theme';
 
@@ -87,10 +88,18 @@ export default function FriendsScreen({ navigation, route }) {
   );
 
   const submitAdd = async () => {
-    const h = handle.replace(/^@/, '').trim();
-    if (h.length < 3) return;
+    const query = resolveAccountQuery(handle);
+    if (query.replace(/^@/, '').trim().length < 3) return;
     setAdding(true);
     try {
+      const digits = query.replace(/\D/g, '');
+      const looksLikePhone = !query.startsWith('@') && digits.length >= 8;
+      // A handle from a link/code or typed directly goes straight to
+      // addFriend; a phone number needs resolving to a handle first —
+      // handles and phones both point at the same K21 account.
+      const targetHandle = looksLikePhone ? (await lookupUser(query)).handle : query.replace(/^@/, '');
+      const h = String(targetHandle ?? '').replace(/^@/, '').trim();
+      if (!h) throw new Error('Compte introuvable sur K21');
       const result = await addFriend(h);
       if (result?.alreadyFriends) showToast('Vous êtes déjà amis');
       else if (result?.autoAccepted || result?.accepted) showToast('Vous êtes amis ✓');
@@ -98,7 +107,7 @@ export default function FriendsScreen({ navigation, route }) {
       setHandle('');
       await load();
     } catch (err) {
-      showToast(err.message ?? 'Ajout impossible');
+      showToast(err.message ?? 'Compte introuvable — vérifie le handle ou le numéro');
     } finally {
       setAdding(false);
     }
@@ -161,12 +170,13 @@ export default function FriendsScreen({ navigation, route }) {
             </View>
           ) : null}
 
+          <Text style={styles.addLbl}>Trouver un compte</Text>
           <View style={styles.addRow}>
             <TextInput
               style={styles.input}
               value={handle}
               onChangeText={setHandle}
-              placeholder="@handle"
+              placeholder="@handle, numéro, ou lien k21://"
               placeholderTextColor={'rgba(5,8,5,0.45)'}
               autoCapitalize="none"
             />
@@ -300,6 +310,7 @@ const styles = StyleSheet.create({
   inviteLink: { fontSize: 10, color: 'rgba(5,8,5,0.45)' },
   inviteQr: { alignSelf: 'center', marginTop: spacing.xs },
   inviteQrText: { fontSize: 11, color: colors.greenDark, fontFamily: fontFamily.bodyBold },
+  addLbl: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5, color: 'rgba(5,8,5,0.4)', marginBottom: spacing.xs, textTransform: 'uppercase' },
   addRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   input: {
     flex: 1,

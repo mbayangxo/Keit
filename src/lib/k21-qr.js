@@ -62,6 +62,26 @@ export function buildAgentDepositUrl(token) {
   return `k21://agent-deposit/${t}`;
 }
 
+/**
+ * Normalizes anything a user might paste into a "find account" field — a
+ * plain @handle, a phone number, or a k21://... / web link/code — into a
+ * query string ready for the lookup endpoint (which already tells phone
+ * from handle apart by digit count). Links/codes get resolved to the
+ * @handle they point to; everything else passes through unchanged.
+ */
+export function resolveAccountQuery(raw) {
+  const text = String(raw ?? '').trim();
+  if (!text) return '';
+  // Only try to parse as a link/code when it actually looks like one — a
+  // bare numeric string (a phone number) must not be mistaken for a handle
+  // by the permissive handle-only pattern inside parseK21Qr.
+  const looksLikeLink = /^k21:\/\//i.test(text) || /^https?:\/\//i.test(text);
+  if (!looksLikeLink) return text;
+  const parsed = parseK21Qr(text);
+  if (parsed?.handle) return `@${parsed.handle}`;
+  return text;
+}
+
 export function parseK21Qr(raw) {
   const text = String(raw ?? '').trim();
   if (!text) return null;

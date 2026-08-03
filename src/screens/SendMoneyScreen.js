@@ -26,6 +26,7 @@ import { useSecurity } from '../context/SecurityContext';
 import { useLocale } from '../context/LocaleContext';
 import { transferSend, lookupUser } from '../lib/api-client';
 import { toE164, isValidLocalPhone } from '../lib/phone';
+import { resolveAccountQuery } from '../lib/k21-qr';
 import { formatKori, KORI_SYMBOL } from '../lib/kori.js';
 import KoriAmount from '../components/KoriAmount';
 
@@ -450,9 +451,7 @@ export default function SendMoneyScreen({ navigation, route }) {
         const query =
           mode === 'phone'
             ? toE164(country, trimmed)
-            : mode === 'handle'
-              ? trimmed.replace(/^@/, '')
-              : trimmed;
+            : resolveAccountQuery(trimmed).replace(/^@/, '');
         const profile = await lookupUser(query);
         setRecipientProfile(profile);
       } catch (err) {
