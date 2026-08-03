@@ -243,21 +243,19 @@ export default function ShopDetailScreen({ navigation, route }) {
               {shop?.type === 'school' ? '🎓 Statuts étudiants' : '✦ Statuts de l’équipe'}
             </Text>
             {communityStatuses.length > 0 ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storyRow}>
-                {communityStatuses.map((c, i) => (
-                  <PressScale key={c.userId} scaleTo={0.92} onPress={() => setViewerIndex(i)} style={styles.storyChip}>
-                    <StoryAvatar
-                      photoUrl={c.avatarUrl}
-                      emoji={c.avatarEmoji}
-                      initial={c.name?.[0]?.toUpperCase() ?? '?'}
-                      size={56}
-                      spin={false}
-                      seen={seenKeys.has(statusKey(businessId, c))}
-                    />
-                    <Text style={styles.storyChipName} numberOfLines={1}>{c.name?.split(' ')[0] ?? ''}</Text>
-                  </PressScale>
-                ))}
-              </ScrollView>
+              <PressScale scaleTo={0.94} onPress={() => setViewerIndex(0)} style={styles.storyEntry}>
+                <StoryAvatar
+                  photoUrl={shop?.imageUrl}
+                  emoji={shop?.type === 'school' ? '🎓' : '🏪'}
+                  initial={shop?.name?.[0]?.toUpperCase() ?? '?'}
+                  size={60}
+                  spin={false}
+                  seen={communityStatuses.every((c) => seenKeys.has(statusKey(businessId, c)))}
+                />
+                <Text style={styles.storyEntryLabel} numberOfLines={1}>
+                  {communityStatuses.length} statut{communityStatuses.length > 1 ? 's' : ''}
+                </Text>
+              </PressScale>
             ) : null}
             {shop?.viewerCanPostStatus ? (
               <>
@@ -460,9 +458,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   communityLabel: { ...type.caption, fontFamily: fontFamily.bodySemiBold, color: 'rgba(5,8,5,0.55)' },
-  storyRow: { gap: spacing.lg, paddingBottom: spacing.sm, paddingRight: spacing.lg },
-  storyChip: { alignItems: 'center', width: 64, gap: spacing.xs },
-  storyChipName: { fontSize: 10, fontFamily: fontFamily.bodyBold, color: colors.ink },
+  storyEntry: { alignItems: 'center', width: 76, gap: spacing.xs, marginBottom: spacing.sm },
+  storyEntryLabel: { fontSize: 10, fontFamily: fontFamily.bodyBold, color: colors.ink },
   communityComposer: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   communityInput: {
     flex: 1,
