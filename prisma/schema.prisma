@@ -47,6 +47,8 @@ model User {
   email                  String?   @unique
   emailVerifiedAt        DateTime?
   afriId                 String?   @unique
+  inviteCode             String?   @unique
+  referredByUserId       String?
   studentPassSchool      String?
   studentPassBusinessId  String?
   studentPassStatus      String?
@@ -117,6 +119,9 @@ model User {
   businessLedgerHits     BusinessLedgerEntry[]  @relation("BusinessLedgerUserCounterparty")
   agentProfile           AgentProfile?
   agentDeposits          AgentDeposit[]
+  agentWithdrawals       AgentWithdrawal[]
+  referredBy             User?                  @relation("UserReferrals", fields: [referredByUserId], references: [id], onDelete: SetNull)
+  referrals              User[]                 @relation("UserReferrals")
   stripeDeposits         StripeDeposit[]
   paymentFunds           PaymentFund[]
   scheduledPayments      ScheduledPayment[]
@@ -133,6 +138,8 @@ model User {
   @@index([frozenByAdminAt])
   @@index([verificationTier])
   @@index([handle])
+  @@index([inviteCode])
+  @@index([referredByUserId])
 }
 
 model AccountRole {
@@ -1855,7 +1862,7 @@ model ChannelFollow {
   @@index([userId])
 }
 
-/** K21 in-person agent — float-backed cash-in at agent points. */
+/** K21 in-person agent — float-backed cash-in/out at agent points. */
 model AgentProfile {
   id            String   @id @default(cuid())
   userId        String   @unique
@@ -1865,8 +1872,12 @@ model AgentProfile {
   arrondissement  String?
   lat             Float?
   lng             Float?
+  /** standard = retail point; business = large float / gros retraits */
+  tier               String   @default("standard")
   floatBalance       Int      @default(0)
   floatLimit         Int      @default(500000)
+  maxDepositXof      Int      @default(500000)
+  maxWithdrawXof     Int      @default(500000)
   commissionBps      Int      @default(100)
   monthlyFlatFeeXof  Int      @default(25000)
   volumeBonusBps     Int      @default(50)
@@ -1876,10 +1887,12 @@ model AgentProfile {
 
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   deposits     AgentDeposit[]
+  withdrawals  AgentWithdrawal[]
   floatEntries AgentFloatEntry[]
   payouts      AgentPayout[]
 
   @@index([status])
+  @@index([tier])
   @@index([lat, lng])
 }
 
@@ -1925,6 +1938,27 @@ model AgentDeposit {
   @@index([status, expiresAt])
 }
 
+model AgentWithdrawal {
+  id          String    @id @default(cuid())
+  reference   String    @unique
+  token       String    @unique
+  userId      String
+  agentId     String?
+  amountXof   Int
+  status      String    @default("pending")
+  expiresAt   DateTime
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agent AgentProfile? @relation(fields: [agentId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([agentId, createdAt])
+  @@index([status, expiresAt])
+}
+
 model AgentFloatEntry {
   id           String   @id @default(cuid())
   agentId      String
@@ -1933,6 +1967,7 @@ model AgentFloatEntry {
   balanceAfter Int
   reference    String   @unique
   depositId    String?
+  withdrawalId String?
   note         String?
   adminId      String?
   createdAt    DateTime @default(now())

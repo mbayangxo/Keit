@@ -11,7 +11,7 @@ import { coordsFromArrondissement } from '../lib/dakar-coords';
 import { getAgentsNearby } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
-function AgentCard({ agent, onSelect }) {
+function AgentCard({ agent, mode, onSelect }) {
   return (
     <PressScale scaleTo={0.98} onPress={() => onSelect(agent)} style={styles.card}>
       <View style={styles.cardTop}>
@@ -26,14 +26,20 @@ function AgentCard({ agent, onSelect }) {
           <Text style={styles.dist}>{agent.distanceLabel}</Text>
         ) : null}
       </View>
-      <Text style={styles.code}>{agent.agentCode} · Float OK</Text>
-      <Text style={styles.hint}>Appuie pour générer ton QR de dépôt</Text>
+      <Text style={styles.code}>
+        {agent.agentCode}
+        {agent.isBusinessAgent ? ' · Business' : ''} · Float OK
+      </Text>
+      <Text style={styles.hint}>
+        {mode === 'withdraw' ? 'Appuie pour générer ton QR de retrait' : 'Appuie pour générer ton QR de dépôt'}
+      </Text>
     </PressScale>
   );
 }
 
 export default function AgentDiscoveryScreen({ navigation, route }) {
   const prefilledAmount = route.params?.amount;
+  const mode = route.params?.mode === 'withdraw' ? 'withdraw' : 'deposit';
   const { profile } = useAppState();
   const coords = useMemo(
     () => coordsFromArrondissement(profile?.arrondissement?.key),
@@ -44,18 +50,27 @@ export default function AgentDiscoveryScreen({ navigation, route }) {
 
   const load = useCallback(async () => {
     try {
-      const data = await getAgentsNearby(coords.lat, coords.lng);
+      const data = await getAgentsNearby({
+        lat: coords.lat,
+        lng: coords.lng,
+        mode,
+        amount: prefilledAmount,
+      });
       setAgents(Array.isArray(data.agents) ? data.agents : data ?? []);
     } catch {
       setAgents([]);
     } finally {
       setLoading(false);
     }
-  }, [coords.lat, coords.lng]);
+  }, [coords.lat, coords.lng, mode, prefilledAmount]);
 
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
 
   const selectAgent = (agent) => {
+    if (mode === 'withdraw') {
+      navigation.navigate('AgentWithdrawQr', { amount: prefilledAmount ?? 5000 });
+      return;
+    }
     navigation.navigate('AgentDepositQr', {
       amount: prefilledAmount ?? 5000,
       agentName: agent.displayName,
@@ -66,11 +81,17 @@ export default function AgentDiscoveryScreen({ navigation, route }) {
     <View style={styles.root}>
       <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <ScreenHeader onBack={() => navigation.goBack()} title="Agents K21" style={styles.header} />
+        <ScreenHeader onBack={() => navigation.goBack()} title={mode === 'withdraw' ? 'Agents retrait' : 'Agents K21'} style={styles.header} />
         <ScrollView contentContainerStyle={styles.scroll}>
-          <Text style={styles.hero}>Points de dépôt{'\n'}près de toi.</Text>
+          <Text style={styles.hero}>
+            {mode === 'withdraw' ? 'Retrait cash\nprès de toi.' : 'Points de dépôt\nprès de toi.'}
+          </Text>
           <Text style={styles.sub}>
-            Marchés, boutiques, kiosques — recharge en cash sans Orange ni Free. L'agent scanne ton QR.
+            {mode === 'withdraw'
+              ? prefilledAmount > 500000
+                ? 'Montant élevé — agents business K21 (BAG) uniquement.'
+                : 'Choisis un agent, montre ton QR, reçois le cash.'
+              : 'Marchés, boutiques, kiosques — recharge en cash sans Orange ni Free. L\'agent scanne ton QR.'}
           </Text>
 
           {loading ? <ActivityIndicator color={colors.green} style={{ marginVertical: spacing.xl }} /> : null}
@@ -87,7 +108,7 @@ export default function AgentDiscoveryScreen({ navigation, route }) {
           ) : null}
 
           {agents.map((a) => (
-            <AgentCard key={a.id} agent={a} onSelect={selectAgent} />
+            <AgentCard key={a.id} agent={a} mode={mode} onSelect={selectAgent} />
           ))}
 
           <PressScale scaleTo={0.97} onPress={() => navigation.navigate('AgentApply')} style={styles.link}>

@@ -641,6 +641,12 @@ export default function BusinessHubScreen({ navigation, route }) {
                 </Text>
                 <GlowButton label="Hub distribution" onPress={openDistributionHub} />
                 <GlowButton label="Portail commandes B2B" onPress={openB2BOrderPortal} />
+                <PressScale scaleTo={0.98} onPress={() => navigation.navigate('AgentHub')} style={styles.linkRow}>
+                  <Text style={styles.linkText}>Retrait / dépôt chez un agent K21 →</Text>
+                </PressScale>
+                <PressScale scaleTo={0.98} onPress={() => navigation.navigate('InviteFriends')} style={styles.linkRow}>
+                  <Text style={styles.linkText}>Inviter des clients sur K21 →</Text>
+                </PressScale>
                 <PressScale scaleTo={0.98} onPress={() => navigation.navigate('Main', { screen: 'MarketplaceTab', params: { screen: 'TradeInvoices' } })} style={styles.linkRow}>
                   <Text style={styles.linkText}>Mes factures B2B à payer →</Text>
                 </PressScale>

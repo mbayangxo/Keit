@@ -14,7 +14,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import ScreenHeader from '../components/ScreenHeader';
 import ReceiptCard from '../components/ReceiptCard';
 import { useToast } from '../components/Toast';
-import { agentConfirmDeposit, agentScanDeposit, getAgentMe, getAgentPayouts } from '../lib/api-client';
+import { agentConfirmDeposit, agentScanDeposit, agentScanWithdraw, agentConfirmWithdraw, getAgentMe, getAgentPayouts } from '../lib/api-client';
 import { parseK21Qr } from '../lib/k21-qr';
 import KoriAmount from '../components/KoriAmount';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
@@ -28,6 +28,7 @@ export default function AgentHomeScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [agentData, setAgentData] = useState(null);
   const [qrInput, setQrInput] = useState('');
+  const [operation, setOperation] = useState('deposit');
   const [pending, setPending] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const [lastReceipt, setLastReceipt] = useState(null);
@@ -61,15 +62,24 @@ export default function AgentHomeScreen({ navigation, route }) {
 
   const handleScan = async () => {
     const parsed = parseK21Qr(qrInput.trim());
-    const token = parsed?.kind === 'agent_deposit' ? parsed.token : qrInput.trim();
+    const depositToken = parsed?.kind === 'agent_deposit' ? parsed.token : null;
+    const withdrawToken = parsed?.kind === 'agent_withdraw' ? parsed.token : null;
+    const token = depositToken ?? withdrawToken ?? qrInput.trim();
     if (!token || token.length < 8) {
-      showToast('Colle le QR ou le code agent-deposit');
+      showToast('Colle le QR agent-deposit ou agent-withdraw');
       return;
     }
     setConfirming(true);
     try {
-      const { deposit } = await agentScanDeposit({ token });
-      setPending(deposit);
+      if (withdrawToken || operation === 'withdraw') {
+        const { withdrawal } = await agentScanWithdraw({ token });
+        setPending(withdrawal);
+        setOperation('withdraw');
+      } else {
+        const { deposit } = await agentScanDeposit({ token });
+        setPending(deposit);
+        setOperation('deposit');
+      }
     } catch (err) {
       showToast(err.message ?? 'QR invalide');
     } finally {
@@ -81,16 +91,28 @@ export default function AgentHomeScreen({ navigation, route }) {
     if (!pending?.id) return;
     setConfirming(true);
     try {
-      const result = await agentConfirmDeposit(pending.id);
-      setLastReceipt({
-        user: result.user ?? pending.user,
-        amount: pending.amountXof,
-        floatBalance: result.agent?.floatBalance,
-      });
+      if (operation === 'withdraw') {
+        const result = await agentConfirmWithdraw(pending.id);
+        setLastReceipt({
+          user: result.user ?? pending.user,
+          amount: pending.amountXof,
+          floatBalance: result.agent?.floatBalance,
+          kind: 'withdraw',
+        });
+        showToast('Retrait confirmé — cash remis');
+      } else {
+        const result = await agentConfirmDeposit(pending.id);
+        setLastReceipt({
+          user: result.user ?? pending.user,
+          amount: pending.amountXof,
+          floatBalance: result.agent?.floatBalance,
+          kind: 'deposit',
+        });
+        showToast('Dépôt confirmé — wallet crédité');
+      }
       setPending(null);
       setQrInput('');
       await reload();
-      showToast('Dépôt confirmé — wallet crédité');
     } catch (err) {
       showToast(err.message ?? 'Confirmation impossible');
     } finally {
@@ -162,9 +184,27 @@ export default function AgentHomeScreen({ navigation, route }) {
             />
           ) : null}
 
+          <View style={styles.modeRow}>
+            {[
+              { key: 'deposit', label: 'Dépôt client' },
+              { key: 'withdraw', label: 'Retrait client' },
+            ].map((m) => (
+              <PressScale
+                key={m.key}
+                scaleTo={0.95}
+                onPress={() => { setOperation(m.key); setPending(null); }}
+                style={[styles.modeChip, operation === m.key && styles.modeChipOn]}
+              >
+                <Text style={[styles.modeChipText, operation === m.key && styles.modeChipTextOn]}>{m.label}</Text>
+              </PressScale>
+            ))}
+          </View>
+
           {pending ? (
             <View style={styles.pendingCard}>
-              <Text style={styles.pendingTitle}>Confirmer le dépôt</Text>
+              <Text style={styles.pendingTitle}>
+                {operation === 'withdraw' ? 'Confirmer le retrait' : 'Confirmer le dépôt'}
+              </Text>
               <Text style={styles.pendingRow}>Client · {pending.user?.name || pending.user?.phone}</Text>
               <Text style={styles.pendingRow}>Montant · {formatAmount(pending.amountXof)} F CFA</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: spacing.xs }}>
@@ -177,7 +217,7 @@ export default function AgentHomeScreen({ navigation, route }) {
                 <Text style={styles.unverified}>Tier 1 — vérifie la pièce si gros montant</Text>
               )}
               <GlowButton
-                label={confirming ? 'Confirmation…' : 'J’ai reçu le cash — confirmer'}
+                label={confirming ? 'Confirmation…' : operation === 'withdraw' ? 'J’ai remis le cash — confirmer' : 'J’ai reçu le cash — confirmer'}
                 onPress={handleConfirm}
                 disabled={confirming}
                 style={{ marginTop: spacing.lg }}
@@ -192,7 +232,7 @@ export default function AgentHomeScreen({ navigation, route }) {
               <TextInput
                 value={qrInput}
                 onChangeText={setQrInput}
-                placeholder="k21://agent-deposit/…"
+                placeholder="k21://agent-deposit/… ou agent-withdraw/…"
                 placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -257,6 +297,18 @@ const styles = StyleSheet.create({
   payoutValue: { fontFamily: fontFamily.display, fontSize: 26, color: colors.ink, marginTop: spacing.xs },
   payoutMeta: { ...type.caption, color: colors.muted, marginTop: spacing.sm },
   payoutHint: { ...type.caption, color: colors.muted, marginTop: spacing.sm, lineHeight: 18 },
+  modeRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
+  modeChip: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  modeChipOn: { borderColor: colors.green, backgroundColor: 'rgba(26,240,96,0.08)' },
+  modeChipText: { ...type.caption, color: colors.muted, fontFamily: fontFamily.medium },
+  modeChipTextOn: { color: colors.greenDark },
   scanLabel: { ...type.body, color: colors.ink, fontFamily: fontFamily.semibold, marginBottom: spacing.sm },
   input: {
     borderWidth: 1,

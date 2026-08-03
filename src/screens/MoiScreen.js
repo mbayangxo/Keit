@@ -203,13 +203,27 @@ export default function MoiScreen({ navigation }) {
   const locationLine = [profile.arrondissement?.name, country?.name].filter(Boolean).join(' · ');
 
   const settingsRows = useMemo(() => {
-    const rows = [...SETTINGS];
-    if (profile.isAgent) {
-      rows.unshift({
-        key: 'agent',
+    const rows = [
+      {
+        key: 'invite',
+        icon: '📣',
+        title: 'Inviter sur K21',
+        subtitle: 'WhatsApp, SMS, réseaux — crée des comptes facilement',
+      },
+      {
+        key: 'agentHub',
         icon: '🏧',
+        title: 'Agents K21',
+        subtitle: 'Retrait, dépôt cash, devenir point agent',
+      },
+      ...SETTINGS,
+    ];
+    if (profile.isAgent) {
+      rows.splice(1, 0, {
+        key: 'agent',
+        icon: '✓',
         title: 'Mode agent K21',
-        subtitle: 'Scanner dépôts clients, float, confirmation cash',
+        subtitle: 'Scanner dépôts & retraits clients',
       });
     }
     return rows;
@@ -437,6 +451,14 @@ export default function MoiScreen({ navigation }) {
                 key={s.key}
                 item={s}
                 onPress={() => {
+                  if (s.key === 'invite') {
+                    open('InviteFriends');
+                    return;
+                  }
+                  if (s.key === 'agentHub') {
+                    open('AgentHub');
+                    return;
+                  }
                   if (s.key === 'agent') {
                     open('AgentHome');
                     return;

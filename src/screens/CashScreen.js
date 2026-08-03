@@ -64,11 +64,13 @@ function AmountStep({
   onContinue,
   onBetaDeposit,
   onAgentDeposit,
+  onAgentWithdraw,
   onCardDeposit,
   onBack,
   betaLoading,
   betaEnabled,
   agentEnabled,
+  agentWithdrawEnabled,
   stripeEnabled,
   cardLoading,
 }) {
@@ -141,6 +143,14 @@ function AmountStep({
             label={cardLoading ? 'Ouverture Stripe…' : 'Carte bancaire (diaspora) →'}
             onPress={onCardDeposit}
             disabled={amount <= 0 || cardLoading}
+            style={{ marginBottom: spacing.md }}
+          />
+        ) : null}
+        {mode === 'out' && agentWithdrawEnabled ? (
+          <GlowButton
+            label="Retrait chez un agent K21 →"
+            onPress={onAgentWithdraw}
+            disabled={amount <= 0 || Math.floor(amount / 10) > balance}
             style={{ marginBottom: spacing.md }}
           />
         ) : null}
@@ -260,17 +270,18 @@ function SuccessStep({ mode, amount, operator, oldBalance, newBalance, onDone, b
   );
 }
 
-export default function CashScreen({ navigation }) {
+export default function CashScreen({ navigation, route }) {
   useScreenshotBlock(true);
   const showToast = useToast();
   const security = useSecurity();
   const { feature } = usePlatformFeatures();
   const betaEnabled = feature('cash', 'betaDeposits') || process.env.EXPO_PUBLIC_ALLOW_BETA_DEPOSITS === 'true';
   const agentEnabled = feature('cash', 'agentDeposits');
+  const agentWithdrawEnabled = feature('cash', 'agentWithdrawals');
   const stripeEnabled = feature('cash', 'stripeDeposits');
 
   const [step, setStep] = useState('amount');
-  const [mode, setMode] = useState('in');
+  const [mode, setMode] = useState(route.params?.initialMode === 'out' ? 'out' : 'in');
   const [amount, setAmount] = useState(5000);
   const [operator, setOperator] = useState('orange_money');
   const [phone, setPhone] = useState('');
@@ -387,10 +398,12 @@ export default function CashScreen({ navigation }) {
               betaLoading={loading}
               betaEnabled={betaEnabled}
               agentEnabled={agentEnabled}
+              agentWithdrawEnabled={agentWithdrawEnabled}
               stripeEnabled={stripeEnabled}
               cardLoading={cardLoading}
               onBetaDeposit={completeBetaDeposit}
-              onAgentDeposit={() => navigation.navigate('AgentDiscovery', { amount })}
+              onAgentDeposit={() => navigation.navigate('AgentDiscovery', { amount, mode: 'deposit' })}
+              onAgentWithdraw={() => navigation.navigate('AgentDiscovery', { amount, mode: 'withdraw' })}
               onCardDeposit={startCardDeposit}
               onContinue={() => setStep('operator')}
               onBack={() => navigation.goBack()}

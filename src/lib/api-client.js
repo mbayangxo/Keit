@@ -504,12 +504,45 @@ export function getAgentApplication() {
   return apiFetch('/api/agent/application', { skipCache: true });
 }
 
-export function getAgentsNearby(lat, lng) {
+export function getAgentsNearby({ lat, lng, mode = 'deposit', amount } = {}) {
   const params = new URLSearchParams();
   if (lat != null) params.set('lat', String(lat));
   if (lng != null) params.set('lng', String(lng));
+  if (mode) params.set('mode', mode);
+  if (amount != null) params.set('amount', String(amount));
   const q = params.toString();
   return apiFetch(`/api/agents/nearby${q ? `?${q}` : ''}`, { skipCache: true });
+}
+
+export function createAgentWithdraw({ amount }) {
+  return apiFetch('/api/withdrawals/agent', {
+    method: 'POST',
+    body: { amount },
+    skipCache: true,
+  });
+}
+
+export function getAgentWithdrawStatus(reference) {
+  return apiFetch(`/api/withdrawals/agent/${encodeURIComponent(reference)}`, { skipCache: true });
+}
+
+export function agentScanWithdraw({ token, qr }) {
+  return apiFetch('/api/agent/withdrawals/scan', {
+    method: 'POST',
+    body: { token, qr },
+    skipCache: true,
+  });
+}
+
+export function agentConfirmWithdraw(withdrawalId) {
+  return apiFetch(`/api/agent/withdrawals/${encodeURIComponent(withdrawalId)}/confirm`, {
+    method: 'POST',
+    skipCache: true,
+  });
+}
+
+export function getInviteShare() {
+  return apiFetch('/api/invite/share', { skipCache: true });
 }
 
 export function getAgentPayouts() {

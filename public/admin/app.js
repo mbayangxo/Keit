@@ -235,7 +235,11 @@ function renderAgents(agentsBlock) {
 }
 
 async function loadSupportTab() {
-  const [stats, calls] = await Promise.all([api('/support/stats'), api('/support/calls')]);
+  const [stats, calls, ticketsRes] = await Promise.all([
+    api('/support/stats'),
+    api('/support/calls'),
+    api('/support-tickets'),
+  ]);
   $('support-stats').innerHTML = `
     <div class="stat"><div class="label">Open tickets</div><div class="value">${stats.tickets.open}</div></div>
     <div class="stat"><div class="label">Pending</div><div class="value">${stats.tickets.pending}</div></div>
@@ -244,6 +248,16 @@ async function loadSupportTab() {
     <div class="stat"><div class="label">Avg resolution (h)</div><div class="value">${stats.tickets.avgResolutionHours ?? '—'}</div></div>
   `;
   $('cs-contact-line').textContent = `CS: ${stats.contact.phone} · ${stats.contact.hours}`;
+  $('support-tickets').innerHTML = tableHtml(
+    ['Subject', 'User', 'Status', ''],
+    ticketsRes.tickets ?? [],
+    (t) => `<tr>
+      <td>${t.subject}</td>
+      <td>${t.user?.phone || t.userId}</td>
+      <td><span class="badge badge-open">${t.status}</span></td>
+      <td><button class="btn btn-sm btn-ghost" data-ticket="${t.id}">Open</button></td>
+    </tr>`,
+  );
   $('support-calls').innerHTML = tableHtml(
     ['Phone', 'Outcome', 'When'],
     calls.calls,
@@ -309,7 +323,10 @@ async function loadDistributorsTab() {
 }
 
 async function loadOpsTab() {
-  const ops = await api('/ops/health');
+  const [ops, health] = await Promise.all([
+    api('/ops/health'),
+    fetch('/api/health?deep=1').then((r) => r.json()).catch(() => null),
+  ]);
   $('ops-stats').innerHTML = `
     <div class="stat"><div class="label">Users</div><div class="value">${ops.platform.userCount}</div></div>
     <div class="stat"><div class="label">Distributors</div><div class="value">${ops.platform.distributorCount}</div></div>
@@ -321,10 +338,26 @@ async function loadOpsTab() {
   $('ops-checklist').innerHTML = `<ul style="line-height:1.8;color:var(--muted)">
     <li>Customer service: <strong style="color:var(--text)">${ops.contact.phone}</strong> · ${ops.contact.hours}</li>
     <li>Email: ${ops.contact.email}</li>
+    <li>API health: ${health?.ok ? '✓ ok' : health ? '⚠ check' : '—'} · DB ${health?.db ?? '?'}</li>
+    <li>Pending rails: ${health?.pendingRails ?? '—'}</li>
     <li>Sentry: ${ops.platform.sentryConfigured ? '✓ configured' : '✗ set SENTRY_DSN on Vercel'}</li>
     <li>${ops.platform.uptimeMonitorHint}</li>
     <li>Open support tickets: ${ops.support.tickets.open + ops.support.tickets.pending}</li>
   </ul>`;
+}
+
+async function loadAuditTab() {
+  const res = await api('/audit-logs');
+  $('audit-table').innerHTML = tableHtml(
+    ['When', 'Admin', 'Action', 'Target'],
+    res.logs,
+    (r) => `<tr>
+      <td>${fmtDate(r.createdAt)}</td>
+      <td>${r.admin?.email ?? '—'}</td>
+      <td>${r.action}</td>
+      <td>${r.targetType ?? ''} ${r.targetId ?? ''}</td>
+    </tr>`,
+  );
 }
 
 async function loadDashboard() {
@@ -343,6 +376,7 @@ async function loadTabData(name) {
   if (name === 'users') await loadUsersTab();
   if (name === 'distributors') await loadDistributorsTab();
   if (name === 'ops') await loadOpsTab();
+  if (name === 'audit') await loadAuditTab();
 }
 
 async function enterApp() {
@@ -508,7 +542,35 @@ document.addEventListener('click', async (e) => {
   const userDetail = e.target.closest('[data-user-detail]');
   if (userDetail) {
     const detail = await api(`/users/${userDetail.dataset.userDetail}`);
-    showModal('User', detail);
+    const html = `
+      <div style="line-height:1.7;color:var(--text)">
+        <p><strong>${detail.phone}</strong> · @${detail.handle ?? '—'} · ${detail.name ?? ''}</p>
+        <p>Tier ${detail.verificationTier} · ${detail.verificationStatus}${detail.frozen ? ' · <span style="color:var(--r)">FROZEN</span>' : ''}</p>
+        <p>Balance: ${detail.wallet?.koriBalance ?? 0} ₭</p>
+        <p>Businesses: ${(detail.businesses ?? []).map((b) => b.name).join(', ') || '—'}</p>
+        <p>Tickets: ${detail.tickets?.length ?? 0} · Fraud alerts: ${detail.fraudAlerts?.length ?? 0}</p>
+      </div>
+    `;
+    const actionsHtml = `
+      ${detail.frozen ? `<button class="btn btn-sm btn-primary" id="modal-unfreeze">Unfreeze</button>` : `<button class="btn btn-sm btn-danger" id="modal-freeze-user">Freeze</button>`}
+      <button class="btn btn-sm btn-ghost" id="modal-tx-lookup">Find tx</button>
+    `;
+    $('modal-body').innerHTML = html;
+    $('modal-title').textContent = 'User';
+    $('modal-actions').innerHTML = actionsHtml;
+    show($('modal'), true);
+    $('modal-unfreeze')?.addEventListener('click', async () => {
+      await api(`/users/${detail.id}/unfreeze`, { method: 'POST', body: {} });
+      show($('modal'), false);
+      alert('Unfrozen');
+    });
+    $('modal-freeze-user')?.addEventListener('click', async () => {
+      const reason = prompt('Freeze reason:');
+      if (!reason) return;
+      await api(`/users/${detail.id}/freeze`, { method: 'POST', body: { reason } });
+      show($('modal'), false);
+      alert('Frozen');
+    });
     return;
   }
 

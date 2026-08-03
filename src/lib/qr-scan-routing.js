@@ -60,11 +60,11 @@ export async function routeQrScan({ raw, mode, navigation, route, api, showToast
   }
 
   if (mode === 'agent') {
-    if (parsed?.kind === 'agent_deposit' || text.includes('agent-deposit')) {
+    if (parsed?.kind === 'agent_deposit' || parsed?.kind === 'agent_withdraw' || text.includes('agent-deposit') || text.includes('agent-withdraw')) {
       navigation.navigate('AgentHome', { scannedQr: text });
       return { ok: true };
     }
-    showToast('QR dépôt agent requis (k21://agent-deposit/…)');
+    showToast('QR agent requis (agent-deposit ou agent-withdraw)');
     return { ok: false };
   }
 

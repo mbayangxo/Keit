@@ -29,7 +29,10 @@ import ChannelsScreen from '../screens/ChannelsScreen';
 import CallScreen from '../screens/CallScreen';
 import AgentApplyScreen from '../screens/AgentApplyScreen';
 import AgentDepositQrScreen from '../screens/AgentDepositQrScreen';
+import AgentWithdrawQrScreen from '../screens/AgentWithdrawQrScreen';
 import AgentDiscoveryScreen from '../screens/AgentDiscoveryScreen';
+import AgentHubScreen from '../screens/AgentHubScreen';
+import InviteFriendsScreen from '../screens/InviteFriendsScreen';
 import AgentHomeScreen from '../screens/AgentHomeScreen';
 import CniVerificationScreen from '../screens/CniVerificationScreen';
 import SupportScreen from '../screens/SupportScreen';
@@ -199,7 +202,10 @@ export default function RootNavigator() {
       <Stack.Screen name="CniVerification" component={CniVerificationScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="AgentDepositQr" component={AgentDepositQrScreen} />
+      <Stack.Screen name="AgentWithdrawQr" component={AgentWithdrawQrScreen} />
       <Stack.Screen name="AgentDiscovery" component={AgentDiscoveryScreen} />
+      <Stack.Screen name="AgentHub" component={AgentHubScreen} />
+      <Stack.Screen name="InviteFriends" component={InviteFriendsScreen} />
       <Stack.Screen name="AgentApply" component={AgentApplyScreen} />
       <Stack.Screen name="AgentHome" component={AgentHomeScreen} />
       <Stack.Screen name="QrScan" component={QrScanScreen} />
