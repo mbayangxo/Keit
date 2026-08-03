@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Image,
   Modal,
   ScrollView,
@@ -18,15 +19,17 @@ import { useAppState } from '../state/AppState';
 import { coordsFromArrondissement } from '../lib/dakar-coords';
 import { getMarketplaceShop, placeMarketplaceOrder, setBusinessCommunityStatus } from '../lib/api-client';
 import { getSeenStatusKeys, markStatusSeen } from '../lib/status-seen-storage';
+import { useEntrance, usePopIn } from '../hooks/animations';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
 function statusKey(businessId, c) {
   return `${businessId}:${c.userId}:${c.updatedAt}`;
 }
 
-function ProductRow({ product, qty, onChangeQty }) {
+function ProductRow({ product, qty, onChangeQty, delay = 0 }) {
+  const entrance = useEntrance(delay, 300, 10);
   return (
-    <View style={styles.productRow}>
+    <Animated.View style={[styles.productRow, entrance]}>
       {product.imageUrl ? (
         <Image source={{ uri: product.imageUrl }} style={styles.productImg} />
       ) : (
@@ -54,7 +57,7 @@ function ProductRow({ product, qty, onChangeQty }) {
           <Text style={styles.qtyBtnText}>+</Text>
         </PressScale>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -75,6 +78,9 @@ export default function ShopDetailScreen({ navigation, route }) {
   const [communitySaving, setCommunitySaving] = useState(false);
   const [seenKeys, setSeenKeys] = useState(new Set());
   const [viewerIndex, setViewerIndex] = useState(null);
+  const headerEntrance = useEntrance(0, 350, 12);
+  const communityEntrance = useEntrance(70, 350, 12);
+  const storyPopIn = usePopIn(120, 400, 0.6);
   const [cart, setCart] = useState({});
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [fulfillment, setFulfillment] = useState('delivery');
@@ -220,7 +226,7 @@ export default function ShopDetailScreen({ navigation, route }) {
     <View style={styles.root}>
       <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <View style={styles.header}>
+        <Animated.View style={[styles.header, headerEntrance]}>
           <PressScale scaleTo={0.9} onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Text style={{ fontSize: 18 }}>←</Text>
           </PressScale>
@@ -235,23 +241,25 @@ export default function ShopDetailScreen({ navigation, route }) {
               </View>
             ) : null}
           </View>
-        </View>
+        </Animated.View>
 
         {(communityStatuses.length > 0 || shop?.viewerCanPostStatus) ? (
-          <View style={styles.communitySection}>
+          <Animated.View style={[styles.communitySection, communityEntrance]}>
             <Text style={styles.communityLabel}>
               {shop?.type === 'school' ? '🎓 Statuts étudiants' : '✦ Statuts de l’équipe'}
             </Text>
             {communityStatuses.length > 0 ? (
               <PressScale scaleTo={0.94} onPress={() => setViewerIndex(0)} style={styles.storyEntry}>
-                <StoryAvatar
-                  photoUrl={shop?.imageUrl}
-                  emoji={shop?.type === 'school' ? '🎓' : '🏪'}
-                  initial={shop?.name?.[0]?.toUpperCase() ?? '?'}
-                  size={60}
-                  spin={false}
-                  seen={communityStatuses.every((c) => seenKeys.has(statusKey(businessId, c)))}
-                />
+                <Animated.View style={storyPopIn}>
+                  <StoryAvatar
+                    photoUrl={shop?.imageUrl}
+                    emoji={shop?.type === 'school' ? '🎓' : '🏪'}
+                    initial={shop?.name?.[0]?.toUpperCase() ?? '?'}
+                    size={60}
+                    spin={false}
+                    seen={communityStatuses.every((c) => seenKeys.has(statusKey(businessId, c)))}
+                  />
+                </Animated.View>
                 <Text style={styles.storyEntryLabel} numberOfLines={1}>
                   {communityStatuses.length} statut{communityStatuses.length > 1 ? 's' : ''}
                 </Text>
@@ -284,16 +292,17 @@ export default function ShopDetailScreen({ navigation, route }) {
                 ) : null}
               </>
             ) : null}
-          </View>
+          </Animated.View>
         ) : null}
 
         <ScrollView contentContainerStyle={styles.body}>
-          {products.map((p) => (
+          {products.map((p, i) => (
             <ProductRow
               key={p.id}
               product={p}
               qty={cart[p.id] ?? 0}
               onChangeQty={(q) => setQty(p.id, q)}
+              delay={Math.min(i, 8) * 30}
             />
           ))}
         </ScrollView>

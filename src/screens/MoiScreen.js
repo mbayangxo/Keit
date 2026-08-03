@@ -12,7 +12,7 @@ import { getMe, getMeSummary } from '../lib/api-client';
 import { shareFriendInvite } from '../lib/profile-share';
 import { navigateFromRoot } from '../lib/root-navigation';
 import { colors, fontFamily, radius, spacing } from '../theme';
-import { useFillIn, useScalePulse } from '../hooks/animations';
+import { useEntrance, useFillIn, useScalePulse } from '../hooks/animations';
 
 const SETTINGS = [
   { key: 'business', icon: '🏪', title: 'Mon business (KEBU)', subtitle: 'Crée ou gère ton commerce — caisse séparée' },
@@ -146,6 +146,11 @@ export default function MoiScreen({ navigation }) {
   const open = (name, params) => navigateFromRoot(navigation, name, params);
   const avatarGlow = useAvatarPulse();
   const starSpin = useScalePulse(3000, 1.15);
+  const heroEntrance = useEntrance(0, 350, 12);
+  const statsEntrance = useEntrance(70, 350, 12);
+  const ngorEntrance = useEntrance(140, 350, 12);
+  const highlightsEntrance = useEntrance(200, 350, 12);
+  const passEntrance = useEntrance(260, 350, 12);
   const { profile, setProfile } = useAppState();
   const { country } = useLocale();
   const insets = useSafeAreaInsets();
@@ -253,6 +258,7 @@ export default function MoiScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          <Animated.View style={heroEntrance}>
           <LinearGradient
             colors={['rgba(26,240,96,0.16)', 'rgba(250,216,54,0.12)', 'rgba(232,92,26,0.06)']}
             start={{ x: 0.2, y: 0 }}
@@ -334,17 +340,18 @@ export default function MoiScreen({ navigation }) {
               <View style={[styles.flagSeg, { backgroundColor: colors.terracotta }]} />
             </View>
           </LinearGradient>
+          </Animated.View>
 
-          <View style={styles.statsRow}>
+          <Animated.View style={[styles.statsRow, statsEntrance]}>
             {stats.map((s) => (
               <View key={s.key} style={styles.statItem}>
                 <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
                 <Text style={styles.statLabel}>{s.label}</Text>
               </View>
             ))}
-          </View>
+          </Animated.View>
 
-          <View style={styles.ngorMini}>
+          <Animated.View style={[styles.ngorMini, ngorEntrance]}>
             <Text style={styles.nmScore}>{ngorScore}</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.nmLabel}>Ngor</Text>
@@ -365,9 +372,9 @@ export default function MoiScreen({ navigation }) {
               </View>
             </View>
             <Animated.Text style={[styles.nmStar, { transform: [{ scale: starSpin }] }]}>✦</Animated.Text>
-          </View>
+          </Animated.View>
 
-          <View style={styles.highlights}>
+          <Animated.View style={[styles.highlights, highlightsEntrance]}>
             <Text style={styles.sectionLabel}>Highlights</Text>
             {summary.highlights.length ? (
               <ScrollView
@@ -401,11 +408,11 @@ export default function MoiScreen({ navigation }) {
                 </Text>
               </View>
             )}
-          </View>
+          </Animated.View>
 
-          <View style={{ paddingHorizontal: spacing.huge, marginBottom: spacing.xxl }}>
+          <Animated.View style={[{ paddingHorizontal: spacing.huge, marginBottom: spacing.xxl }, passEntrance]}>
             <K21PassCard pass={pass} verifiedTier={verifiedTier} onPress={() => open('StudentPass')} />
-          </View>
+          </Animated.View>
 
           {profile.accountType === 'personal' ? (
             <View style={{ paddingHorizontal: spacing.huge, marginBottom: spacing.xxl }}>

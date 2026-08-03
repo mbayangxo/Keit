@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import PressScale from '../components/PressScale';
@@ -11,6 +11,7 @@ import { createBusiness, createFlashDeal, setBusinessStatus } from '../lib/api-c
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { formatKori, formatNationalEquivalent } from '../lib/kori.js';
 import KoriAmount from '../components/KoriAmount';
+import { useEntrance } from '../hooks/animations';
 import {
   getMyBusinesses,
   getPayrollEmployees,
@@ -70,12 +71,28 @@ function TabPill({ label, active, onPress }) {
   );
 }
 
-function SectionCard({ title, children }) {
+function PerkRow({ perk, delay = 0 }) {
+  const entrance = useEntrance(delay, 300, 10);
   return (
-    <View style={styles.card}>
+    <Animated.View style={[styles.perkRow, entrance]}>
+      <View style={styles.perkIcon}>
+        <Text style={{ fontSize: 18 }}>{perk.icon}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.perkTitle}>{perk.title}</Text>
+        <Text style={styles.perkSub}>{perk.sub}</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+function SectionCard({ title, children, delay = 0 }) {
+  const entrance = useEntrance(delay, 300, 10);
+  return (
+    <Animated.View style={[styles.card, entrance]}>
       <Text style={styles.cardTitle}>{title}</Text>
       {children}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -89,6 +106,7 @@ export default function BusinessHubScreen({ navigation }) {
   const [creatingBiz, setCreatingBiz] = useState(false);
   const [tab, setTab] = useState('overview');
   const [loading, setLoading] = useState(false);
+  const heroEntrance = useEntrance(0, 350, 12);
 
   const [employees, setEmployees] = useState([]);
   const [newHandle, setNewHandle] = useState('');
@@ -508,16 +526,8 @@ export default function BusinessHubScreen({ navigation }) {
 
             <Text style={styles.createLabel}>Ce que ton KEBU t'apporte</Text>
             <View style={styles.perksList}>
-              {NEW_BIZ_PERKS.map((p) => (
-                <View key={p.title} style={styles.perkRow}>
-                  <View style={styles.perkIcon}>
-                    <Text style={{ fontSize: 18 }}>{p.icon}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.perkTitle}>{p.title}</Text>
-                    <Text style={styles.perkSub}>{p.sub}</Text>
-                  </View>
-                </View>
+              {NEW_BIZ_PERKS.map((p, i) => (
+                <PerkRow key={p.title} perk={p} delay={i * 60} />
               ))}
             </View>
 
@@ -540,7 +550,7 @@ export default function BusinessHubScreen({ navigation }) {
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView contentContainerStyle={{ paddingBottom: spacing.giant }} showsVerticalScrollIndicator={false}>
-          <View style={styles.hero}>
+          <Animated.View style={[styles.hero, heroEntrance]}>
             <View style={styles.topRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.bizName}>{business.name}</Text>
@@ -564,7 +574,7 @@ export default function BusinessHubScreen({ navigation }) {
             <KoriAmount value={kebuBalance} textStyle={styles.balance} />
             <Text style={styles.balanceLabel}>Solde KEBU · {business.kebuId ?? '—'}</Text>
             <Text style={styles.creditPill}>Crédit KEBU · {creditTier}</Text>
-          </View>
+          </Animated.View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabRow}>
             {tabsForType().map((t) => (
@@ -590,7 +600,7 @@ export default function BusinessHubScreen({ navigation }) {
                   <Text style={styles.actionLabel}>Gérer</Text>
                 </PressScale>
               </View>
-              <SectionCard title="✦ Statut — visible sur ta page publique">
+              <SectionCard title="✦ Statut — visible sur ta page publique" delay={0}>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex : Inscriptions ouvertes, on recrute, promo ce week-end…"
@@ -612,7 +622,7 @@ export default function BusinessHubScreen({ navigation }) {
                 ) : null}
               </SectionCard>
 
-              <SectionCard title="⚡ Offre flash — visible dans Discover">
+              <SectionCard title="⚡ Offre flash — visible dans Discover" delay={70}>
                 <TextInput
                   style={styles.input}
                   placeholder="Plat ou produit (ex: Dibi 500g)"

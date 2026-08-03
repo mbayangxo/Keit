@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Image,
   ScrollView,
   StyleSheet,
@@ -15,6 +16,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import { useAppState } from '../state/AppState';
 import { coordsFromArrondissement } from '../lib/dakar-coords';
 import { marketplaceSearch, marketplaceShopsNearby } from '../lib/api-client';
+import { useEntrance } from '../hooks/animations';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
 const QUICK_SEARCHES = ['riz', 'huile', 'oignon', 'tomate', 'pain', 'lait'];
@@ -31,28 +33,31 @@ function ProductThumb({ uri, title }) {
 }
 
 function ShopCard({ shop, onPress, delay = 0 }) {
+  const entrance = useEntrance(delay, 300, 12);
   return (
-    <PressScale scaleTo={0.98} onPress={onPress} style={styles.shopCard}>
-      {shop.imageUrl ? (
-        <Image source={{ uri: shop.imageUrl }} style={styles.shopHero} />
-      ) : (
-        <View style={[styles.shopHero, styles.shopHeroPlaceholder]}>
-          <Text style={{ fontSize: 28 }}>🏪</Text>
-        </View>
-      )}
-      <View style={styles.shopBody}>
-        <Text style={styles.shopName} numberOfLines={1}>{shop.name}</Text>
-        <Text style={styles.shopMeta}>
-          {[shop.arrondissement, shop.distanceLabel].filter(Boolean).join(' · ')}
-          {shop.matchCount ? ` · ${shop.matchCount} article${shop.matchCount > 1 ? 's' : ''}` : ''}
-        </Text>
-        {shop.products?.slice(0, 2).map((p) => (
-          <Text key={p.id} style={styles.shopProductLine} numberOfLines={1}>
-            {p.title} — {p.effectivePrice?.toLocaleString('fr-FR')} ₭
+    <Animated.View style={entrance}>
+      <PressScale scaleTo={0.98} onPress={onPress} style={styles.shopCard}>
+        {shop.imageUrl ? (
+          <Image source={{ uri: shop.imageUrl }} style={styles.shopHero} />
+        ) : (
+          <View style={[styles.shopHero, styles.shopHeroPlaceholder]}>
+            <Text style={{ fontSize: 28 }}>🏪</Text>
+          </View>
+        )}
+        <View style={styles.shopBody}>
+          <Text style={styles.shopName} numberOfLines={1}>{shop.name}</Text>
+          <Text style={styles.shopMeta}>
+            {[shop.arrondissement, shop.distanceLabel].filter(Boolean).join(' · ')}
+            {shop.matchCount ? ` · ${shop.matchCount} article${shop.matchCount > 1 ? 's' : ''}` : ''}
           </Text>
-        ))}
-      </View>
-    </PressScale>
+          {shop.products?.slice(0, 2).map((p) => (
+            <Text key={p.id} style={styles.shopProductLine} numberOfLines={1}>
+              {p.title} — {p.effectivePrice?.toLocaleString('fr-FR')} ₭
+            </Text>
+          ))}
+        </View>
+      </PressScale>
+    </Animated.View>
   );
 }
 
@@ -123,12 +128,13 @@ export default function MarcheScreen({ navigation }) {
   }, [runSearch]);
 
   const openShop = (shopId) => navigation.navigate('ShopDetail', { businessId: shopId });
+  const headerEntrance = useEntrance(0, 350, 12);
 
   return (
     <View style={styles.root}>
       <ScreenBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <View style={styles.header}>
+        <Animated.View style={[styles.header, headerEntrance]}>
           <PressScale scaleTo={0.9} onPress={() => navigation.navigate('Marketplace')} style={styles.hubLink}>
             <Text style={styles.hubLinkText}>Hub</Text>
           </PressScale>
@@ -156,7 +162,7 @@ export default function MarcheScreen({ navigation }) {
               </PressScale>
             ))}
           </ScrollView>
-        </View>
+        </Animated.View>
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           {loading ? (
@@ -174,8 +180,8 @@ export default function MarcheScreen({ navigation }) {
           {shops.length > 0 ? (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>Résultats pour « {debounced} »</Text>
-              {shops.map((shop) => (
-                <ShopCard key={shop.id} shop={shop} onPress={() => openShop(shop.id)} />
+              {shops.map((shop, i) => (
+                <ShopCard key={shop.id} shop={shop} onPress={() => openShop(shop.id)} delay={Math.min(i, 8) * 35} />
               ))}
             </View>
           ) : null}
@@ -183,8 +189,8 @@ export default function MarcheScreen({ navigation }) {
           {debounced.length < 2 && nearby.length > 0 ? (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>Marchés près de toi</Text>
-              {nearby.map((shop) => (
-                <ShopCard key={shop.id} shop={shop} onPress={() => openShop(shop.id)} />
+              {nearby.map((shop, i) => (
+                <ShopCard key={shop.id} shop={shop} onPress={() => openShop(shop.id)} delay={Math.min(i, 8) * 35} />
               ))}
             </View>
           ) : null}

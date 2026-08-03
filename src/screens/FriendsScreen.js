@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEntrance } from '../hooks/animations';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import ScreenHeader from '../components/ScreenHeader';
@@ -24,20 +25,61 @@ import { buildWebFriendUrl, resolveAccountQuery } from '../lib/k21-qr';
 import { navigateFromRoot } from '../lib/root-navigation';
 import { colors, fontFamily, radius, spacing } from '../theme';
 
-function FriendRow({ friend, onSend, onMbolo }) {
+function FriendRow({ friend, onSend, onMbolo, delay = 0 }) {
+  const entrance = useEntrance(delay, 320, 10);
   return (
-    <PressScale scaleTo={0.98} onPress={onSend} style={styles.row}>
+    <Animated.View style={entrance}>
+      <PressScale scaleTo={0.98} onPress={onSend} style={styles.row}>
+        <View style={styles.ava}>
+          <Text style={{ fontSize: 22 }}>{friend.avatarEmoji ?? '🧑🏾'}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.rowName}>{friend.name}</Text>
+          <Text style={styles.rowMeta}>@{String(friend.handle ?? '').replace(/^@+/, '')}</Text>
+        </View>
+        <PressScale scaleTo={0.9} onPress={onMbolo} style={styles.mboloBtn}>
+          <Text style={styles.mboloBtnText}>💬</Text>
+        </PressScale>
+      </PressScale>
+    </Animated.View>
+  );
+}
+
+function IncomingRequestRow({ request, onAccept, onDecline, responding, delay = 0 }) {
+  const entrance = useEntrance(delay, 320, 10);
+  return (
+    <Animated.View style={[styles.requestRow, entrance]}>
       <View style={styles.ava}>
-        <Text style={{ fontSize: 22 }}>{friend.avatarEmoji ?? '🧑🏾'}</Text>
+        <Text style={{ fontSize: 22 }}>{request.user?.avatarEmoji ?? '🧑🏾'}</Text>
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.rowName}>{friend.name}</Text>
-        <Text style={styles.rowMeta}>@{String(friend.handle ?? '').replace(/^@+/, '')}</Text>
+        <Text style={styles.rowName}>{request.user?.name ?? 'Membre K21'}</Text>
+        <Text style={styles.rowMeta}>@{String(request.user?.handle ?? '').replace(/^@+/, '')}</Text>
+        {request.message ? <Text style={styles.requestMsg}>“{request.message}”</Text> : null}
       </View>
-      <PressScale scaleTo={0.9} onPress={onMbolo} style={styles.mboloBtn}>
-        <Text style={styles.mboloBtnText}>💬</Text>
+      <PressScale scaleTo={0.92} onPress={onAccept} style={[styles.acceptBtn, responding && { opacity: 0.5 }]}>
+        <Text style={styles.acceptBtnText}>Accepter</Text>
       </PressScale>
-    </PressScale>
+      <PressScale scaleTo={0.92} onPress={onDecline} style={[styles.declineBtn, responding && { opacity: 0.5 }]}>
+        <Text style={styles.declineBtnText}>✕</Text>
+      </PressScale>
+    </Animated.View>
+  );
+}
+
+function OutgoingRequestRow({ request, delay = 0 }) {
+  const entrance = useEntrance(delay, 320, 10);
+  return (
+    <Animated.View style={[styles.requestRow, entrance]}>
+      <View style={styles.ava}>
+        <Text style={{ fontSize: 22 }}>{request.user?.avatarEmoji ?? '🧑🏾'}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.rowName}>{request.user?.name ?? 'Membre K21'}</Text>
+        <Text style={styles.rowMeta}>@{String(request.user?.handle ?? '').replace(/^@+/, '')}</Text>
+      </View>
+      <Text style={styles.pendingTag}>⏳ Envoyée</Text>
+    </Animated.View>
   );
 }
 
@@ -52,6 +94,9 @@ export default function FriendsScreen({ navigation, route }) {
   const [adding, setAdding] = useState(false);
   const [respondingId, setRespondingId] = useState(null);
   const [vouch, setVouch] = useState(null);
+  const inviteEntrance = useEntrance(0, 380, 14);
+  const findEntrance = useEntrance(80, 380, 14);
+  const vouchEntrance = useEntrance(160, 380, 14);
 
   useEffect(() => {
     const incoming = route.params?.addHandle;
@@ -157,7 +202,7 @@ export default function FriendsScreen({ navigation, route }) {
           <Text style={styles.sub}>Envoie de l'argent ou ouvre Mboolo en un tap.</Text>
 
           {profile.handle ? (
-            <View style={styles.inviteCard}>
+            <Animated.View style={[styles.inviteCard, inviteEntrance]}>
               <Text style={styles.inviteTitle}>Invite tes amis sur K21</Text>
               <Text style={styles.inviteMeta}>@{String(profile.handle ?? '').replace(/^@+/, '')}</Text>
               {buildWebFriendUrl(profile.handle) ? (
@@ -167,28 +212,30 @@ export default function FriendsScreen({ navigation, route }) {
               <PressScale scaleTo={0.97} onPress={() => open('MyQr')} style={styles.inviteQr}>
                 <Text style={styles.inviteQrText}>📲 Mon QR à scanner</Text>
               </PressScale>
-            </View>
+            </Animated.View>
           ) : null}
 
-          <Text style={styles.addLbl}>Trouver un compte</Text>
-          <View style={styles.addRow}>
-            <TextInput
-              style={styles.input}
-              value={handle}
-              onChangeText={setHandle}
-              placeholder="@handle, numéro, ou lien k21://"
-              placeholderTextColor={'rgba(5,8,5,0.45)'}
-              autoCapitalize="none"
-            />
-            <GlowButton label={adding ? '…' : 'Ajouter'} onPress={submitAdd} disabled={adding || handle.trim().length < 3} style={styles.addBtn} />
-          </View>
+          <Animated.View style={findEntrance}>
+            <Text style={styles.addLbl}>Trouver un compte</Text>
+            <View style={styles.addRow}>
+              <TextInput
+                style={styles.input}
+                value={handle}
+                onChangeText={setHandle}
+                placeholder="@handle, numéro, ou lien k21://"
+                placeholderTextColor={'rgba(5,8,5,0.45)'}
+                autoCapitalize="none"
+              />
+              <GlowButton label={adding ? '…' : 'Ajouter'} onPress={submitAdd} disabled={adding || handle.trim().length < 3} style={styles.addBtn} />
+            </View>
 
-          <PressScale scaleTo={0.97} onPress={() => open('QrScan', { mode: 'friend' })} style={styles.scanLink}>
-            <Text style={styles.scanLinkText}>📷 Scanner un QR pour ajouter</Text>
-          </PressScale>
+            <PressScale scaleTo={0.97} onPress={() => open('QrScan', { mode: 'friend' })} style={styles.scanLink}>
+              <Text style={styles.scanLinkText}>📷 Scanner un QR pour ajouter</Text>
+            </PressScale>
+          </Animated.View>
 
           {vouch ? (
-            <View style={styles.vouchCard}>
+            <Animated.View style={[styles.vouchCard, vouchEntrance]}>
               {vouch.confirmed ? (
                 <Text style={styles.vouchConfirmed}>🛡️ Confirmé par la communauté ✓</Text>
               ) : (
@@ -212,37 +259,21 @@ export default function FriendsScreen({ navigation, route }) {
                   <Text style={styles.vouchActionText}>🛡️ Confirmer un ami (scanner son QR)</Text>
                 </PressScale>
               ) : null}
-            </View>
+            </Animated.View>
           ) : null}
 
           {requests.incoming.length > 0 ? (
             <View style={styles.requestsBlock}>
               <Text style={styles.sectionLabel}>Demandes reçues</Text>
-              {requests.incoming.map((r) => (
-                <View key={r.id} style={styles.requestRow}>
-                  <View style={styles.ava}>
-                    <Text style={{ fontSize: 22 }}>{r.user?.avatarEmoji ?? '🧑🏾'}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.rowName}>{r.user?.name ?? 'Membre K21'}</Text>
-                    <Text style={styles.rowMeta}>@{String(r.user?.handle ?? '').replace(/^@+/, '')}</Text>
-                    {r.message ? <Text style={styles.requestMsg}>“{r.message}”</Text> : null}
-                  </View>
-                  <PressScale
-                    scaleTo={0.92}
-                    onPress={() => respond(r, true)}
-                    style={[styles.acceptBtn, respondingId === r.id && { opacity: 0.5 }]}
-                  >
-                    <Text style={styles.acceptBtnText}>Accepter</Text>
-                  </PressScale>
-                  <PressScale
-                    scaleTo={0.92}
-                    onPress={() => respond(r, false)}
-                    style={[styles.declineBtn, respondingId === r.id && { opacity: 0.5 }]}
-                  >
-                    <Text style={styles.declineBtnText}>✕</Text>
-                  </PressScale>
-                </View>
+              {requests.incoming.map((r, i) => (
+                <IncomingRequestRow
+                  key={r.id}
+                  request={r}
+                  onAccept={() => respond(r, true)}
+                  onDecline={() => respond(r, false)}
+                  responding={respondingId === r.id}
+                  delay={i * 40}
+                />
               ))}
             </View>
           ) : null}
@@ -250,17 +281,8 @@ export default function FriendsScreen({ navigation, route }) {
           {requests.outgoing.length > 0 ? (
             <View style={styles.requestsBlock}>
               <Text style={styles.sectionLabel}>En attente de réponse</Text>
-              {requests.outgoing.map((r) => (
-                <View key={r.id} style={styles.requestRow}>
-                  <View style={styles.ava}>
-                    <Text style={{ fontSize: 22 }}>{r.user?.avatarEmoji ?? '🧑🏾'}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.rowName}>{r.user?.name ?? 'Membre K21'}</Text>
-                    <Text style={styles.rowMeta}>@{String(r.user?.handle ?? '').replace(/^@+/, '')}</Text>
-                  </View>
-                  <Text style={styles.pendingTag}>⏳ Envoyée</Text>
-                </View>
+              {requests.outgoing.map((r, i) => (
+                <OutgoingRequestRow key={r.id} request={r} delay={i * 40} />
               ))}
             </View>
           ) : null}
@@ -275,12 +297,13 @@ export default function FriendsScreen({ navigation, route }) {
             </Text>
           ) : (
             <View style={styles.list}>
-              {friends.map((f) => (
+              {friends.map((f, i) => (
                 <FriendRow
                   key={f.id}
                   friend={f}
                   onSend={() => open('UserProfile', { handle: f.handle })}
                   onMbolo={() => openMbooloWithFriend(f)}
+                  delay={i * 35}
                 />
               ))}
             </View>
