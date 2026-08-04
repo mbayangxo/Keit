@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Image, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import PressScale from '../components/PressScale';
@@ -24,11 +24,14 @@ import ProfileAvatar from '../components/ProfileAvatar';
 import StepUpOverlay from '../components/StepUpOverlay';
 import { useSecurity } from '../context/SecurityContext';
 import { useLocale } from '../context/LocaleContext';
-import { transferSend, lookupUser } from '../lib/api-client';
+import { transferSend, lookupUser, getMboloVideoUploadConfig } from '../lib/api-client';
 import { toE164, isValidLocalPhone } from '../lib/phone';
 import { resolveAccountQuery } from '../lib/k21-qr';
 import { formatKori, KORI_SYMBOL } from '../lib/kori.js';
 import KoriAmount from '../components/KoriAmount';
+import { pickMboloImage, pickAndUploadMboloVideo, resolveGifMediaUrl } from '../lib/mbolo-media';
+import { useMbooloVoiceRecorder } from '../hooks/useMbooloVoiceRecorder';
+import { MBOLO_GIFS } from '../lib/mboolo-stickers';
 
 const RECIPIENT_MODES = [
   { key: 'scan', icon: '📷', label: 'Scanner' },
@@ -91,6 +94,16 @@ function AmountStep({
   onBack,
   onScan,
   reduceMotion,
+  attachmentType,
+  attachmentUrl,
+  attaching,
+  isRecording,
+  isVoiceReady,
+  onAttachPhoto,
+  onAttachVideo,
+  onAttachVoice,
+  onAttachGif,
+  onRemoveAttachment,
 }) {
   const popIn = usePopIn(0, 400, 0.8);
   const heroGlow = useGlowPulse(3200, 0.35);
@@ -239,6 +252,49 @@ function AmountStep({
             value={reason}
             onChangeText={setReason}
           />
+
+          <Text style={[styles.lbl, { marginTop: spacing.lg }]}>Joindre (optionnel)</Text>
+          {attachmentType ? (
+            <View style={styles.attachPreview}>
+              {attachmentType === 'photo' || attachmentType === 'gif' ? (
+                <Image source={{ uri: attachmentUrl }} style={styles.attachThumb} />
+              ) : (
+                <View style={[styles.attachThumb, styles.attachThumbIcon]}>
+                  <Text style={{ fontSize: 18 }}>{attachmentType === 'video' ? '🎬' : '🎤'}</Text>
+                </View>
+              )}
+              <Text style={styles.attachLabel}>
+                {attachmentType === 'photo' && 'Photo jointe'}
+                {attachmentType === 'gif' && 'GIF joint'}
+                {attachmentType === 'video' && 'Vidéo jointe'}
+                {attachmentType === 'voice' && 'Message vocal joint'}
+              </Text>
+              <PressScale scaleTo={0.9} onPress={onRemoveAttachment} style={styles.attachRemove}>
+                <Text style={{ fontSize: 12, color: colors.terracotta }}>✕</Text>
+              </PressScale>
+            </View>
+          ) : (
+            <View style={styles.attachRow}>
+              <PressScale scaleTo={0.95} onPress={onAttachPhoto} style={styles.attachBtn} disabled={attaching}>
+                <Text style={{ fontSize: 16 }}>📷</Text>
+              </PressScale>
+              <PressScale scaleTo={0.95} onPress={onAttachVideo} style={styles.attachBtn} disabled={attaching}>
+                <Text style={{ fontSize: 16 }}>🎬</Text>
+              </PressScale>
+              <PressScale
+                scaleTo={0.95}
+                onPress={onAttachVoice}
+                style={[styles.attachBtn, isRecording && styles.attachBtnActive]}
+                disabled={attaching && !isRecording && !isVoiceReady}
+              >
+                <Text style={{ fontSize: 16 }}>{isRecording ? '⏹' : '🎤'}</Text>
+              </PressScale>
+              <PressScale scaleTo={0.95} onPress={onAttachGif} style={styles.attachBtn} disabled={attaching}>
+                <Text style={{ fontSize: 16 }}>GIF</Text>
+              </PressScale>
+              {attaching ? <ActivityIndicator size="small" color={colors.green} /> : null}
+            </View>
+          )}
         </Animated.View>
 
         <View style={{ paddingHorizontal: spacing.huge, paddingBottom: spacing.giant }}>
@@ -408,9 +464,86 @@ export default function SendMoneyScreen({ navigation, route }) {
   const [undone, setUndone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [stepUpVisible, setStepUpVisible] = useState(false);
+  const [attachmentType, setAttachmentType] = useState(null);
+  const [attachmentUrl, setAttachmentUrl] = useState(null);
+  const [attaching, setAttaching] = useState(false);
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const lookupTimer = useRef(null);
   const { balance, refreshWallet, setPendingMboloShare, transactions } = useAppState();
   const countryDial = country?.dial ?? '+221';
+  const voiceRecorder = useMbooloVoiceRecorder();
+
+  const removeAttachment = () => {
+    setAttachmentType(null);
+    setAttachmentUrl(null);
+  };
+
+  const attachPhoto = async () => {
+    setAttaching(true);
+    try {
+      const url = await pickMboloImage();
+      if (url) {
+        setAttachmentType('photo');
+        setAttachmentUrl(url);
+      }
+    } catch (err) {
+      showToast(err.message ?? 'Photo impossible');
+    } finally {
+      setAttaching(false);
+    }
+  };
+
+  const attachVideo = async () => {
+    setAttaching(true);
+    try {
+      const config = await getMboloVideoUploadConfig();
+      const url = await pickAndUploadMboloVideo(config);
+      if (url) {
+        setAttachmentType('video');
+        setAttachmentUrl(url);
+      }
+    } catch (err) {
+      showToast(err.message ?? 'Vidéo impossible');
+    } finally {
+      setAttaching(false);
+    }
+  };
+
+  const attachVoice = async () => {
+    if (voiceRecorder.isRecording || voiceRecorder.isReady) {
+      setAttaching(true);
+      try {
+        const url = await voiceRecorder.stop();
+        if (url) {
+          setAttachmentType('voice');
+          setAttachmentUrl(url);
+        }
+      } catch (err) {
+        showToast(err.message ?? 'Enregistrement impossible');
+      } finally {
+        setAttaching(false);
+      }
+      return;
+    }
+    try {
+      await voiceRecorder.start();
+      showToast('🎤 Enregistrement démarré — appuie à nouveau pour envoyer');
+    } catch (err) {
+      showToast(err.message ?? 'Micro indisponible');
+    }
+  };
+
+  const attachGif = (gif) => {
+    setGifPickerOpen(false);
+    setAttaching(true);
+    resolveGifMediaUrl(gif.url)
+      .then((url) => {
+        setAttachmentType('gif');
+        setAttachmentUrl(url);
+      })
+      .catch((err) => showToast(err.message ?? 'GIF impossible'))
+      .finally(() => setAttaching(false));
+  };
 
   const recentRecipients = useMemo(() => {
     const seen = new Set();
@@ -483,14 +616,26 @@ export default function SendMoneyScreen({ navigation, route }) {
     if (!recipientProfile?.handle) return;
     setSubmitting(true);
     try {
+      const attachmentParams =
+        attachmentType === 'photo'
+          ? { photoUrl: attachmentUrl }
+          : attachmentType === 'video'
+            ? { videoUrl: attachmentUrl }
+            : attachmentType === 'voice'
+              ? { voiceNoteUrl: attachmentUrl }
+              : attachmentType === 'gif'
+                ? { gifUrl: attachmentUrl }
+                : {};
       const result = await transferSend({
         recipientHandle: recipientProfile.handle,
         amount,
         note: reason,
+        ...attachmentParams,
         stepUpToken: stepUpToken ?? security.stepUpToken,
       });
       setReference(result.reference);
       setUndone(false);
+      removeAttachment();
       await refreshWallet();
       setStep('success');
     } catch (err) {
@@ -528,6 +673,7 @@ export default function SendMoneyScreen({ navigation, route }) {
     setRecipientQuery('');
     setRecipientProfile(null);
     setUndone(false);
+    removeAttachment();
     navigation.goBack();
   };
 
@@ -556,6 +702,16 @@ export default function SendMoneyScreen({ navigation, route }) {
               onBack={() => navigation.goBack()}
               onScan={() => navigation.navigate('QrScan', { prefilledAmount: amount, note: reason })}
               reduceMotion={reduceMotion}
+              attachmentType={attachmentType}
+              attachmentUrl={attachmentUrl}
+              attaching={attaching}
+              isRecording={voiceRecorder.isRecording}
+              isVoiceReady={voiceRecorder.isReady}
+              onAttachPhoto={attachPhoto}
+              onAttachVideo={attachVideo}
+              onAttachVoice={attachVoice}
+              onAttachGif={() => setGifPickerOpen(true)}
+              onRemoveAttachment={removeAttachment}
             />
           </StepTransition>
         )}
@@ -588,6 +744,24 @@ export default function SendMoneyScreen({ navigation, route }) {
         )}
       </SafeAreaView>
       <StepUpOverlay visible={stepUpVisible} onCancel={() => setStepUpVisible(false)} onVerified={handleStepUpVerified} />
+      <Modal visible={gifPickerOpen} animationType="slide" transparent onRequestClose={() => setGifPickerOpen(false)}>
+        <View style={styles.gifBackdrop}>
+          <View style={styles.gifSheet}>
+            <Text style={styles.gifSheetTitle}>Choisir un GIF</Text>
+            <ScrollView contentContainerStyle={styles.gifGrid}>
+              {MBOLO_GIFS.map((gif) => (
+                <PressScale key={gif.id} scaleTo={0.95} onPress={() => attachGif(gif)} style={styles.gifCard}>
+                  <Image source={{ uri: gif.url }} style={styles.gifCardImage} resizeMode="cover" />
+                  <Text style={styles.gifCardLabel}>{gif.label}</Text>
+                </PressScale>
+              ))}
+            </ScrollView>
+            <PressScale scaleTo={0.96} onPress={() => setGifPickerOpen(false)} style={{ alignSelf: 'center', marginTop: spacing.sm }}>
+              <Text style={{ color: 'rgba(5,8,5,0.5)', fontSize: 12 }}>Fermer</Text>
+            </PressScale>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -677,6 +851,46 @@ const styles = StyleSheet.create({
 
   reasonWrap: { paddingHorizontal: spacing.huge, paddingBottom: spacing.xxl },
   reasonField: { width: '100%', height: 48, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.12)', paddingHorizontal: spacing.xxxl, fontFamily: fontFamily.bodyRegular, fontSize: 13, color: colors.ink, marginTop: spacing.sm },
+  attachRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginTop: spacing.sm },
+  attachBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(5,8,5,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attachBtnActive: { backgroundColor: colors.greenA08, borderColor: colors.green },
+  attachPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: radius.lg,
+    backgroundColor: colors.greenA08,
+    borderWidth: 1,
+    borderColor: colors.greenA18,
+  },
+  attachThumb: { width: 40, height: 40, borderRadius: radius.md },
+  attachThumbIcon: { backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
+  attachLabel: { flex: 1, fontSize: 12, fontFamily: fontFamily.bodySemiBold, color: colors.ink },
+  attachRemove: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
+  gifBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  gifSheet: {
+    backgroundColor: '#f2f8ec',
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    padding: spacing.huge,
+    maxHeight: '70%',
+  },
+  gifSheetTitle: { fontFamily: fontFamily.displayBold, fontSize: 15, color: colors.ink, marginBottom: spacing.md },
+  gifGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  gifCard: { width: 96, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: '#fff', borderWidth: 1.5, borderColor: 'rgba(5,8,5,0.1)' },
+  gifCardImage: { width: 96, height: 72 },
+  gifCardLabel: { fontSize: 10, color: colors.ink, padding: 6, textAlign: 'center' },
 
   contactItem: { alignItems: 'center', gap: spacing.xs },
   contactAva: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },

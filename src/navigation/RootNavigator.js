@@ -28,6 +28,9 @@ import PublicProfileScreen from '../screens/PublicProfileScreen';
 import ChannelsScreen from '../screens/ChannelsScreen';
 import CallScreen from '../screens/CallScreen';
 import MbooloSharePickerScreen from '../screens/MbooloSharePickerScreen';
+import MbooloBroadcastScreen from '../screens/MbooloBroadcastScreen';
+import MbooloGroupInfoScreen from '../screens/MbooloGroupInfoScreen';
+import GroupJoinScreen from '../screens/GroupJoinScreen';
 import AgentApplyScreen from '../screens/AgentApplyScreen';
 import AgentDepositQrScreen from '../screens/AgentDepositQrScreen';
 import AgentWithdrawQrScreen from '../screens/AgentWithdrawQrScreen';
@@ -216,6 +219,9 @@ export default function RootNavigator() {
       <Stack.Screen name="Channels" component={ChannelsScreen} />
       <Stack.Screen name="Call" component={CallScreen} />
       <Stack.Screen name="MbooloSharePicker" component={MbooloSharePickerScreen} />
+      <Stack.Screen name="MbooloBroadcast" component={MbooloBroadcastScreen} />
+      <Stack.Screen name="MbooloGroupInfo" component={MbooloGroupInfoScreen} />
+      <Stack.Screen name="GroupJoin" component={GroupJoinScreen} />
       <Stack.Screen name="StudentPass" component={StudentPassScreen} />
       <Stack.Screen name="Jekkal" component={JekkalScreen} />
       <Stack.Screen name="JekkalDetail" component={JekkalDetailScreen} />

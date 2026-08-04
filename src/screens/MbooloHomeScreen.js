@@ -247,6 +247,9 @@ export default function MbooloHomeScreen({ navigation }) {
             <PressScale scaleTo={0.9} onPress={() => setShowNew(true)} style={styles.mbIcon}>
               <Text style={{ fontSize: 17 }}>✏️</Text>
             </PressScale>
+            <PressScale scaleTo={0.9} onPress={() => navigation.navigate('MbooloBroadcast')} style={styles.mbIcon}>
+              <Text style={{ fontSize: 17 }}>📢</Text>
+            </PressScale>
             <PressScale scaleTo={0.9} onPress={() => searchRef.current?.focus()} style={styles.mbIcon}>
               <Text style={{ fontSize: 17 }}>🔍</Text>
             </PressScale>
@@ -310,6 +313,18 @@ export default function MbooloHomeScreen({ navigation }) {
               onChangeText={setNewHandles}
             />
             <GlowButton label={creating ? 'Création…' : 'Créer'} onPress={handleCreate} disabled={creating} />
+            <PressScale
+              scaleTo={0.97}
+              onPress={() => {
+                setShowNew(false);
+                navigation.navigate('GroupJoin');
+              }}
+              style={{ alignSelf: 'center', marginTop: spacing.md }}
+            >
+              <Text style={{ color: colors.mboolo.terra, fontSize: 12, fontWeight: '700' }}>
+                Ou rejoindre un groupe avec un code →
+              </Text>
+            </PressScale>
             <PressScale scaleTo={0.96} onPress={() => setShowNew(false)} style={{ alignSelf: 'center', marginTop: spacing.md }}>
               <Text style={{ color: colors.mboolo.ink3, fontSize: 12 }}>Annuler</Text>
             </PressScale>

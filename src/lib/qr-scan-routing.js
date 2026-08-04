@@ -107,6 +107,17 @@ export async function routeQrScan({ raw, mode, navigation, route, api, showToast
     return { ok: false };
   }
 
+  if (parsed?.kind === 'join_group' || mode === 'group_join') {
+    const code = parsed?.inviteCode ?? text.trim().toUpperCase();
+    const thread = await api.joinMboloGroup(code);
+    showToast('Groupe rejoint ✓');
+    navigation.replace('Main', {
+      screen: 'MbooloTab',
+      params: { screen: 'MbooloChat', params: { threadId: thread.id, thread, title: thread.name ?? 'Conversation' } },
+    });
+    return { ok: true };
+  }
+
   const handle = parsed?.handle ?? text.replace(/^@/, '').trim();
   const profile = await api.lookupUser(handle);
   navigation.replace('SendMoney', {

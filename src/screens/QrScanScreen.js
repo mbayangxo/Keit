@@ -8,10 +8,10 @@ import ScreenBackground from '../components/ScreenBackground';
 import QrCameraScanner from '../components/QrCameraScanner';
 import { useToast } from '../components/Toast';
 import { routeQrScan } from '../lib/qr-scan-routing';
-import { getMerchantPublic, addFriend, lookupUser, vouchForUser } from '../lib/api-client';
+import { getMerchantPublic, addFriend, lookupUser, vouchForUser, joinMboloGroup } from '../lib/api-client';
 import { colors, fontFamily, radius, spacing } from '../theme';
 
-const scanApi = { getMerchantPublic, addFriend, lookupUser, vouchForUser };
+const scanApi = { getMerchantPublic, addFriend, lookupUser, vouchForUser, joinMboloGroup };
 
 export default function QrScanScreen({ navigation, route }) {
   const mode = route.params?.mode ?? 'pay';
@@ -29,7 +29,9 @@ export default function QrScanScreen({ navigation, route }) {
           ? 'Scanner dépôt client'
           : mode === 'tontine_member'
             ? 'Scanner un membre'
-            : 'Scanner pour envoyer';
+            : mode === 'group_join'
+              ? 'Rejoindre un groupe'
+              : 'Scanner pour envoyer';
 
   const runScan = useCallback(
     async (value) => {

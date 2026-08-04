@@ -91,6 +91,19 @@ export function buildAgentWithdrawUrl(token) {
   return `k21://agent-withdraw/${t}`;
 }
 
+export function buildGroupJoinUrl(code) {
+  const c = String(code ?? '').trim().toUpperCase();
+  if (!c) throw new Error('Invite code required');
+  return `k21://group-join/${c}`;
+}
+
+export function buildWebGroupJoinUrl(code) {
+  const c = String(code ?? '').trim().toUpperCase();
+  if (!c) throw new Error('Invite code required');
+  const origin = getAppPublicOrigin();
+  return origin ? `${origin}/group-join/${c}` : `https://k21.app/group-join/${c}`;
+}
+
 export function parseK21Qr(raw) {
   const text = String(raw ?? '').trim();
   if (!text) return null;
@@ -111,6 +124,7 @@ export function parseK21Qr(raw) {
     if (path === 'agent-deposit' && rest) return { kind: 'agent_deposit', token: rest };
     if (path === 'agent-withdraw' && rest) return { kind: 'agent_withdraw', token: rest };
     if (path === 'aff' && rest) return { kind: 'affiliate_link', linkCode: rest.toUpperCase().split('?')[0] };
+    if (path === 'group-join' && rest) return { kind: 'join_group', inviteCode: rest.toUpperCase() };
     if (path === 'shop' && rest) {
       const parts = rest.split('?')[0].split('/').filter(Boolean);
       const businessId = parts[0];
@@ -134,6 +148,9 @@ export function parseK21Qr(raw) {
     }
     if (parts[0] === 'join' && u.searchParams.get('ref')) {
       return { kind: 'invite_ref', inviteCode: u.searchParams.get('ref').toUpperCase() };
+    }
+    if (parts[0] === 'group-join' && parts[1]) {
+      return { kind: 'join_group', inviteCode: normalizeHandle(parts[1]).toUpperCase() };
     }
     if (parts[0] === 'merchant' && parts[1]) {
       return { kind: 'pay_merchant', businessId: parts[1] };

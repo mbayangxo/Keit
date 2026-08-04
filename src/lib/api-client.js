@@ -446,6 +446,37 @@ export function createMboloThread({ name, memberHandles = [] }) {
   });
 }
 
+export function broadcastMboloMessage({ recipientHandles, body, kind = 'text', mediaUrl }) {
+  return apiFetch('/api/mbolo/broadcast', {
+    method: 'POST',
+    body: { recipientHandles, body, kind, mediaUrl },
+    skipCache: true,
+  });
+}
+
+export function addMboloThreadMembers(threadId, handles) {
+  return apiFetch(`/api/mbolo/threads/${encodeURIComponent(threadId)}/members`, {
+    method: 'POST',
+    body: { handles },
+    skipCache: true,
+  });
+}
+
+export function getMboloThreadInvite(threadId) {
+  return apiFetch(`/api/mbolo/threads/${encodeURIComponent(threadId)}/invite`, {
+    method: 'POST',
+    skipCache: true,
+  });
+}
+
+export function joinMboloGroup(code) {
+  return apiFetch('/api/mbolo/join-group', {
+    method: 'POST',
+    body: { code },
+    skipCache: true,
+  });
+}
+
 export function getMboloMessages(threadId) {
   return apiFetch(`/api/mbolo/threads/${encodeURIComponent(threadId)}/messages`, { skipCache: true });
 }
@@ -1313,6 +1344,22 @@ export function payTradeInvoice(invoiceId, { stepUpToken, paymentSource, buyerBu
     method: 'POST',
     body: { paymentSource, buyerBusinessId },
     stepUpToken,
+    skipCache: true,
+  });
+}
+
+export function disputeTradeInvoice(invoiceId, reason) {
+  return apiFetch(`/api/distribution/invoices/${encodeURIComponent(invoiceId)}/dispute`, {
+    method: 'POST',
+    body: { reason },
+    skipCache: true,
+  });
+}
+
+export function resolveTradeInvoiceDispute(invoiceId, { action, note, newAmountKori } = {}) {
+  return apiFetch(`/api/distribution/invoices/${encodeURIComponent(invoiceId)}/dispute-resolve`, {
+    method: 'POST',
+    body: { action, note, newAmountKori },
     skipCache: true,
   });
 }

@@ -617,6 +617,9 @@ model TradeAccount {
   codLimitKori       Int      @default(50000)
   priceLockUntil     DateTime?
   active             Boolean  @default(true)
+  lastKnownBuyerScore Int?
+  lastKnownBuyerTier  String?
+  lastScoreCheckAt    DateTime?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -646,6 +649,9 @@ model TradeInvoice {
   paidAt             DateTime?
   reminderSentAt     DateTime?
   notes              String?
+  disputeReason         String?
+  disputedAt            DateTime?
+  disputeResolutionNote String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -854,12 +860,13 @@ model SolidarityContribution {
 }
 
 model MboloThread {
-  id        String   @id @default(cuid())
-  creatorId String
-  name      String?
-  type      String   @default("direct")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  creatorId  String
+  name       String?
+  type       String   @default("direct")
+  inviteCode String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   creator  User           @relation("ThreadCreator", fields: [creatorId], references: [id])
   members  MboloMember[]

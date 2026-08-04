@@ -613,6 +613,13 @@ export default function MbooloChatScreen({ navigation, route }) {
           >
             <Text style={{ fontSize: 15 }}>🎥</Text>
           </PressScale>
+          <PressScale
+            scaleTo={0.9}
+            onPress={() => navigation.navigate('MbooloGroupInfo', { threadId, thread })}
+            style={styles.chBack}
+          >
+            <Text style={{ fontSize: 15 }}>ⓘ</Text>
+          </PressScale>
         </View>
 
         <View style={styles.moneyBar}>

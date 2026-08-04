@@ -13,6 +13,7 @@ import {
   upsertTradeAccount,
   getSupplierTradeInvoices,
   getSupplierReceivables,
+  resolveTradeInvoiceDispute,
 } from '../lib/api-client';
 import { formatKori } from '../lib/kori.js';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
@@ -42,6 +43,20 @@ export default function DistributionHubScreen({ navigation }) {
   const [codEnabled, setCodEnabled] = useState(true);
   const [trustTier, setTrustTier] = useState('trusted');
   const [lastAddedScore, setLastAddedScore] = useState(null);
+  const [resolvingId, setResolvingId] = useState(null);
+
+  const resolveDispute = async (invoiceId, action) => {
+    setResolvingId(invoiceId);
+    try {
+      await resolveTradeInvoiceDispute(invoiceId, { action });
+      showToast(action === 'waive' ? 'Facture annulée — client informé' : 'Contestation refusée — client informé');
+      await load();
+    } catch (err) {
+      showToast(err.message ?? 'Action impossible');
+    } finally {
+      setResolvingId(null);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -265,6 +280,33 @@ export default function DistributionHubScreen({ navigation }) {
                       <Text style={styles.listMeta}>
                         {inv.amountFormatted} · échéance {new Date(inv.dueAt).toLocaleDateString('fr-FR')}
                       </Text>
+                      {inv.status === 'disputed' ? (
+                        <View style={{ marginTop: spacing.sm, gap: spacing.xs }}>
+                          <Text style={styles.disputeText}>Contestée : « {inv.disputeReason} »</Text>
+                          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                            <PressScale
+                              scaleTo={0.96}
+                              onPress={() => resolveDispute(inv.id, 'waive')}
+                              style={styles.resolveBtn}
+                              disabled={resolvingId != null}
+                            >
+                              <Text style={styles.resolveBtnText}>
+                                {resolvingId === inv.id ? '…' : 'Annuler la facture'}
+                              </Text>
+                            </PressScale>
+                            <PressScale
+                              scaleTo={0.96}
+                              onPress={() => resolveDispute(inv.id, 'reject')}
+                              style={[styles.resolveBtn, styles.resolveBtnReject]}
+                              disabled={resolvingId != null}
+                            >
+                              <Text style={styles.resolveBtnRejectText}>
+                                {resolvingId === inv.id ? '…' : 'Refuser la contestation'}
+                              </Text>
+                            </PressScale>
+                          </View>
+                        </View>
+                      ) : null}
                     </View>
                   ))
                 )}
@@ -348,6 +390,16 @@ const styles = StyleSheet.create({
   listRow: { paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.appCanvas.border },
   listTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
   listMeta: { ...type.caption, color: 'rgba(5,8,5,0.5)', marginTop: 2 },
+  disputeText: { ...type.caption, color: colors.terracottaDark, fontStyle: 'italic' },
+  resolveBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
+    backgroundColor: colors.goldA20,
+  },
+  resolveBtnText: { ...type.caption, fontFamily: fontFamily.bodyBold, color: colors.ink },
+  resolveBtnReject: { backgroundColor: 'rgba(5,8,5,0.06)' },
+  resolveBtnRejectText: { ...type.caption, fontFamily: fontFamily.bodyBold, color: 'rgba(5,8,5,0.6)' },
   scoreCard: {
     marginTop: spacing.sm,
     padding: spacing.sm,

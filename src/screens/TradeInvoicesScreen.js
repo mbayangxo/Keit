@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import PressScale from '../components/PressScale';
@@ -9,7 +9,7 @@ import StepUpOverlay from '../components/StepUpOverlay';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
 import { useSecurity } from '../context/SecurityContext';
-import { getMyTradeInvoices, payTradeInvoice, getMyBusinesses, getBusinessWallet } from '../lib/api-client';
+import { getMyTradeInvoices, payTradeInvoice, disputeTradeInvoice, getMyBusinesses, getBusinessWallet } from '../lib/api-client';
 import { formatKori } from '../lib/kori.js';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
@@ -26,6 +26,9 @@ export default function TradeInvoicesScreen({ navigation }) {
   const [buyerBusinessId, setBuyerBusinessId] = useState(null);
   const [myBusinesses, setMyBusinesses] = useState([]);
   const [kebuBalance, setKebuBalance] = useState(null);
+  const [disputeTarget, setDisputeTarget] = useState(null);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputing, setDisputing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -92,6 +95,25 @@ export default function TradeInvoicesScreen({ navigation }) {
       showToast(err.message ?? 'Paiement impossible');
     } finally {
       setPayingId(null);
+    }
+  };
+
+  const submitDispute = async () => {
+    if (!disputeTarget || disputeReason.trim().length < 3) {
+      showToast('Décris le problème (3 caractères min.)');
+      return;
+    }
+    setDisputing(true);
+    try {
+      await disputeTradeInvoice(disputeTarget.id, disputeReason.trim());
+      showToast('Facture contestée — le fournisseur a été prévenu');
+      setDisputeTarget(null);
+      setDisputeReason('');
+      await load();
+    } catch (err) {
+      showToast(err.message ?? 'Contestation impossible');
+    } finally {
+      setDisputing(false);
     }
   };
 
@@ -168,16 +190,38 @@ export default function TradeInvoicesScreen({ navigation }) {
                     <View style={styles.overduePill}>
                       <Text style={styles.overduePillText}>En retard</Text>
                     </View>
+                  ) : inv.status === 'disputed' ? (
+                    <View style={styles.disputedPill}>
+                      <Text style={styles.disputedPillText}>Contestée</Text>
+                    </View>
                   ) : null}
                 </View>
                 <Text style={styles.supplier}>{inv.supplier?.name ?? 'Fournisseur'}</Text>
                 <Text style={styles.amount}>{inv.dueFormatted ?? formatKori(inv.amountDue ?? inv.amountKori)}</Text>
                 <Text style={styles.due}>Échéance {new Date(inv.dueAt).toLocaleDateString('fr-FR')}</Text>
-                <GlowButton
-                  label={payingId === inv.id ? 'Paiement…' : paymentSource === 'kebu' ? 'Payer en KEBU' : 'Payer en C'}
-                  onPress={() => pay(inv.id)}
-                  disabled={payingId != null}
-                />
+                {inv.status === 'disputed' ? (
+                  <Text style={styles.disputeNote}>
+                    En attente de réponse du fournisseur — « {inv.disputeReason} »
+                  </Text>
+                ) : (
+                  <>
+                    <GlowButton
+                      label={payingId === inv.id ? 'Paiement…' : paymentSource === 'kebu' ? 'Payer en KEBU' : 'Payer en C'}
+                      onPress={() => pay(inv.id)}
+                      disabled={payingId != null}
+                    />
+                    <PressScale
+                      scaleTo={0.97}
+                      onPress={() => {
+                        setDisputeTarget(inv);
+                        setDisputeReason('');
+                      }}
+                      style={{ alignSelf: 'center', marginTop: spacing.xs }}
+                    >
+                      <Text style={styles.disputeLink}>Cette facture me semble incorrecte</Text>
+                    </PressScale>
+                  </>
+                )}
               </View>
             ))}
           </ScrollView>
@@ -194,6 +238,32 @@ export default function TradeInvoicesScreen({ navigation }) {
           if (pendingInvoiceId) pay(pendingInvoiceId, token);
         }}
       />
+      <Modal visible={Boolean(disputeTarget)} animationType="slide" transparent onRequestClose={() => setDisputeTarget(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>Contester {disputeTarget?.reference}</Text>
+            <Text style={styles.modalHint}>
+              Le fournisseur sera prévenu et la facture ne pourra pas être payée tant qu'il n'a pas répondu.
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Qu'est-ce qui ne va pas ?"
+              placeholderTextColor="rgba(5,8,5,0.4)"
+              value={disputeReason}
+              onChangeText={setDisputeReason}
+              multiline
+            />
+            <GlowButton
+              label={disputing ? 'Envoi…' : 'Contester cette facture'}
+              onPress={submitDispute}
+              disabled={disputing}
+            />
+            <PressScale scaleTo={0.96} onPress={() => setDisputeTarget(null)} style={{ alignSelf: 'center', marginTop: spacing.sm }}>
+              <Text style={{ color: 'rgba(5,8,5,0.5)', fontSize: 12 }}>Annuler</Text>
+            </PressScale>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -230,6 +300,41 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   overduePillText: { ...type.caption, fontFamily: fontFamily.bodyBold, color: colors.terracottaDark },
+  disputedPill: {
+    backgroundColor: 'rgba(232,92,26,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,92,26,0.3)',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  disputedPillText: { ...type.caption, fontFamily: fontFamily.bodyBold, color: colors.terracottaDark },
+  disputeNote: { ...type.caption, color: colors.terracottaDark, fontStyle: 'italic' },
+  disputeLink: { ...type.caption, color: 'rgba(5,8,5,0.45)', textDecorationLine: 'underline' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: colors.appCanvas.base,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    padding: spacing.huge,
+    borderWidth: 1,
+    borderColor: colors.appCanvas.border,
+    gap: spacing.md,
+  },
+  modalTitle: { fontFamily: fontFamily.displayBold, fontSize: 16, color: colors.ink },
+  modalHint: { ...type.caption, color: 'rgba(5,8,5,0.55)', lineHeight: 16 },
+  modalInput: {
+    minHeight: 70,
+    borderWidth: 2,
+    borderColor: colors.appCanvas.border,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    fontSize: 13,
+    color: colors.ink,
+    backgroundColor: '#fff',
+    textAlignVertical: 'top',
+  },
   payRow: { flexDirection: 'row', gap: spacing.sm },
   payChip: {
     paddingHorizontal: spacing.md,
