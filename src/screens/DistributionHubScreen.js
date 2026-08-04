@@ -17,40 +17,6 @@ import {
 import { formatKori } from '../lib/kori.js';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
 
-const DEFAULT_PRODUCTS = [
-  {
-    title: 'Granulés volaille 50 kg',
-    description: 'Aliment complet pour élevage avicole',
-    price: 45000,
-    b2bPrice: 42000,
-    b2bMinQty: 2,
-    unitLabel: 'sac',
-    saleChannel: 'both',
-    category: 'agro',
-    inventory: 100,
-  },
-  {
-    title: 'Beurre de cacahuète 500 g',
-    description: '100% arachide — vente détail',
-    price: 2500,
-    unitLabel: 'pot',
-    saleChannel: 'b2c',
-    category: 'agro',
-    inventory: 200,
-  },
-  {
-    title: 'Carton beurre de cacahuète x12',
-    description: 'Pour marchands et épiceries',
-    price: 24000,
-    b2bPrice: 21000,
-    b2bMinQty: 1,
-    unitLabel: 'carton',
-    saleChannel: 'b2b',
-    category: 'agro',
-    inventory: 80,
-  },
-];
-
 function TabPill({ label, active, onPress }) {
   return (
     <PressScale scaleTo={0.96} onPress={onPress} style={[styles.tab, active && styles.tabOn]}>
@@ -64,7 +30,7 @@ export default function DistributionHubScreen({ navigation }) {
   const [tab, setTab] = useState('brand');
   const [loading, setLoading] = useState(true);
   const [brand, setBrand] = useState(null);
-  const [brandName, setBrandName] = useState('K21 Agro');
+  const [brandName, setBrandName] = useState('');
   const [registering, setRegistering] = useState(false);
   const [accounts, setAccounts] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -106,15 +72,17 @@ export default function DistributionHubScreen({ navigation }) {
   );
 
   const registerBrand = async () => {
+    if (!brandName.trim()) {
+      showToast('Nom de la marque requis');
+      return;
+    }
     setRegistering(true);
     try {
       await registerDistributionBrand({
-        name: brandName.trim() || 'K21 Agro',
+        name: brandName.trim(),
         category: 'k21',
-        description: 'Distribution K21 — agro & épicerie',
-        products: DEFAULT_PRODUCTS,
       });
-      showToast('Marque enregistrée ✓');
+      showToast('Marque enregistrée ✓ — ajoute tes produits dans Catalogue');
       await load();
       setTab('catalog');
     } catch (err) {
@@ -181,7 +149,7 @@ export default function DistributionHubScreen({ navigation }) {
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Enregistrer ta marque</Text>
                 <Text style={styles.hint}>
-                  Crée ta marque K21 (granulés, beurre de cacahuète, etc.) avec catalogue B2B + B2C et paiement KEBU.
+                  Crée ta marque K21 avec catalogue B2B + B2C et paiement KEBU — tu ajoutes tes produits ensuite dans Catalogue.
                 </Text>
                 <TextInput
                   style={styles.input}
@@ -190,7 +158,11 @@ export default function DistributionHubScreen({ navigation }) {
                   placeholder="Nom de la marque"
                   placeholderTextColor="rgba(5,8,5,0.4)"
                 />
-                <GlowButton label={registering ? 'Création…' : 'Créer la marque + produits'} onPress={registerBrand} disabled={registering} />
+                <GlowButton
+                  label={registering ? 'Création…' : 'Créer la marque'}
+                  onPress={registerBrand}
+                  disabled={registering || !brandName.trim()}
+                />
               </View>
             ) : null}
 
