@@ -9,6 +9,7 @@ export default function MbooloAttachSheet({
   onPhoto,
   onCamera,
   onVoice,
+  onVideo,
   onReaction,
   onSticker,
   onGif,
@@ -34,6 +35,12 @@ export default function MbooloAttachSheet({
               <Text style={styles.actionIcon}>🎤</Text>
               <Text style={styles.actionLabel}>Vocal</Text>
             </PressScale>
+            {onVideo ? (
+              <PressScale scaleTo={0.95} onPress={onVideo} style={styles.actionBtn}>
+                <Text style={styles.actionIcon}>🎬</Text>
+                <Text style={styles.actionLabel}>Vidéo</Text>
+              </PressScale>
+            ) : null}
           </View>
 
           <Text style={styles.sectionLabel}>Réactions rapides</Text>

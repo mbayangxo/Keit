@@ -31,7 +31,7 @@ function normalizeBase(base) {
   return `https://${base}`;
 }
 
-function resolveUrl(path) {
+export function resolveUrl(path) {
   if (path.startsWith('http')) return path;
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 
@@ -327,11 +327,23 @@ export function getTransactions(limit = 20, accessToken) {
   return apiFetch(`/api/transactions?limit=${limit}`, { skipCache: true, accessToken, _retry401: !accessToken });
 }
 
-export function transferSend({ recipientHandle, amount, currency = 'kori', note, voiceNoteUrl, photoUrl, videoUrl, giftCardTheme, stepUpToken }) {
+export function transferSend({
+  recipientHandle,
+  amount,
+  currency = 'kori',
+  note,
+  voiceNoteUrl,
+  photoUrl,
+  videoUrl,
+  gifUrl,
+  giftCardTheme,
+  threadId,
+  stepUpToken,
+}) {
   const handle = String(recipientHandle).replace(/^@/, '');
   return apiFetch('/api/transfers/send', {
     method: 'POST',
-    body: { recipientHandle: handle, amount, currency, note, voiceNoteUrl, photoUrl, videoUrl, giftCardTheme },
+    body: { recipientHandle: handle, amount, currency, note, voiceNoteUrl, photoUrl, videoUrl, gifUrl, giftCardTheme, threadId },
     stepUpToken,
     skipCache: true,
   });
@@ -444,6 +456,31 @@ export function sendMboloMessage(threadId, payload) {
     body: payload,
     skipCache: true,
   });
+}
+
+export function shareToMbolo({ threadId, refType, refId }) {
+  return apiFetch('/api/mbolo/share', {
+    method: 'POST',
+    body: { threadId, refType, refId },
+    skipCache: true,
+  });
+}
+
+/**
+ * Config for @vercel/blob/client's upload() — it PUTs the video straight to
+ * Blob storage, only calling back to our handleUploadUrl route to mint a
+ * short-lived token, so we build that request's auth headers by hand here
+ * rather than routing through apiFetch.
+ */
+export async function getMboloVideoUploadConfig() {
+  const [token, deviceId] = await Promise.all([getAccessToken(), getOrCreateDeviceId()]);
+  return {
+    handleUploadUrl: resolveUrl('/api/mbolo/video/upload-token'),
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'X-Device-Id': deviceId,
+    },
+  };
 }
 
 // Event tickets — platform API for separate K21 Events app (not used in main K21 UI)

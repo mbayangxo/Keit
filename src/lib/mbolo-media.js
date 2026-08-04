@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { readAsStringAsync, writeAsStringAsync, EncodingType, cacheDirectory } from 'expo-file-system/legacy';
+import { upload } from '@vercel/blob/client';
 
 /** Keep under server zod limit (800k) with JSON overhead. */
 export const MAX_MEDIA_CHARS = 720_000;
@@ -245,6 +246,58 @@ export async function pickMboloVideo() {
     });
   }
   return pickVideoFromLibrary();
+}
+
+async function pickVideoAsset() {
+  if (Platform.OS === 'web') {
+    const file = await new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'video/*';
+      input.onchange = () => resolve(input.files?.[0] ?? null);
+      input.click();
+    });
+    if (!file) return null;
+    return { blob: file, contentType: file.type || 'video/mp4', filename: file.name || `mbolo-video-${Date.now()}.mp4` };
+  }
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) throw new Error('Accès médias refusé');
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['videos'],
+    videoMaxDuration: 30,
+    quality: 0.5,
+  });
+  if (result.canceled || !result.assets?.[0]?.uri) return null;
+  const picked = result.assets[0];
+  const res = await fetch(picked.uri);
+  const blob = await res.blob();
+  const contentType = picked.mimeType || 'video/mp4';
+  return { blob, contentType, filename: `mbolo-video-${Date.now()}.${contentType.split('/')[1] ?? 'mp4'}` };
+}
+
+/**
+ * Pick a short video and upload it straight to Vercel Blob (bypassing the
+ * ~4.5MB serverless body limit that base64-in-Postgres would hit). Returns
+ * the resulting HTTPS URL, or null if the user cancelled the picker.
+ */
+export async function pickAndUploadMboloVideo({ handleUploadUrl, headers }) {
+  const asset = await pickVideoAsset();
+  if (!asset) return null;
+
+  try {
+    const blob = await upload(asset.filename, asset.blob, {
+      access: 'public',
+      handleUploadUrl,
+      headers,
+      contentType: asset.contentType,
+    });
+    return blob.url;
+  } catch (err) {
+    if (err?.status === 503 || err?.code === 'video_unavailable') {
+      throw new Error('Les vidéos ne sont pas encore activées sur ce serveur.');
+    }
+    throw new Error(err?.message ?? 'Envoi de la vidéo impossible');
+  }
 }
 
 /** Record voice via MediaRecorder (web). Returns { stop } or rejects. */

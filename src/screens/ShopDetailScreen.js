@@ -26,7 +26,7 @@ function statusKey(businessId, c) {
   return `${businessId}:${c.userId}:${c.updatedAt}`;
 }
 
-function ProductRow({ product, qty, onChangeQty, delay = 0 }) {
+function ProductRow({ product, qty, onChangeQty, onShare, delay = 0 }) {
   const entrance = useEntrance(delay, 300, 10);
   return (
     <Animated.View style={[styles.productRow, entrance]}>
@@ -44,6 +44,11 @@ function ProductRow({ product, qty, onChangeQty, delay = 0 }) {
           <Text style={styles.stockLow}>Plus que {product.inventory}</Text>
         ) : null}
       </View>
+      {onShare ? (
+        <PressScale scaleTo={0.9} onPress={onShare} style={styles.productShareBtn}>
+          <Text style={{ fontSize: 14 }}>💬</Text>
+        </PressScale>
+      ) : null}
       <View style={styles.qtyRow}>
         <PressScale scaleTo={0.9} onPress={() => onChangeQty(Math.max(0, qty - 1))} style={styles.qtyBtn}>
           <Text style={styles.qtyBtnText}>−</Text>
@@ -302,6 +307,7 @@ export default function ShopDetailScreen({ navigation, route }) {
               product={p}
               qty={cart[p.id] ?? 0}
               onChangeQty={(q) => setQty(p.id, q)}
+              onShare={() => navigation.navigate('MbooloSharePicker', { refType: 'product', refId: p.id, title: p.title })}
               delay={Math.min(i, 8) * 30}
             />
           ))}
@@ -505,6 +511,7 @@ const styles = StyleSheet.create({
   productTitle: { fontFamily: fontFamily.bodySemiBold, color: colors.ink },
   productPrice: { ...type.bodySmall, color: colors.greenDark, marginTop: 2 },
   stockLow: { ...type.caption, color: colors.terracottaDark },
+  productShareBtn: { width: 28, height: 28, borderRadius: radius.md, backgroundColor: 'rgba(5,8,5,0.05)', alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm },
   qtyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   qtyBtn: {
     width: 32,

@@ -575,6 +575,13 @@ export default function BusinessHubScreen({ navigation, route }) {
                   {TYPE_LABEL[type] ?? 'Commerce'} · {business.kebuId ?? 'KEBU —'}
                 </Text>
               </View>
+              <PressScale
+                scaleTo={0.9}
+                onPress={() => navigation.navigate('MbooloSharePicker', { refType: 'business', refId: business.id, title: business.name })}
+                style={styles.notifBtn}
+              >
+                <Text style={{ fontSize: 16 }}>💬</Text>
+              </PressScale>
               <PressScale scaleTo={0.9} onPress={() => navigation.navigate('Main', { screen: 'NotificationsTab' })} style={styles.notifBtn}>
                 <Text style={{ fontSize: 16 }}>🔔</Text>
               </PressScale>
