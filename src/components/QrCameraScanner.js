@@ -120,8 +120,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.lg,
   },
-  permTitle: { fontFamily: fontFamily.display, fontSize: 18, color: colors.ink, marginBottom: spacing.sm },
-  permSub: { fontFamily: fontFamily.body, fontSize: 12, color: colors.appCanvas.textMuted, textAlign: 'center', lineHeight: 18, marginBottom: spacing.lg },
+  permTitle: { fontFamily: fontFamily.displayBlack, fontSize: 18, color: colors.ink, marginBottom: spacing.sm },
+  permSub: { fontFamily: fontFamily.bodyRegular, fontSize: 12, color: colors.appCanvas.textMuted, textAlign: 'center', lineHeight: 18, marginBottom: spacing.lg },
   webFallback: {
     borderRadius: radius.xl,
     backgroundColor: colors.greenA08,
@@ -132,5 +132,5 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   webIcon: { fontSize: 32, marginBottom: spacing.sm },
-  webText: { fontFamily: fontFamily.body, fontSize: 12, color: colors.appCanvas.textMuted, textAlign: 'center', lineHeight: 18 },
+  webText: { fontFamily: fontFamily.bodyRegular, fontSize: 12, color: colors.appCanvas.textMuted, textAlign: 'center', lineHeight: 18 },
 });

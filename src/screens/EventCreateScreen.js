@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: spacing.lg },
   scroll: { padding: spacing.lg, paddingBottom: spacing.huge },
   hero: { fontFamily: fontFamily.displayBlack, fontSize: 28, color: colors.terracotta, marginBottom: spacing.lg },
-  input: { borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, fontFamily: fontFamily.body, color: colors.ink, backgroundColor: 'rgba(255,255,255,0.9)' },
+  input: { borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, fontFamily: fontFamily.bodyRegular, color: colors.ink, backgroundColor: 'rgba(255,255,255,0.9)' },
   multi: { minHeight: 80, textAlignVertical: 'top' },
 });

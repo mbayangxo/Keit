@@ -111,19 +111,19 @@ export default function AgentHubScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
+  root: { flex: 1, backgroundColor: colors.appCanvas.base },
   scroll: { paddingHorizontal: spacing.huge, paddingBottom: spacing.giant },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.appCanvas.surface,
     borderRadius: radius.lg,
     padding: spacing.xl,
     marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.appCanvas.border,
   },
-  cardTitle: { fontFamily: fontFamily.display, fontSize: 20, color: colors.ink },
-  cardSub: { ...type.body, color: colors.muted, marginTop: spacing.sm, lineHeight: 22 },
-  code: { ...type.caption, color: colors.greenDark, marginTop: spacing.sm, fontFamily: fontFamily.mono },
+  cardTitle: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: colors.ink },
+  cardSub: { ...type.body, color: colors.appCanvas.textMuted, marginTop: spacing.sm, lineHeight: 22 },
+  code: { ...type.caption, color: colors.greenDark, marginTop: spacing.sm, fontFamily: fontFamily.bodyBold },
   link: { alignItems: 'center', marginTop: spacing.md },
-  linkText: { ...type.body, color: colors.greenDark, fontFamily: fontFamily.medium },
+  linkText: { ...type.body, color: colors.greenDark, fontFamily: fontFamily.bodyMedium },
 });

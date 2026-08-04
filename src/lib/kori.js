@@ -1,5 +1,8 @@
-/** Cauris — C with horizontal stroke (matches lib/kori.js). */
-export const CAURIS_SYMBOL = 'C\u0336';
+// Plain "C" only — the stylized shell glyph lives in the UI as an SVG
+// (CaurisSymbol.js / KoriAmount.js), not as a Unicode combining character in
+// plain text. A combining stroke here also silently broke formatAmount()
+// below, which slices off a fixed-width prefix.
+export const CAURIS_SYMBOL = 'C';
 /** @deprecated use CAURIS_SYMBOL */
 export const KORI_SYMBOL = CAURIS_SYMBOL;
 export const KORI_COLOR = '#1af060';

@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.sm,
-    fontFamily: fontFamily.body,
+    fontFamily: fontFamily.bodyRegular,
     color: colors.ink,
     backgroundColor: 'rgba(255,255,255,0.9)',
   },

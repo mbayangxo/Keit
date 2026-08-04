@@ -138,11 +138,11 @@ export default function PinGateScreen({ mode = 'unlock', title, subtitle, onSucc
 const styles = StyleSheet.create({
   body: { flex: 1, padding: spacing.xl, justifyContent: 'center' },
   title: { fontFamily: fontFamily.displayBold, fontSize: 24, color: ob.ink, marginBottom: spacing.sm },
-  sub: { fontFamily: fontFamily.body, fontSize: 14, color: ob.muted, marginBottom: spacing.xxl },
+  sub: { fontFamily: fontFamily.bodyRegular, fontSize: 14, color: ob.muted, marginBottom: spacing.xxl },
   dots: { flexDirection: 'row', gap: spacing.md, justifyContent: 'center', marginBottom: spacing.xl },
   dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: ob.orangeSoft, borderWidth: 1, borderColor: ob.orangeBorder },
   dotFilled: { backgroundColor: ob.green, borderColor: ob.green },
-  error: { color: ob.orange, textAlign: 'center', marginBottom: spacing.md, fontFamily: fontFamily.body },
+  error: { color: ob.orange, textAlign: 'center', marginBottom: spacing.md, fontFamily: fontFamily.bodyRegular },
   bioBtn: { alignSelf: 'center', marginBottom: spacing.xl, padding: spacing.md },
   bioText: { color: ob.green, fontFamily: fontFamily.bodySemiBold, fontSize: 14 },
 });

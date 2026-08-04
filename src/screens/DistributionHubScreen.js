@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   linkText: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.greenDark },
   termRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   termChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radius.pill, backgroundColor: 'rgba(5,8,5,0.06)' },
-  termChipOn: { backgroundColor: colors.goldA15 },
+  termChipOn: { backgroundColor: colors.goldA20 },
   termText: { fontSize: 10, fontWeight: '700', color: colors.ink },
   listRow: { paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.appCanvas.border },
   listTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },

@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   previewPayText: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
   modeRow: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.huge, paddingTop: spacing.md },
   modePill: { flex: 1, height: 36, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
-  modePillOn: { backgroundColor: colors.goldA15 },
+  modePillOn: { backgroundColor: colors.goldA20 },
   modeText: { fontSize: 11, fontWeight: '700', color: 'rgba(5,8,5,0.5)' },
   modeTextOn: { color: colors.goldDark },
   inboxCard: { backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: radius.lg, borderWidth: 1, borderColor: 'rgba(5,8,5,0.08)', padding: spacing.lg, marginBottom: spacing.md },

@@ -83,6 +83,7 @@ model User {
   hubParcels            HubParcel[]
   moneyRequestsSent     MoneyRequest[]         @relation("MoneyRequester")
   moneyRequestsReceived MoneyRequest[]         @relation("MoneyPayer")
+  ordersAsBuyer         Order[]                @relation("OrderBuyer")
   merchantVouchers      MerchantVoucher[]
   railTransactions      RailTransaction[]
   apiIdempotencyKeys    ApiIdempotency[]
@@ -510,6 +511,7 @@ model Order {
   updatedAt        DateTime @updatedAt
 
   business Business?     @relation(fields: [businessId], references: [id])
+  buyer    User          @relation("OrderBuyer", fields: [buyerId], references: [id])
   buyerBusiness Business? @relation("OrderBuyerBusiness", fields: [buyerBusinessId], references: [id])
   hub      DeliveryHub?  @relation(fields: [hubId], references: [id])
   items    OrderItem[]

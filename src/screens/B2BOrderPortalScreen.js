@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     borderColor: colors.appCanvas.border,
     borderRadius: radius.md,
     padding: spacing.md,
-    fontFamily: fontFamily.body,
+    fontFamily: fontFamily.bodyRegular,
     color: colors.ink,
   },
   bizRow: {

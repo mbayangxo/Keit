@@ -25,5 +25,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   icon: { fontSize: 16 },
-  text: { flex: 1, fontFamily: fontFamily.body, fontSize: 12, color: colors.ink },
+  text: { flex: 1, fontFamily: fontFamily.bodyRegular, fontSize: 12, color: colors.ink },
 });

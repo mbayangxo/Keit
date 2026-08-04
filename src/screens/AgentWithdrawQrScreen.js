@@ -139,9 +139,9 @@ export default function AgentWithdrawQrScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
+  root: { flex: 1, backgroundColor: colors.appCanvas.base },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg },
-  loadingText: { ...type.body, color: colors.muted, fontFamily: fontFamily.medium },
+  loadingText: { ...type.body, color: colors.appCanvas.textMuted, fontFamily: fontFamily.bodyMedium },
   scroll: { paddingHorizontal: spacing.huge, paddingBottom: spacing.giant },
   header: { marginTop: spacing.lg, marginBottom: spacing.xl },
   businessHint: {
@@ -151,12 +151,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     lineHeight: 18,
   },
-  amount: { fontFamily: fontFamily.display, fontSize: 36, color: colors.ink, textAlign: 'center', marginBottom: spacing.md },
-  hint: { ...type.body, color: colors.muted, textAlign: 'center', lineHeight: 22, marginBottom: spacing.xl },
+  amount: { fontFamily: fontFamily.displayBlack, fontSize: 36, color: colors.ink, textAlign: 'center', marginBottom: spacing.md },
+  hint: { ...type.body, color: colors.appCanvas.textMuted, textAlign: 'center', lineHeight: 22, marginBottom: spacing.xl },
   qrWrap: { alignItems: 'center', marginBottom: spacing.lg },
-  ref: { ...type.caption, color: colors.muted, textAlign: 'center' },
+  ref: { ...type.caption, color: colors.appCanvas.textMuted, textAlign: 'center' },
   successBlock: { alignItems: 'center', paddingTop: spacing.giant },
   successIcon: { fontSize: 48, color: colors.greenDark, marginBottom: spacing.lg },
-  successTitle: { fontFamily: fontFamily.display, fontSize: 28, color: colors.ink },
+  successTitle: { fontFamily: fontFamily.displayBlack, fontSize: 28, color: colors.ink },
   successSub: { ...type.body, color: colors.terracotta, marginTop: spacing.sm },
 });

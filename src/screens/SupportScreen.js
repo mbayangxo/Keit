@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   phoneRow: { marginTop: spacing.sm },
   phone: { fontFamily: fontFamily.displayBlack, fontSize: 18, color: colors.greenDark },
   sectionLabel: { ...type.caption, color: 'rgba(5,8,5,0.55)', textTransform: 'uppercase' },
-  input: { borderWidth: 1, borderColor: colors.appCanvas.border, borderRadius: radius.md, padding: spacing.md, fontFamily: fontFamily.body, color: colors.ink, backgroundColor: colors.appCanvas.surface },
+  input: { borderWidth: 1, borderColor: colors.appCanvas.border, borderRadius: radius.md, padding: spacing.md, fontFamily: fontFamily.bodyRegular, color: colors.ink, backgroundColor: colors.appCanvas.surface },
   empty: { ...type.body, color: 'rgba(5,8,5,0.5)' },
   ticketRow: { backgroundColor: colors.appCanvas.surface, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.appCanvas.border },
   ticketTitle: { fontFamily: fontFamily.bodyBold, color: colors.ink },

@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   price: { fontFamily: fontFamily.bodyBold, color: colors.greenDark, marginBottom: spacing.md },
   passBlock: { alignItems: 'center', paddingTop: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(5,8,5,0.08)', marginTop: spacing.sm },
   passLbl: { fontFamily: fontFamily.bodyBold, marginBottom: spacing.sm },
-  code: { fontFamily: fontFamily.body, fontSize: 11, color: 'rgba(5,8,5,0.45)', marginTop: spacing.sm },
+  code: { fontFamily: fontFamily.bodyRegular, fontSize: 11, color: 'rgba(5,8,5,0.45)', marginTop: spacing.sm },
   used: { ...type.caption, color: colors.goldDark },
   link: { padding: spacing.md, alignItems: 'center' },
   linkText: { fontFamily: fontFamily.bodyBold, color: colors.terracotta },

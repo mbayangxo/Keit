@@ -34,7 +34,7 @@ export async function createUserWithWallet({
       phone: uniquePhone(),
       name,
       country: 'SN',
-      handle: `@test${crypto.randomBytes(4).toString('hex')}`,
+      handle: `test${crypto.randomBytes(4).toString('hex')}`,
       otpVerifiedAt: now,
       isDiaspora,
       verificationTier: tier,

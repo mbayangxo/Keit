@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   heroSub: { ...type.body, color: 'rgba(5,8,5,0.65)', marginBottom: spacing.xl },
   form: { backgroundColor: 'rgba(255,255,255,0.75)', borderRadius: radius.lg, borderBottomRightRadius: radius.sm, padding: spacing.lg, marginBottom: spacing.xxl },
   lbl: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink, marginBottom: spacing.sm },
-  input: { borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, fontFamily: fontFamily.body, color: colors.ink, backgroundColor: 'rgba(255,255,255,0.9)' },
+  input: { borderWidth: 1, borderColor: 'rgba(5,8,5,0.1)', borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, fontFamily: fontFamily.bodyRegular, color: colors.ink, backgroundColor: 'rgba(255,255,255,0.9)' },
   inputMulti: { minHeight: 72, textAlignVertical: 'top' },
   sectionLbl: { fontFamily: fontFamily.bodyBold, fontSize: 14, marginBottom: spacing.md, color: colors.ink },
   card: { backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: radius.lg, borderBottomRightRadius: radius.sm, padding: spacing.lg, marginBottom: spacing.md },
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', backgroundColor: colors.green, borderRadius: 4 },
   cardRow: { flexDirection: 'row', alignItems: 'baseline' },
   raised: { fontFamily: fontFamily.displayBlack, fontSize: 20, color: colors.greenDark },
-  goal: { fontFamily: fontFamily.body, color: 'rgba(5,8,5,0.5)' },
+  goal: { fontFamily: fontFamily.bodyRegular, color: 'rgba(5,8,5,0.5)' },
   fundedBadge: { marginTop: spacing.sm, fontFamily: fontFamily.bodyBold, color: colors.goldDark, fontSize: 12 },
   empty: { ...type.caption, color: 'rgba(5,8,5,0.5)' },
 });

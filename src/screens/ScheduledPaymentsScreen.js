@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   smallBtnText: { fontFamily: fontFamily.bodyBold, fontSize: 12, color: colors.ink },
-  smallBtnAlt: { backgroundColor: colors.goldA15 },
+  smallBtnAlt: { backgroundColor: colors.goldA20 },
   pillRow: { flexDirection: 'row', gap: spacing.sm },
   pill: {
     paddingHorizontal: spacing.md,

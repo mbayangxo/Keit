@@ -98,15 +98,15 @@ export default function InviteFriendsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
+  root: { flex: 1, backgroundColor: colors.appCanvas.base },
   scroll: { paddingHorizontal: spacing.huge, paddingBottom: spacing.giant, gap: spacing.md },
-  hint: { ...type.body, color: colors.muted, lineHeight: 22 },
+  hint: { ...type.body, color: colors.appCanvas.textMuted, lineHeight: 22 },
   preview: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.appCanvas.surface,
     borderRadius: radius.lg,
     padding: spacing.xl,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.appCanvas.border,
     marginBottom: spacing.lg,
   },
   previewText: { ...type.body, color: colors.ink, lineHeight: 22 },
@@ -115,9 +115,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.appCanvas.border,
+    backgroundColor: colors.appCanvas.surface,
   },
-  altBtnText: { ...type.body, color: colors.greenDark, fontFamily: fontFamily.semibold },
-  url: { ...type.caption, color: colors.muted, textAlign: 'center', marginTop: spacing.lg },
+  altBtnText: { ...type.body, color: colors.greenDark, fontFamily: fontFamily.bodySemiBold },
+  url: { ...type.caption, color: colors.appCanvas.textMuted, textAlign: 'center', marginTop: spacing.lg },
 });
