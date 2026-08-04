@@ -41,6 +41,7 @@ export default function DistributionHubScreen({ navigation }) {
   const [creditLimit, setCreditLimit] = useState('500000');
   const [codEnabled, setCodEnabled] = useState(true);
   const [trustTier, setTrustTier] = useState('trusted');
+  const [lastAddedScore, setLastAddedScore] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -98,7 +99,7 @@ export default function DistributionHubScreen({ navigation }) {
       return;
     }
     try {
-      await upsertTradeAccount(brand.id, {
+      const result = await upsertTradeAccount(brand.id, {
         buyerHandle: buyerHandle.trim(),
         buyerLabel: buyerLabel.trim() || undefined,
         buyerType: 'merchant',
@@ -109,6 +110,11 @@ export default function DistributionHubScreen({ navigation }) {
         codLimitKori: Number(creditLimit.replace(/\D/g, '')) || 50000,
       });
       showToast('Client B2B ajouté ✓');
+      setLastAddedScore(
+        result.buyerKebuScore
+          ? { ...result.buyerKebuScore, creditLimitAboveSuggested: result.creditLimitAboveSuggested }
+          : null,
+      );
       setBuyerHandle('');
       setBuyerLabel('');
       await load();
@@ -218,6 +224,23 @@ export default function DistributionHubScreen({ navigation }) {
                   <Text style={styles.linkText}>{codEnabled ? '✓' : '○'} Paiement à la livraison autorisé</Text>
                 </PressScale>
                 <GlowButton label="Ajouter client" onPress={addTradeAccount} />
+                {lastAddedScore ? (
+                  <View style={styles.scoreCard}>
+                    <Text style={styles.scoreCardTitle}>
+                      Score KEBU du client · {lastAddedScore.score}/{lastAddedScore.maxScore} ({lastAddedScore.tierLabel})
+                    </Text>
+                    <Text style={styles.scoreCardHint}>
+                      {lastAddedScore.suggestedCreditLimitKori > 0
+                        ? `Limite de crédit suggérée : ${formatKori(lastAddedScore.suggestedCreditLimitKori)}`
+                        : 'Pas encore d’historique de paiement — limite suggérée : 0'}
+                    </Text>
+                    {lastAddedScore.creditLimitAboveSuggested ? (
+                      <Text style={styles.scoreCardWarning}>
+                        ⚠ La limite que tu as saisie dépasse la suggestion pour ce client.
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : null}
                 {accounts.map((a) => (
                   <View key={a.id} style={styles.listRow}>
                     <Text style={styles.listTitle}>{a.buyerLabel ?? a.buyer?.handle}</Text>
@@ -325,4 +348,13 @@ const styles = StyleSheet.create({
   listRow: { paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.appCanvas.border },
   listTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
   listMeta: { ...type.caption, color: 'rgba(5,8,5,0.5)', marginTop: 2 },
+  scoreCard: {
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.goldA20,
+  },
+  scoreCardTitle: { fontFamily: fontFamily.bodyBold, fontSize: 13, color: colors.ink },
+  scoreCardHint: { ...type.caption, color: 'rgba(5,8,5,0.6)', marginTop: 2 },
+  scoreCardWarning: { ...type.caption, fontFamily: fontFamily.bodyMedium, color: colors.terracottaDark, marginTop: 4 },
 });

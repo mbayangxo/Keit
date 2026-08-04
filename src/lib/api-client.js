@@ -504,6 +504,19 @@ export function getAgentApplication() {
   return apiFetch('/api/agent/application', { skipCache: true });
 }
 
+/** Self-service float recharge request — an admin still approves it. */
+export function requestAgentFloatTopUp(amountXof, note) {
+  return apiFetch('/api/agent/float/topup-request', {
+    method: 'POST',
+    body: { amountXof, note },
+    skipCache: true,
+  });
+}
+
+export function getMyFloatTopUpRequests() {
+  return apiFetch('/api/agent/float/topup-requests/mine', { skipCache: true });
+}
+
 export function getAgentsNearby({ lat, lng, mode = 'deposit', amount } = {}) {
   const params = new URLSearchParams();
   if (lat != null) params.set('lat', String(lat));
@@ -1193,6 +1206,12 @@ export function getSupplierReceivables(businessId) {
   return apiFetch(`/api/distribution/receivables?businessId=${encodeURIComponent(businessId)}`, {
     skipCache: true,
   });
+}
+
+/** KEBU score — built from real on-time invoice payment, KYC tier, tenure,
+ * transaction volume, and reviews. Used to inform B2B credit decisions. */
+export function getBusinessKebuScore(businessId) {
+  return apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/kebu-score`, { skipCache: true });
 }
 
 export function getSupportContact() {

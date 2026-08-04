@@ -234,6 +234,56 @@ function renderAgents(agentsBlock) {
   });
 }
 
+async function loadFloatRequestsTab() {
+  const res = await api('/agent-float-requests?status=pending');
+  $('float-requests-table').innerHTML = tableHtml(
+    ['Agent', 'Amount', 'Note', 'Requested', 'Actions'],
+    res.requests ?? [],
+    (r) => `<tr>
+      <td>${r.agent?.agentCode ?? r.agentId}<br><small>${r.agentUser?.phone ?? r.agentUser?.handle ?? ''}</small></td>
+      <td>${fmtXof(r.amountXof)}</td>
+      <td>${r.note ?? '—'}</td>
+      <td>${fmtDate(r.createdAt)}</td>
+      <td>
+        <button type="button" class="link-btn" data-approve-float-request="${r.id}">Approve</button>
+        <button type="button" class="link-btn danger" data-reject-float-request="${r.id}">Reject</button>
+      </td>
+    </tr>`,
+  );
+
+  $('float-requests-table').querySelectorAll('[data-approve-float-request]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await api(`/agent-float-requests/${encodeURIComponent(btn.dataset.approveFloatRequest)}/approve`, {
+          method: 'POST',
+          body: {},
+        });
+        alert('Float request approved');
+        await loadFloatRequestsTab();
+        await loadDashboard();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  });
+
+  $('float-requests-table').querySelectorAll('[data-reject-float-request]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const reason = prompt('Reason for rejection? (optional)') || undefined;
+      try {
+        await api(`/agent-float-requests/${encodeURIComponent(btn.dataset.rejectFloatRequest)}/reject`, {
+          method: 'POST',
+          body: { reason },
+        });
+        alert('Float request rejected');
+        await loadFloatRequestsTab();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  });
+}
+
 async function loadSupportTab() {
   const [stats, calls, ticketsRes] = await Promise.all([
     api('/support/stats'),
@@ -377,6 +427,7 @@ async function loadTabData(name) {
   if (name === 'distributors') await loadDistributorsTab();
   if (name === 'ops') await loadOpsTab();
   if (name === 'audit') await loadAuditTab();
+  if (name === 'agents') await loadFloatRequestsTab();
 }
 
 async function enterApp() {
@@ -696,6 +747,8 @@ $('agent-topup-btn')?.addEventListener('click', async () => {
     alert(error.message);
   }
 });
+
+$('float-requests-refresh-btn')?.addEventListener('click', () => loadFloatRequestsTab().catch(alert));
 
 if (token()) {
   enterApp().catch(() => {

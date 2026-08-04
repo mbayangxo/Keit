@@ -29,6 +29,7 @@ import {
   payoutCooperativeFarmer,
   getBusinessWallet,
   getBusinessCreditSummary,
+  getBusinessKebuScore,
   transferBusinessFunds,
   getBusinessMembers,
   inviteBusinessMember,
@@ -135,6 +136,7 @@ export default function BusinessHubScreen({ navigation, route }) {
   const [statusSaving, setStatusSaving] = useState(false);
 
   const [kebuBalance, setKebuBalance] = useState(0);
+  const [kebuScore, setKebuScore] = useState(null);
   const [kebuLedger, setKebuLedger] = useState([]);
   const [creditTier, setCreditTier] = useState('starter');
   const [members, setMembers] = useState([]);
@@ -244,13 +246,15 @@ export default function BusinessHubScreen({ navigation, route }) {
   const loadKebuWallet = useCallback(async () => {
     if (!business?.id) return;
     try {
-      const [walletRes, credit] = await Promise.all([
+      const [walletRes, credit, score] = await Promise.all([
         getBusinessWallet(business.id),
         getBusinessCreditSummary(business.id).catch(() => null),
+        getBusinessKebuScore(business.id).catch(() => null),
       ]);
       setKebuBalance(walletRes.wallet?.balance ?? 0);
       setKebuLedger(walletRes.ledger ?? []);
       if (credit?.lifetime?.creditTier) setCreditTier(credit.lifetime.creditTier);
+      setKebuScore(score);
     } catch {
       /* non-fatal */
     }
@@ -613,7 +617,26 @@ export default function BusinessHubScreen({ navigation, route }) {
                   <Text style={styles.actionLabel}>Gérer</Text>
                 </PressScale>
               </View>
-              <SectionCard title="✦ Statut — visible sur ta page publique" delay={0}>
+              {kebuScore ? (
+                <SectionCard title="📊 Score KEBU" delay={0}>
+                  <View style={styles.kebuScoreRow}>
+                    <Text style={styles.kebuScoreValue}>{kebuScore.score}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.kebuScoreTier}>{kebuScore.tierLabel}</Text>
+                      <Text style={styles.kebuScoreHint}>
+                        {kebuScore.suggestedCreditLimitKori > 0
+                          ? `Crédit B2B suggéré jusqu'à ${formatKori(kebuScore.suggestedCreditLimitKori)}`
+                          : 'Paiements réguliers à temps pour débloquer du crédit B2B'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.kebuScoreDetail}>
+                    Paiements à temps · KYC · ancienneté · activité KEBU · avis clients — calculé automatiquement,
+                    aucune donnée à saisir.
+                  </Text>
+                </SectionCard>
+              ) : null}
+              <SectionCard title="✦ Statut — visible sur ta page publique" delay={70}>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex : Inscriptions ouvertes, on recrute, promo ce week-end…"
@@ -651,7 +674,7 @@ export default function BusinessHubScreen({ navigation, route }) {
                   <Text style={styles.linkText}>Mes factures B2B à payer →</Text>
                 </PressScale>
               </SectionCard>
-              <SectionCard title="⚡ Offre flash — visible dans Discover" delay={70}>
+              <SectionCard title="⚡ Offre flash — visible dans Discover" delay={140}>
                 <TextInput
                   style={styles.input}
                   placeholder="Plat ou produit (ex: Dibi 500g)"
@@ -933,6 +956,11 @@ const styles = StyleSheet.create({
   tabTextOn: { color: colors.goldDark },
   panel: { paddingHorizontal: spacing.xxl, gap: spacing.lg },
   actionsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: spacing.lg },
+  kebuScoreRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, marginBottom: spacing.sm },
+  kebuScoreValue: { fontFamily: fontFamily.displayBlack, fontSize: 32, color: colors.greenDark },
+  kebuScoreTier: { fontFamily: fontFamily.bodyBold, fontSize: 14, color: colors.ink },
+  kebuScoreHint: { fontSize: 11, color: 'rgba(5,8,5,0.6)', marginTop: 2 },
+  kebuScoreDetail: { fontSize: 10, color: 'rgba(5,8,5,0.45)', lineHeight: 15 },
   actionBtn: { alignItems: 'center', gap: spacing.xs },
   actionLabel: { fontSize: 9, color: 'rgba(5,8,5,0.55)', fontWeight: '700' },
   flashHoursRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },

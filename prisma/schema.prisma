@@ -644,6 +644,7 @@ model TradeInvoice {
   status             String    @default("open")
   dueAt              DateTime
   paidAt             DateTime?
+  reminderSentAt     DateTime?
   notes              String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -1892,10 +1893,30 @@ model AgentProfile {
   withdrawals  AgentWithdrawal[]
   floatEntries AgentFloatEntry[]
   payouts      AgentPayout[]
+  floatTopUpRequests AgentFloatTopUpRequest[]
 
   @@index([status])
   @@index([tier])
   @@index([lat, lng])
+}
+
+/** Self-service float recharge request — an admin still approves it, but
+ * the agent no longer has to leave the app to ask for one. */
+model AgentFloatTopUpRequest {
+  id           String    @id @default(cuid())
+  agentId      String
+  amountXof    Int
+  note         String?
+  status       String    @default("pending")
+  adminId      String?
+  responseNote String?
+  createdAt    DateTime  @default(now())
+  respondedAt  DateTime?
+
+  agent AgentProfile @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, status])
+  @@index([status])
 }
 
 /** Monthly agent compensation — flat fee + volume bonus on processed cash-ins. */

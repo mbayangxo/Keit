@@ -14,7 +14,16 @@ import ScreenBackground from '../components/ScreenBackground';
 import ScreenHeader from '../components/ScreenHeader';
 import ReceiptCard from '../components/ReceiptCard';
 import { useToast } from '../components/Toast';
-import { agentConfirmDeposit, agentScanDeposit, agentScanWithdraw, agentConfirmWithdraw, getAgentMe, getAgentPayouts } from '../lib/api-client';
+import {
+  agentConfirmDeposit,
+  agentScanDeposit,
+  agentScanWithdraw,
+  agentConfirmWithdraw,
+  getAgentMe,
+  getAgentPayouts,
+  requestAgentFloatTopUp,
+  getMyFloatTopUpRequests,
+} from '../lib/api-client';
 import { parseK21Qr } from '../lib/k21-qr';
 import KoriAmount from '../components/KoriAmount';
 import { colors, fontFamily, radius, spacing, type } from '../theme';
@@ -33,13 +42,22 @@ export default function AgentHomeScreen({ navigation, route }) {
   const [confirming, setConfirming] = useState(false);
   const [lastReceipt, setLastReceipt] = useState(null);
   const [payoutInfo, setPayoutInfo] = useState(null);
+  const [topUpRequests, setTopUpRequests] = useState([]);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [topUpNote, setTopUpNote] = useState('');
+  const [topUpRequesting, setTopUpRequesting] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const [me, payouts] = await Promise.all([getAgentMe(), getAgentPayouts().catch(() => null)]);
+      const [me, payouts, requests] = await Promise.all([
+        getAgentMe(),
+        getAgentPayouts().catch(() => null),
+        getMyFloatTopUpRequests().catch(() => ({ requests: [] })),
+      ]);
       setAgentData(me);
       setPayoutInfo(payouts);
+      setTopUpRequests(requests.requests ?? []);
     } catch (err) {
       showToast(err.message ?? 'Accès agent refusé');
       navigation.goBack();
@@ -120,6 +138,28 @@ export default function AgentHomeScreen({ navigation, route }) {
     }
   };
 
+  const submitTopUpRequest = async () => {
+    const amountXof = Math.round(Number(topUpAmount));
+    if (!amountXof || amountXof <= 0) {
+      showToast('Montant invalide');
+      return;
+    }
+    setTopUpRequesting(true);
+    try {
+      await requestAgentFloatTopUp(amountXof, topUpNote.trim() || undefined);
+      showToast('Demande envoyée ✓ — un admin la traite sous peu');
+      setTopUpAmount('');
+      setTopUpNote('');
+      await reload();
+    } catch (err) {
+      showToast(err.message ?? 'Demande impossible');
+    } finally {
+      setTopUpRequesting(false);
+    }
+  };
+
+  const pendingTopUpRequest = topUpRequests.find((r) => r.status === 'pending');
+
   if (loading) {
     return (
       <View style={styles.root}>
@@ -152,6 +192,41 @@ export default function AgentHomeScreen({ navigation, route }) {
               {agent?.agentCode} · limite {formatAmount(agent?.floatLimit ?? 0)} F
             </Text>
             {agent?.locationLabel ? <Text style={styles.floatMeta}>{agent.locationLabel}</Text> : null}
+          </View>
+
+          <View style={styles.topUpCard}>
+            <Text style={styles.floatLabel}>Recharger mon float</Text>
+            {pendingTopUpRequest ? (
+              <>
+                <Text style={styles.topUpPendingText}>
+                  Demande en attente · {formatAmount(pendingTopUpRequest.amountXof)} F
+                </Text>
+                <Text style={styles.floatMeta}>Un admin la traite sous peu.</Text>
+              </>
+            ) : (
+              <>
+                <TextInput
+                  value={topUpAmount}
+                  onChangeText={setTopUpAmount}
+                  placeholder="Montant demandé (F CFA)"
+                  placeholderTextColor={colors.appCanvas.textMuted}
+                  keyboardType="number-pad"
+                  style={[styles.input, { marginBottom: spacing.sm }]}
+                />
+                <TextInput
+                  value={topUpNote}
+                  onChangeText={setTopUpNote}
+                  placeholder="Note (optionnel)"
+                  placeholderTextColor={colors.appCanvas.textMuted}
+                  style={styles.input}
+                />
+                <GlowButton
+                  label={topUpRequesting ? 'Envoi…' : 'Demander un rechargement'}
+                  onPress={submitTopUpRequest}
+                  disabled={topUpRequesting || !topUpAmount.trim()}
+                />
+              </>
+            )}
           </View>
 
           {payoutInfo?.currentMonthPreview ? (
@@ -285,6 +360,16 @@ const styles = StyleSheet.create({
   floatLabel: { ...type.caption, color: colors.appCanvas.textMuted, textTransform: 'uppercase', letterSpacing: 1 },
   floatValue: { fontFamily: fontFamily.displayBlack, fontSize: 32, color: colors.greenDark, marginTop: spacing.xs },
   floatMeta: { ...type.caption, color: colors.appCanvas.textMuted, marginTop: spacing.xs },
+  topUpCard: {
+    backgroundColor: colors.appCanvas.surface,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.appCanvas.border,
+    gap: spacing.sm,
+  },
+  topUpPendingText: { ...type.body, color: colors.goldDark, fontFamily: fontFamily.bodySemiBold },
   payoutCard: {
     backgroundColor: colors.appCanvas.surface,
     borderRadius: radius.lg,

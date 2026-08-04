@@ -162,7 +162,14 @@ export default function TradeInvoicesScreen({ navigation }) {
             )}
             {invoices.map((inv) => (
               <View key={inv.id} style={styles.card}>
-                <Text style={styles.ref}>{inv.reference}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={styles.ref}>{inv.reference}</Text>
+                  {inv.status === 'overdue' ? (
+                    <View style={styles.overduePill}>
+                      <Text style={styles.overduePillText}>En retard</Text>
+                    </View>
+                  ) : null}
+                </View>
                 <Text style={styles.supplier}>{inv.supplier?.name ?? 'Fournisseur'}</Text>
                 <Text style={styles.amount}>{inv.dueFormatted ?? formatKori(inv.amountDue ?? inv.amountKori)}</Text>
                 <Text style={styles.due}>Échéance {new Date(inv.dueAt).toLocaleDateString('fr-FR')}</Text>
@@ -214,6 +221,15 @@ const styles = StyleSheet.create({
   supplier: { ...type.bodySmall, color: 'rgba(5,8,5,0.6)' },
   amount: { fontFamily: fontFamily.displayBlack, fontSize: 18, color: colors.greenDark },
   due: { ...type.caption, color: 'rgba(5,8,5,0.5)' },
+  overduePill: {
+    backgroundColor: 'rgba(232,92,26,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,92,26,0.3)',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  overduePillText: { ...type.caption, fontFamily: fontFamily.bodyBold, color: colors.terracottaDark },
   payRow: { flexDirection: 'row', gap: spacing.sm },
   payChip: {
     paddingHorizontal: spacing.md,
