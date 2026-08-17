@@ -13,6 +13,7 @@ const JOBS: Record<string, string> = {
   'rider-status-updater': '/api/cron/rider-status',
   'daily-financial-report': '/api/cron/daily-financial-report',
   'delivery-auto-release': '/api/cron/delivery-auto-release',
+  'agent-monthly-payout': '/api/cron/agent-monthly-payout',
 };
 
 serve(async (req) => {

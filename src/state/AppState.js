@@ -20,6 +20,8 @@ const EMPTY_PROFILE = {
   studentPass: null,
   business: null,
   businesses: [],
+  pinConfigured: false,
+  country: 'SN',
 };
 
 const AppStateContext = createContext(null);
@@ -30,6 +32,7 @@ export function AppStateProvider({ children }) {
   const [transactions, setTransactions] = useState([]);
   const [authenticated, setAuthenticated] = useState(false);
   const [pendingMboloShare, setPendingMboloShare] = useState(null);
+  const [walletRefreshError, setWalletRefreshError] = useState(null);
 
   const setProfile = useCallback((partial) => {
     setProfileState((prev) => ({ ...prev, ...partial }));
@@ -49,17 +52,21 @@ export function AppStateProvider({ children }) {
       email: p.email ?? '',
       arrondissement: p.arrondissement ?? EMPTY_PROFILE.arrondissement,
       afriId: p.afriId ?? '',
+      afri: p.afri ?? null,
       avatarEmoji: p.avatarEmoji ?? '👤',
       avatarUrl: p.avatarUrl ?? null,
       verification: p.verification ?? null,
       studentPass: p.studentPass ?? null,
       payQrUrl: p.payQrUrl ?? null,
+      pinConfigured: Boolean(p.pinConfigured),
+      country: p.country ?? 'SN',
       business: p.business ?? null,
       businesses: p.businesses ?? [],
     });
     setBalance(b ?? 0);
     setTransactions(txs ?? []);
     setAuthenticated(true);
+    setWalletRefreshError(null);
   }, []);
 
   const resetSession = useCallback(() => {
@@ -67,13 +74,20 @@ export function AppStateProvider({ children }) {
     setBalance(0);
     setTransactions([]);
     setAuthenticated(false);
+    setWalletRefreshError(null);
   }, []);
 
   const refreshWallet = useCallback(async () => {
-    const [wallet, txs] = await Promise.all([getWallet(), getTransactions()]);
-    setBalance(wallet.balance ?? wallet.koriBalance ?? 0);
-    setTransactions(txs);
-    return wallet;
+    try {
+      const [wallet, txs] = await Promise.all([getWallet(), getTransactions()]);
+      setBalance(wallet.balance ?? wallet.koriBalance ?? 0);
+      setTransactions(txs);
+      setWalletRefreshError(null);
+      return { ok: true, wallet, transactions: txs };
+    } catch (error) {
+      setWalletRefreshError(error?.message ?? 'Impossible de charger le solde');
+      return { ok: false, error };
+    }
   }, []);
 
   const initAccount = useCallback(({ name, handle, arrondissement, fundAmount, transactions: txs, profile: apiProfile, afriId }) => {
@@ -117,6 +131,7 @@ export function AppStateProvider({ children }) {
       balance,
       transactions,
       authenticated,
+      walletRefreshError,
       addTransaction,
       initAccount,
       initBusinessAccount,
@@ -132,6 +147,7 @@ export function AppStateProvider({ children }) {
       balance,
       transactions,
       authenticated,
+      walletRefreshError,
       addTransaction,
       initAccount,
       initBusinessAccount,
@@ -139,7 +155,7 @@ export function AppStateProvider({ children }) {
       resetSession,
       refreshWallet,
       pendingMboloShare,
-    ]
+    ],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

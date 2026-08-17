@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { clearSession } from '../lib/secure-storage.js';
+import { clearSession, getAccessToken, setPinConfigured } from '../lib/secure-storage.js';
 import { restoreSession } from '../lib/session.js';
 import { useAppState } from '../state/AppState.js';
 
@@ -9,20 +9,42 @@ export function SessionProvider({ children }) {
   const { hydrateFromApi, resetSession: resetAppState } = useAppState();
   const [bootstrapped, setBootstrapped] = useState(false);
   const [hasSession, setHasSession] = useState(false);
+  const [bootstrapError, setBootstrapError] = useState(null);
 
   const bootstrap = useCallback(async () => {
+    setBootstrapError(null);
     try {
       const payload = await restoreSession();
       if (payload) {
         hydrateFromApi(payload);
+        if (payload.profile?.pinConfigured) {
+          await setPinConfigured(true);
+        }
         setHasSession(true);
       } else {
         setHasSession(false);
       }
-    } catch {
-      await clearSession();
-      resetAppState();
+    } catch (error) {
+      const authFailure =
+        error?.status === 401 ||
+        ['token_expired', 'token_invalid', 'no_token', 'profile_incomplete'].includes(error?.code);
+
+      if (authFailure) {
+        await clearSession();
+        resetAppState();
+        setHasSession(false);
+        return;
+      }
+
+      const token = await getAccessToken();
+      if (token && (error?.code === 'network' || error?.code === 'timeout')) {
+        setHasSession(true);
+        setBootstrapError(error?.message ?? 'Connexion impossible — réessaie');
+        return;
+      }
+
       setHasSession(false);
+      setBootstrapError(error?.message ?? 'Session introuvable');
     } finally {
       setBootstrapped(true);
     }
@@ -38,17 +60,19 @@ export function SessionProvider({ children }) {
     await clearSession();
     resetAppState();
     setHasSession(false);
+    setBootstrapError(null);
   }, [resetAppState]);
 
   const value = useMemo(
     () => ({
       bootstrapped,
       hasSession,
+      bootstrapError,
       markSignedIn,
       signOut,
       refreshBootstrap: bootstrap,
     }),
-    [bootstrapped, hasSession, markSignedIn, signOut, bootstrap],
+    [bootstrapped, hasSession, bootstrapError, markSignedIn, signOut, bootstrap],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

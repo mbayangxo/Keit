@@ -90,3 +90,10 @@ SELECT cron.schedule(
   '*/30 * * * *',
   $$SELECT k21_invoke_cron('/api/cron/delivery-auto-release');$$
 );
+
+-- 8. agent_monthly_payout — 1st of month 08:00 WAT (07:00 UTC)
+SELECT cron.schedule(
+  'agent_monthly_payout',
+  '0 7 1 * *',
+  $$SELECT k21_invoke_cron('/api/cron/agent-monthly-payout');$$
+);
