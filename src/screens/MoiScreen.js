@@ -15,8 +15,9 @@ import { colors, fontFamily, radius, spacing } from '../theme';
 import { useEntrance, useFillIn, useScalePulse } from '../hooks/animations';
 
 const SETTINGS = [
+  { key: 'memories', icon: '📦', title: 'Souvenirs Rec', subtitle: 'Médias sauvegardés — quota et mémoires Mboolo' },
   { key: 'merchant', icon: '🛒', title: 'Mon marché', subtitle: 'Catalogue, stock, commandes, analytics' },
-  { key: 'business', icon: '🏪', title: 'Mon business (KEBU)', subtitle: 'Crée ou gère ton commerce — caisse séparée' },
+  { key: 'business', icon: '🏪', title: 'Caisse pro', subtitle: 'Commerce, caisse séparée — complète sur KEBU (site pro)' },
   { key: 'accessibility', icon: '👁️', title: 'Accessibilité', subtitle: 'Mode données réduites, grand texte' },
   { key: 'account', icon: '🔐', title: 'Compte & Sécurité', subtitle: 'CNI, biométrie, 2FA pour gros montants' },
   { key: 'wallet', icon: '💳', title: 'Portefeuille', subtitle: 'Comptes liés, historique, limites' },
@@ -50,7 +51,7 @@ function HighlightRing({ item, onPress }) {
 
 function highlightNavigation(item, open) {
   if (item.type === 'event') {
-    open('MarketplaceTab', { screen: 'Discover', params: { initialTab: 'Culture' } });
+    open('MyTickets');
     return;
   }
   if (item.type === 'tontine') {
@@ -463,6 +464,10 @@ export default function MoiScreen({ navigation }) {
                     open('AgentHome');
                     return;
                   }
+                  if (s.key === 'memories') {
+                    open('MbooloVault');
+                    return;
+                  }
                   if (s.key === 'merchant') {
                     open('Main', { screen: 'MarketplaceTab', params: { screen: 'MerchantCatalog' } });
                     return;
@@ -485,6 +490,14 @@ export default function MoiScreen({ navigation }) {
                   }
                   if (s.key === 'notifs') {
                     open('Main', { screen: 'NotificationsTab' });
+                    return;
+                  }
+                  if (s.key === 'wallet') {
+                    open('Wallet');
+                    return;
+                  }
+                  if (s.key === 'privacy') {
+                    open('EditProfile');
                     return;
                   }
                   open('Info', { title: s.title, subtitle: `${s.subtitle} — bientôt disponible.`, icon: s.icon });

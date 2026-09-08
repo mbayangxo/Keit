@@ -33,7 +33,10 @@ after(async () => {
 });
 
 async function call(handler, { userId, body, query, method = 'POST', deviceId } = {}) {
-  const headers = deviceId ? { 'x-device-id': deviceId } : {};
+  const headers = {
+    'x-vercel-ip-country': 'SN',
+    ...(deviceId ? { 'x-device-id': deviceId } : {}),
+  };
   const req = mockReq({ userId, body, query, method, headers });
   const res = mockRes();
   await handler(req, res);
@@ -52,9 +55,11 @@ async function createOwnerWithAfri({ koriBalance = 50_000, handle } = {}) {
 
 test('business hub: create business, fund KEBU wallet, publish status + flash deal', async () => {
   const owner = await createOwnerWithAfri({ koriBalance: 20_000 });
+  const ownerDevice = await createVerifiedDevice(owner.id);
 
   const createRes = await call(businessesCreate, {
     userId: owner.id,
+    deviceId: ownerDevice,
     body: { name: 'Dibiterie Hub', type: 'merchant', category: 'restaurant' },
   });
   assert.equal(createRes.statusCode, 201, JSON.stringify(createRes.body));
@@ -67,18 +72,20 @@ test('business hub: create business, fund KEBU wallet, publish status + flash de
 
   const fundRes = await call(businessTransferHandler, {
     userId: owner.id,
+    deviceId: ownerDevice,
     query: { id: businessId },
     body: { kind: 'capital_in', amount: 5000, note: 'Apport initial' },
   });
   assert.equal(fundRes.statusCode, 201, JSON.stringify(fundRes.body));
-  assert.equal(fundRes.body.wallet.balance, 5000);
+  assert.equal(fundRes.body.amount, 5000);
 
   const walletRes = await call(businessWalletHandler, {
     userId: owner.id,
     query: { id: businessId },
     method: 'GET',
   });
-  assert.equal(walletRes.statusCode, 200);
+  assert.equal(walletRes.statusCode, 200, JSON.stringify(walletRes.body));
+  assert.ok(walletRes.body.wallet, JSON.stringify(walletRes.body));
   assert.equal(walletRes.body.wallet.balance, 5000);
   assert.ok(walletRes.body.ledger.some((e) => e.type === 'capital_in'));
 
@@ -110,10 +117,12 @@ test('business hub: create business, fund KEBU wallet, publish status + flash de
 
 test('business hub: B2B transfer between KEBU wallets', async () => {
   const sender = await createOwnerWithAfri({ koriBalance: 10_000 });
+  const senderDevice = await createVerifiedDevice(sender.id);
   const recipient = await createOwnerWithAfri({ koriBalance: 0, handle: `recv${Date.now()}` });
 
   const senderBizRes = await call(businessesCreate, {
     userId: sender.id,
+    deviceId: senderDevice,
     body: { name: 'Sender Co', type: 'merchant', category: 'services' },
   });
   const recipientBizRes = await call(businessesCreate, {
@@ -123,25 +132,38 @@ test('business hub: B2B transfer between KEBU wallets', async () => {
   const senderBizId = senderBizRes.body.id;
   const recipientKebuId = recipientBizRes.body.kebuId;
 
-  await call(businessTransferHandler, {
+  const fundRes = await call(businessTransferHandler, {
     userId: sender.id,
+    deviceId: senderDevice,
     query: { id: senderBizId },
     body: { kind: 'capital_in', amount: 8000 },
   });
+  assert.equal(fundRes.statusCode, 201, JSON.stringify(fundRes.body));
 
   const b2bRes = await call(businessTransferHandler, {
     userId: sender.id,
+    deviceId: senderDevice,
     query: { id: senderBizId },
     body: { kind: 'b2b', amount: 2500, recipientKebuId, note: 'Fourniture' },
   });
   assert.equal(b2bRes.statusCode, 201, JSON.stringify(b2bRes.body));
-  assert.equal(b2bRes.body.wallet.balance, 5500);
+
+  const senderWalletRes = await call(businessWalletHandler, {
+    userId: sender.id,
+    query: { id: senderBizId },
+    method: 'GET',
+  });
+  assert.equal(senderWalletRes.statusCode, 200, JSON.stringify(senderWalletRes.body));
+  assert.ok(senderWalletRes.body.wallet, JSON.stringify(senderWalletRes.body));
+  assert.equal(senderWalletRes.body.wallet.balance, 5500);
 
   const recipientWalletRes = await call(businessWalletHandler, {
     userId: recipient.id,
     query: { id: recipientBizRes.body.id },
     method: 'GET',
   });
+  assert.equal(recipientWalletRes.statusCode, 200, JSON.stringify(recipientWalletRes.body));
+  assert.ok(recipientWalletRes.body.wallet, JSON.stringify(recipientWalletRes.body));
   assert.equal(recipientWalletRes.body.wallet.balance, 2500);
 });
 
@@ -177,7 +199,7 @@ test('business hub: payroll + team member + cooperative delivery by handle', asy
     userId: owner.id,
     deviceId: ownerDevice,
     query: { id: businessId },
-    body: { userHandle: employee.handle, jobTitle: 'staff', payAmount: 3000 },
+    body: { userHandle: employee.handle, jobTitle: 'staff', payAmount: 3000 }, // XOF (3 000 CFA → 300 ₭)
   });
   assert.equal(empRes.statusCode, 201, JSON.stringify(empRes.body));
 
@@ -190,7 +212,7 @@ test('business hub: payroll + team member + cooperative delivery by handle', asy
   assert.equal(payRes.statusCode, 201, JSON.stringify(payRes.body));
 
   const employeeWallet = await prisma.wallet.findUniqueOrThrow({ where: { userId: employee.id } });
-  assert.equal(employeeWallet.koriBalance, 3000);
+  assert.equal(employeeWallet.koriBalance, 300);
 
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 86400000);

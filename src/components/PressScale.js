@@ -12,7 +12,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 // Animated.View) — otherwise layout-affecting styles like `position:
 // absolute` on `style` would apply to an inner box while the outer
 // Pressable (which actually participates in layout) stays unstyled.
-export default function PressScale({ children, style, onPress, scaleTo = 0.9, haptic = 'light' }) {
+export default function PressScale({ children, style, onPress, onLongPress, scaleTo = 0.9, haptic = 'light' }) {
   const scale = useRef(new Animated.Value(1)).current;
   const pressIn = () => {
     Animated.spring(scale, { toValue: scaleTo, useNativeDriver: true, speed: 60, bounciness: 0 }).start();
@@ -32,9 +32,10 @@ export default function PressScale({ children, style, onPress, scaleTo = 0.9, ha
   return (
     <AnimatedPressable
       onPress={onPress}
+      onLongPress={onLongPress}
       onPressIn={pressIn}
       onPressOut={pressOut}
-      disabled={!onPress}
+      disabled={!onPress && !onLongPress}
       style={[style, { transform: [{ scale }] }]}
     >
       {children}

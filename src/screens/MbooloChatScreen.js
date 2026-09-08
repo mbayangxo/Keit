@@ -7,11 +7,34 @@ import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import PressScale from '../components/PressScale';
 import MbooloAttachSheet from '../components/MbooloAttachSheet';
+import MbooloLazyMedia from '../components/MbooloLazyMedia';
+import MbooloSaveSheet from '../components/MbooloSaveSheet';
+import VoiceWaveform from '../components/VoiceWaveform';
 import { colors, fontFamily, radius, spacing } from '../theme';
 import { useToast } from '../components/Toast';
 import { useAppState } from '../state/AppState';
-import { getMe, getMboloMessages, sendMboloMessage, transferRequest, transferSend, getMboloVideoUploadConfig } from '../lib/api-client';
-import { pickMboloImage, takeMboloPhoto, resolveGifMediaUrl, resolveVoicePlaybackSource, pickAndUploadMboloVideo } from '../lib/mbolo-media';
+import { usePreferences } from '../context/PreferencesContext';
+import {
+  getMe,
+  getMboloMessages,
+  getMboloThreadPresence,
+  markMboloThreadTyping,
+  markMboloThreadRead,
+  saveMboloMessageMedia,
+  sendMboloMessage,
+  transferRequest,
+  transferSend,
+} from '../lib/api-client';
+import {
+  pickMboloImage,
+  takeMboloPhoto,
+  pickMboloVideoAsset,
+  sendMboloMediaMessage,
+  resolveVoicePlaybackSource,
+} from '../lib/mbolo-media';
+import { parseMoneyCommand } from '../lib/mbolo-voice-money';
+import { flushMboloOutbox, enqueueMboloMessage } from '../lib/mbolo-outbox';
+import { runTerangaGifStudio } from '../lib/mbolo-gif-studio';
 import { formatXof, getDirectPartner } from '../lib/mbolo-social';
 import { useMbooloVoiceRecorder, formatVoiceDuration } from '../hooks/useMbooloVoiceRecorder';
 import { navigateFromRoot } from '../lib/root-navigation';
@@ -37,7 +60,16 @@ function formatMsgTime(iso) {
   return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h');
 }
 
-function MessageBubble({ message, isMe, onPlayVoice, onJoinCall, onOpenAffiliateProduct, onOpenShare }) {
+function MessageBubble({
+  message,
+  isMe,
+  lowData,
+  onPlayVoice,
+  onJoinCall,
+  onOpenAffiliateProduct,
+  onOpenShare,
+  onLongPressMedia,
+}) {
   const time = formatMsgTime(message.createdAt);
   const sender = message.sender;
   const isAffiliateProduct = message.kind === 'affiliate_product';
@@ -59,12 +91,21 @@ function MessageBubble({ message, isMe, onPlayVoice, onJoinCall, onOpenAffiliate
     }
   }
   const isPayment = message.kind === 'payment';
+  const isCommerce = message.kind === 'commerce';
   let paymentPayload = null;
+  let commercePayload = null;
   if (isPayment) {
     try {
       paymentPayload = JSON.parse(message.mediaUrl);
     } catch {
       paymentPayload = null;
+    }
+  }
+  if (isCommerce) {
+    try {
+      commercePayload = JSON.parse(message.mediaUrl);
+    } catch {
+      commercePayload = null;
     }
   }
   const isMoneyCard = isPayment || message.body?.startsWith('💸') || message.body?.startsWith('🙏');
@@ -81,20 +122,30 @@ function MessageBubble({ message, isMe, onPlayVoice, onJoinCall, onOpenAffiliate
     }
     if ((isPhoto || isGif) && message.mediaUrl) {
       return (
-        <Image source={{ uri: message.mediaUrl }} style={isGif ? styles.msgGif : styles.msgImage} resizeMode="cover" />
+        <PressScale
+          scaleTo={0.98}
+          onLongPress={() => onLongPressMedia?.(message)}
+          style={{ alignSelf: 'flex-start' }}
+        >
+          <MbooloLazyMedia uri={message.mediaUrl} lowData={lowData} isGif={isGif} style={isGif ? styles.msgGif : styles.msgImage} />
+        </PressScale>
       );
     }
     if (message.kind === 'video' && message.mediaUrl) {
-      return <VideoMessage uri={message.mediaUrl} />;
+      return (
+        <PressScale scaleTo={0.98} onLongPress={() => onLongPressMedia?.(message)}>
+          <VideoMessage uri={message.mediaUrl} />
+        </PressScale>
+      );
     }
     if (isPayment && paymentPayload) {
       return (
         <View>
           {paymentPayload.attachmentType === 'photo' || paymentPayload.attachmentType === 'gif' ? (
-            <Image
-              source={{ uri: paymentPayload.attachmentUrl }}
+            <MbooloLazyMedia
+              uri={paymentPayload.attachmentUrl}
+              lowData={lowData}
               style={styles.msgImage}
-              resizeMode="cover"
             />
           ) : null}
           {paymentPayload.attachmentType === 'voice' ? (
@@ -103,10 +154,29 @@ function MessageBubble({ message, isMe, onPlayVoice, onJoinCall, onOpenAffiliate
               onPress={() => onPlayVoice(paymentPayload.attachmentUrl)}
               style={styles.voiceChip}
             >
-              <Text style={isMe ? styles.meText : styles.themText}>▶ Message vocal</Text>
+              <VoiceWaveform durationMs={paymentPayload.durationMs} isMe={isMe} />
             </PressScale>
           ) : null}
           <Text style={isMe ? styles.meText : styles.themText}>{message.body}</Text>
+          {paymentPayload.reference ? (
+            <Text style={[styles.receiptRef, isMe && styles.receiptRefMe]}>
+              ✓ {paymentPayload.reference}{paymentPayload.verified ? ' · vérifiable' : ''}
+            </Text>
+          ) : null}
+        </View>
+      );
+    }
+    if (isCommerce && commercePayload) {
+      return (
+        <View style={styles.commerceCard}>
+          <Text style={isMe ? styles.meText : styles.themText}>{message.body}</Text>
+          {commercePayload.potBalance != null ? (
+            <Text style={styles.commerceMeta}>
+              Caisse · {Number(commercePayload.potBalance).toLocaleString('fr-FR')} F ·{' '}
+              {Number(commercePayload.amountPerMember).toLocaleString('fr-FR')} F / membre
+            </Text>
+          ) : null}
+          <Text style={styles.callJoin}>Escrow visible · K21 ✓</Text>
         </View>
       );
     }
@@ -147,8 +217,18 @@ function MessageBubble({ message, isMe, onPlayVoice, onJoinCall, onOpenAffiliate
     }
     if (message.kind === 'voice' && message.mediaUrl) {
       return (
-        <PressScale scaleTo={0.98} onPress={() => onPlayVoice(message.mediaUrl)} style={styles.voiceChip}>
-          <Text style={isMe ? styles.meText : styles.themText}>▶ Message vocal</Text>
+        <PressScale
+          scaleTo={0.98}
+          onPress={() => onPlayVoice(message.mediaUrl)}
+          onLongPress={() => onLongPressMedia?.(message)}
+          style={styles.voiceChip}
+        >
+          <VoiceWaveform
+            durationMs={message.mediaAsset?.durationMs}
+            waveformJson={message.mediaAsset?.waveformJson}
+            isMe={isMe}
+          />
+          <Text style={isMe ? styles.meText : styles.themText}>▶ Écouter</Text>
         </PressScale>
       );
     }
@@ -253,6 +333,7 @@ export default function MbooloChatScreen({ navigation, route }) {
   const { threadId, thread, title } = route.params ?? {};
   const showToast = useToast();
   const { profile, refreshWallet } = useAppState();
+  const { lowDataMode } = usePreferences();
   const voicePlayer = useAudioPlayer(null);
   const {
     start: startVoice,
@@ -283,7 +364,13 @@ export default function MbooloChatScreen({ navigation, route }) {
   const [sendNote, setSendNote] = useState('');
   const [sendPhotoUrl, setSendPhotoUrl] = useState(null);
   const [sendingMoney, setSendingMoney] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [saveTarget, setSaveTarget] = useState(null);
+  const [typingUsers, setTypingUsers] = useState([]);
+  const [commerceBanner, setCommerceBanner] = useState(null);
   const scrollRef = useRef(null);
+  const typingTimer = useRef(null);
   const insets = useSafeAreaInsets();
   const composerBottomPad = Math.max(insets.bottom, spacing.md);
 
@@ -313,24 +400,50 @@ export default function MbooloChatScreen({ navigation, route }) {
   const loadMessages = useCallback(async () => {
     if (!threadId) return;
     try {
-      const [me, msgs] = await Promise.all([getMe(), getMboloMessages(threadId)]);
+      const q = searchQuery.trim().length >= 2 ? searchQuery.trim() : undefined;
+      const [me, data, presence] = await Promise.all([
+        getMe(),
+        getMboloMessages(threadId, { q, limit: 80 }),
+        getMboloThreadPresence(threadId).catch(() => null),
+      ]);
       setUserId(me.id);
-      setMessages(Array.isArray(msgs) ? msgs : []);
+      const msgs = Array.isArray(data) ? data : data?.messages ?? [];
+      setMessages(msgs);
+      if (presence?.typing) setTypingUsers(presence.typing);
+      if (presence?.commerce?.type === 'tontine') {
+        setCommerceBanner(presence.commerce.group);
+      } else {
+        setCommerceBanner(null);
+      }
+      markMboloThreadRead(threadId).catch(() => {});
     } catch (err) {
       showToast(err.message ?? 'Messages indisponibles');
     } finally {
       setLoading(false);
     }
-  }, [threadId, showToast]);
+  }, [threadId, searchQuery, showToast]);
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      loadMessages();
-      const timer = setInterval(loadMessages, 8000);
+      flushMboloOutbox(threadId)
+        .then((sent) => {
+          if (sent.length > 0) setMessages((prev) => [...prev, ...sent]);
+        })
+        .finally(() => loadMessages());
+      const timer = setInterval(loadMessages, 3000);
       return () => clearInterval(timer);
-    }, [loadMessages]),
+    }, [loadMessages, threadId]),
   );
+
+  useEffect(() => {
+    if (!threadId) return;
+    const q = searchQuery.trim();
+    if (q.length === 0 || q.length >= 2) {
+      setLoading(true);
+      loadMessages();
+    }
+  }, [searchQuery, threadId, loadMessages]);
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
@@ -353,11 +466,94 @@ export default function MbooloChatScreen({ navigation, route }) {
     } catch (err) {
       if (err?.code === 'verification_required' || err?.status === 403) {
         showToast(err.message ?? 'Vérifie ton profil (nom + téléphone) pour envoyer des messages');
+      } else if (!navigator?.onLine && Platform.OS !== 'web') {
+        await enqueueMboloMessage(threadId, payload);
+        showToast('Hors ligne — message en attente d’envoi');
       } else {
         showToast(err.message ?? 'Envoi impossible');
       }
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleTextChange = (value) => {
+    setText(value);
+    if (!threadId) return;
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => {
+      markMboloThreadTyping(threadId).catch(() => {});
+    }, 400);
+  };
+
+  const handleSendMoneyCommand = async (cmd) => {
+    setSendingMoney(true);
+    try {
+      const result = await transferSend({
+        recipientHandle: cmd.handle,
+        amount: cmd.amount,
+        currency: 'national',
+        note: cmd.note,
+        threadId,
+      });
+      if (result.mboloMessage) setMessages((prev) => [...prev, result.mboloMessage]);
+      await refreshWallet();
+      setText('');
+      showToast(`💸 ${cmd.amount} F envoyé à @${cmd.handle}`);
+    } catch (err) {
+      showToast(err.message ?? 'Envoi impossible');
+    } finally {
+      setSendingMoney(false);
+    }
+  };
+
+  const handleSend = () => {
+    const body = text.trim();
+    if (!body || sending || sendingMoney) return;
+    const moneyCmd = parseMoneyCommand(body);
+    if (moneyCmd) {
+      handleSendMoneyCommand(moneyCmd);
+      return;
+    }
+    postMessage({ body, kind: 'text' });
+  };
+
+  const handleLongPressMedia = (message) => {
+    const savable =
+      message.mediaUrl &&
+      ['image', 'gif', 'voice', 'video', 'photo'].includes(message.kind);
+    if (savable) setSaveTarget(message);
+  };
+
+  const saveMedia = async (retention) => {
+    if (!saveTarget?.id) return;
+    try {
+      await saveMboloMessageMedia(saveTarget.id, { retention });
+      showToast(retention === 'profile' ? 'Ajouté à ton profil Rec ✓' : 'Sauvegardé dans Rec ✓');
+    } catch (err) {
+      showToast(err.message ?? 'Sauvegarde impossible');
+    } finally {
+      setSaveTarget(null);
+    }
+  };
+
+  const handleGifStudio = async () => {
+    closeAttach();
+    try {
+      showToast('Studio GIF Teranga…');
+      const asset = await runTerangaGifStudio();
+      if (!asset) return;
+      await postMediaMessage(
+        sendMboloMediaMessage({
+          threadId,
+          kind: asset.mode === 'video_fallback' ? 'video' : 'gif',
+          uri: asset.uri,
+          mimeType: asset.mimeType,
+          blob: asset.blob,
+        }),
+      );
+    } catch (err) {
+      showToast(err.message ?? 'Studio GIF impossible');
     }
   };
 
@@ -367,13 +563,25 @@ export default function MbooloChatScreen({ navigation, route }) {
     await new Promise((resolve) => setTimeout(resolve, 280));
   };
 
-  const handleSend = () => {
-    const body = text.trim();
-    if (!body || sending) return;
-    postMessage({ body, kind: 'text' });
-  };
-
   const closeAttach = () => setAttachOpen(false);
+
+  const postMediaMessage = async (promise) => {
+    setSending(true);
+    try {
+      const msg = await promise;
+      setMessages((prev) => [...prev, msg]);
+    } catch (err) {
+      if (err?.code === 'verification_required' || err?.status === 403) {
+        showToast(err.message ?? 'Vérifie ton profil (nom + téléphone) pour envoyer des messages');
+      } else if (err?.code === 'storage_unavailable' || err?.code === 'legacy_media_disabled') {
+        showToast(err.message ?? 'Stockage média indisponible — contacte le support K21');
+      } else {
+        showToast(err.message ?? 'Envoi impossible');
+      }
+    } finally {
+      setSending(false);
+    }
+  };
 
   const handlePhoto = async () => {
     try {
@@ -382,7 +590,14 @@ export default function MbooloChatScreen({ navigation, route }) {
       if (Platform.OS === 'web') closeAttach();
       if (!mediaUrl) return;
       showToast('Envoi de la photo…');
-      await postMessage({ kind: 'image', mediaUrl, body: '📷 Photo' });
+      await postMediaMessage(
+        sendMboloMediaMessage({
+          threadId,
+          kind: 'image',
+          uri: mediaUrl,
+          mimeType: 'image/jpeg',
+        }),
+      );
     } catch (err) {
       closeAttach();
       showToast(err.message ?? 'Photo impossible');
@@ -396,7 +611,14 @@ export default function MbooloChatScreen({ navigation, route }) {
       if (Platform.OS === 'web') closeAttach();
       if (!mediaUrl) return;
       showToast('Envoi de la photo…');
-      await postMessage({ kind: 'image', mediaUrl, body: '📷 Photo' });
+      await postMediaMessage(
+        sendMboloMediaMessage({
+          threadId,
+          kind: 'image',
+          uri: mediaUrl,
+          mimeType: 'image/jpeg',
+        }),
+      );
     } catch (err) {
       closeAttach();
       showToast(err.message ?? 'Photo impossible');
@@ -406,12 +628,19 @@ export default function MbooloChatScreen({ navigation, route }) {
   const handleVideo = async () => {
     try {
       await dismissAttachBeforePicker();
-      const config = await getMboloVideoUploadConfig();
-      showToast('Envoi de la vidéo…');
-      const mediaUrl = await pickAndUploadMboloVideo(config);
+      const asset = await pickMboloVideoAsset();
       if (Platform.OS === 'web') closeAttach();
-      if (!mediaUrl) return;
-      await postMessage({ kind: 'video', mediaUrl, body: '🎬 Vidéo' });
+      if (!asset) return;
+      showToast('Envoi de la vidéo…');
+      await postMediaMessage(
+        sendMboloMediaMessage({
+          threadId,
+          kind: 'video',
+          uri: asset.uri,
+          mimeType: asset.mimeType,
+          blob: asset.blob,
+        }),
+      );
     } catch (err) {
       closeAttach();
       showToast(err.message ?? 'Vidéo impossible');
@@ -448,8 +677,28 @@ export default function MbooloChatScreen({ navigation, route }) {
     closeAttach();
     try {
       showToast('Envoi du GIF…');
-      const mediaUrl = await resolveGifMediaUrl(gif.url);
-      await postMessage({ kind: 'gif', mediaUrl, body: `GIF · ${gif.label}` });
+      const hasDbId = gif.id && !String(gif.id).startsWith('seed-');
+      if (hasDbId) {
+        const msg = await sendMboloMessage(threadId, {
+          kind: 'gif',
+          gifId: gif.id,
+          body: 'GIF · ' + gif.label,
+        });
+        setMessages((prev) => [...prev, msg]);
+        return;
+      }
+      if (!gif.url?.startsWith('http')) {
+        showToast('GIF indisponible');
+        return;
+      }
+      await postMediaMessage(
+        sendMboloMediaMessage({
+          threadId,
+          kind: 'gif',
+          uri: gif.url,
+          mimeType: 'image/gif',
+        }),
+      );
     } catch (err) {
       showToast(err.message ?? 'GIF impossible');
     }
@@ -460,7 +709,15 @@ export default function MbooloChatScreen({ navigation, route }) {
       const mediaUrl = await stopVoice();
       if (!mediaUrl) return;
       showToast('⏹ Enregistrement terminé — envoi…');
-      await postMessage({ kind: 'voice', mediaUrl, body: '🎤 Message vocal' });
+      await postMediaMessage(
+        sendMboloMediaMessage({
+          threadId,
+          kind: 'voice',
+          uri: mediaUrl,
+          mimeType: Platform.OS === 'web' ? 'audio/webm' : 'audio/mp4',
+          durationMs: durationMillis,
+        }),
+      );
       showToast('Message vocal envoyé ✓');
     } catch (err) {
       showToast(err.message ?? 'Enregistrement impossible');
@@ -601,6 +858,13 @@ export default function MbooloChatScreen({ navigation, route }) {
           </View>
           <PressScale
             scaleTo={0.9}
+            onPress={() => setSearchOpen((v) => !v)}
+            style={styles.chBack}
+          >
+            <Text style={{ fontSize: 15 }}>🔍</Text>
+          </PressScale>
+          <PressScale
+            scaleTo={0.9}
             onPress={() => open('Call', { threadId, title: chatTitle, video: false, ring: true })}
             style={styles.chBack}
           >
@@ -622,6 +886,25 @@ export default function MbooloChatScreen({ navigation, route }) {
           </PressScale>
         </View>
 
+        {searchOpen ? (
+          <View style={styles.searchBar}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Rechercher dans la conversation…"
+              placeholderTextColor={colors.mboolo.ink3}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 ? (
+              <PressScale scaleTo={0.95} onPress={() => setSearchQuery('')} style={styles.searchClear}>
+                <Text style={styles.searchClearText}>✕</Text>
+              </PressScale>
+            ) : null}
+          </View>
+        ) : null}
+
         <View style={styles.moneyBar}>
           <PressScale scaleTo={0.96} onPress={handleSendMoney} style={styles.moneyChip}>
             <Text style={styles.moneyChipText}>💸 Envoyer</Text>
@@ -635,6 +918,21 @@ export default function MbooloChatScreen({ navigation, route }) {
           </PressScale>
         </View>
 
+        {commerceBanner ? (
+          <View style={styles.commerceBanner}>
+            <Text style={styles.commerceBannerTitle}>🤝 {commerceBanner.name}</Text>
+            <Text style={styles.commerceBannerSub}>
+              Caisse {Number(commerceBanner.potBalance).toLocaleString('fr-FR')} F · escrow visible
+            </Text>
+          </View>
+        ) : null}
+
+        {typingUsers.length > 0 ? (
+          <Text style={styles.typingHint}>
+            {typingUsers.map((u) => u.name).join(', ')} {typingUsers.length > 1 ? 'écrivent' : 'écrit'}…
+          </Text>
+        ) : null}
+
         <ScrollView
           ref={scrollRef}
           style={{ flex: 1 }}
@@ -646,13 +944,17 @@ export default function MbooloChatScreen({ navigation, route }) {
         >
           {loading && <ActivityIndicator color={colors.mboolo.terra} style={{ marginVertical: spacing.xl }} />}
           {!loading && messages.length === 0 && (
-            <Text style={styles.emptyHint}>Aucun message — envoie le premier 👋</Text>
+            <Text style={styles.emptyHint}>
+              {searchQuery.trim().length >= 2 ? 'Aucun message trouvé' : 'Aucun message — envoie le premier 👋'}
+            </Text>
           )}
           {messages.map((m) => (
             <MessageBubble
               key={m.id}
               message={m}
               isMe={m.senderId === userId}
+              lowData={lowDataMode}
+              onLongPressMedia={handleLongPressMedia}
               onPlayVoice={playVoice}
               onJoinCall={(msg) =>
                 open('Call', {
@@ -730,7 +1032,7 @@ export default function MbooloChatScreen({ navigation, route }) {
             }
             placeholderTextColor={colors.mboolo.ink3}
             value={text}
-            onChangeText={setText}
+            onChangeText={handleTextChange}
             editable={!sending && !isVoiceBusy}
             onSubmitEditing={handleSend}
             returnKeyType="send"
@@ -753,6 +1055,14 @@ export default function MbooloChatScreen({ navigation, route }) {
         onReaction={handleReaction}
         onSticker={handleSticker}
         onGif={handleGif}
+        onGifStudio={handleGifStudio}
+      />
+
+      <MbooloSaveSheet
+        visible={Boolean(saveTarget)}
+        onClose={() => setSaveTarget(null)}
+        onSaveVault={() => saveMedia('vault')}
+        onSaveProfile={() => saveMedia('profile')}
       />
 
       <Modal visible={requestOpen} animationType="slide" transparent onRequestClose={() => setRequestOpen(false)}>
@@ -837,8 +1147,57 @@ const styles = StyleSheet.create({
   callJoin: { fontSize: 11, fontWeight: '700', color: colors.mboolo.terra, marginTop: 4 },
   affiliateCard: { paddingVertical: 4 },
   affiliatePrice: { fontSize: 13, fontWeight: '700', color: colors.mboolo.terra, marginTop: 4 },
+  receiptRef: { fontSize: 10, color: colors.mboolo.ink3, marginTop: 4, fontFamily: fontFamily.medium },
+  receiptRefMe: { color: 'rgba(255,255,255,0.75)' },
+  commerceCard: { gap: 4 },
+  commerceMeta: { fontSize: 11, color: colors.mboolo.terra, fontFamily: fontFamily.medium },
+  commerceBanner: {
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(250,216,54,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(250,216,54,0.35)',
+  },
+  commerceBannerTitle: { fontFamily: fontFamily.semibold, fontSize: 13, color: colors.mboolo.ink },
+  commerceBannerSub: { fontSize: 11, color: colors.mboolo.ink2, marginTop: 2 },
+  typingHint: {
+    fontSize: 11,
+    color: colors.mboolo.ink3,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.sm,
+    fontStyle: 'italic',
+  },
   shareCardImage: { width: 180, height: 120, borderRadius: radius.lg, marginBottom: spacing.sm },
   chSub: { fontSize: 10, color: 'rgba(255,255,255,0.7)' },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.mboolo.terra,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    fontFamily: fontFamily.medium,
+    fontSize: 14,
+    color: colors.mboolo.ink,
+  },
+  searchClear: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchClearText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   moneyBar: {
     flexDirection: 'row',
     gap: spacing.sm,

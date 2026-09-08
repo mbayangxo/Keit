@@ -21,7 +21,10 @@ after(async () => {
 });
 
 async function call(handler, { userId, body, query, method = 'POST', deviceId } = {}) {
-  const headers = deviceId ? { 'x-device-id': deviceId } : {};
+  const headers = {
+    'x-vercel-ip-country': 'SN',
+    ...(deviceId ? { 'x-device-id': deviceId } : {}),
+  };
   const req = mockReq({ userId, body, query, method, headers });
   const res = mockRes();
   await handler(req, res);
@@ -42,6 +45,10 @@ test('B2B trade E2E: brand → trade account → portal → KEBU order → recei
   const supplier = await createUserWithWallet({ koriBalance: 0, name: 'Fournisseur' });
   const buyer = await createUserWithWallet({ koriBalance: 100_000, name: 'Acheteur' });
   const buyerDevice = await createVerifiedDevice(buyer.id);
+  await prisma.user.update({
+    where: { id: buyer.id },
+    data: { stepUpVerifiedAt: new Date() },
+  });
 
   const buyerBiz = await prisma.business.create({
     data: {
@@ -208,6 +215,7 @@ test('B2B trade E2E: brand → trade account → portal → KEBU order → recei
   const beforeCod = await prisma.businessWallet.findUnique({ where: { businessId: buyerBiz.id } });
   const confirmRes = await call(marketplaceOrderConfirm, {
     userId: buyer.id,
+    deviceId: buyerDevice,
     query: { id: codOrderId },
   });
   assert.equal(confirmRes.statusCode, 200, JSON.stringify(confirmRes.body));

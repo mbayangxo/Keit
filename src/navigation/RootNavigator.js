@@ -19,7 +19,6 @@ import ReceiveScreen from '../screens/ReceiveScreen';
 import TontineScreen from '../screens/TontineScreen';
 import WalletScreen from '../screens/WalletScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
-import ComingSoonScreen from '../screens/ComingSoonScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import QrScanScreen from '../screens/QrScanScreen';
 import MyQrScreen from '../screens/MyQrScreen';
@@ -46,6 +45,11 @@ import PinGateScreen from '../screens/PinGateScreen';
 import ScheduledPaymentsScreen from '../screens/ScheduledPaymentsScreen';
 import JekkalScreen from '../screens/JekkalScreen';
 import JekkalDetailScreen from '../screens/JekkalDetailScreen';
+import MyTicketsScreen from '../screens/MyTicketsScreen';
+import EventCreateScreen from '../screens/EventCreateScreen';
+import EventScannerScreen from '../screens/EventScannerScreen';
+import InfoScreen from '../screens/InfoScreen';
+import MbooloVaultScreen from '../screens/MbooloVaultScreen';
 import AffiliateScreen from '../screens/AffiliateScreen';
 import ForgotAccessScreen from '../screens/ForgotAccessScreen';
 import { useAppState } from '../state/AppState';
@@ -225,11 +229,14 @@ export default function RootNavigator() {
       <Stack.Screen name="StudentPass" component={StudentPassScreen} />
       <Stack.Screen name="Jekkal" component={JekkalScreen} />
       <Stack.Screen name="JekkalDetail" component={JekkalDetailScreen} />
-      <Stack.Screen name="MyTickets" component={ComingSoonScreen} initialParams={{ title: 'Billets', subtitle: 'La billetterie arrive dans l’app K21 Events (à part).' }} />
+      <Stack.Screen name="MyTickets" component={MyTicketsScreen} />
+      <Stack.Screen name="EventCreate" component={EventCreateScreen} />
+      <Stack.Screen name="EventScanner" component={EventScannerScreen} />
       <Stack.Screen name="GiftReveal" component={GiftRevealScreen} />
       <Stack.Screen name="Affiliate" component={AffiliateScreen} />
       <Stack.Screen name="Friends" component={FriendsScreen} />
-      <Stack.Screen name="Info" component={ComingSoonScreen} />
+      <Stack.Screen name="Info" component={InfoScreen} />
+      <Stack.Screen name="MbooloVault" component={MbooloVaultScreen} />
     </Stack.Navigator>
   );
 }

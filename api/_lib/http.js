@@ -12,7 +12,7 @@ export function setCors(res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-Step-Up-Token, X-Admin-Key, X-Device-Id, X-Device-Name',
+    'Content-Type, Authorization, X-Step-Up-Token, X-Admin-Key, X-Api-Key, X-Device-Id, X-Device-Name, Idempotency-Key',
   );
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 }

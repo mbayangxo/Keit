@@ -34,10 +34,10 @@ const QUICK_AMOUNTS = [
 ];
 
 const DEFAULT_MERCHANT = {
-  name: 'Choisir un marchand',
-  arr: 'Liste K21',
+  name: 'Scanne un QR marchand',
+  arr: 'Ou choisis ci-dessous',
   emoji: '🏪',
-  businessId: process.env.EXPO_PUBLIC_DEMO_MERCHANT_ID ?? '',
+  businessId: null,
 };
 
 function formatAmount(n) {
@@ -314,7 +314,6 @@ export default function PayMerchantScreen({ navigation, route }) {
       .then((list) => {
         const items = Array.isArray(list) ? list : [];
         setMerchants(items);
-        if (!presetId && items[0]) applyMerchant(items[0]);
       })
       .catch(() => {});
   }, [route.params?.merchantId, route.params?.merchantName, route.params?.merchantVerified, route.params?.merchantArr]);
@@ -394,7 +393,13 @@ export default function PayMerchantScreen({ navigation, route }) {
               amount={amount}
               setAmount={setAmount}
               onBack={() => navigation.goBack()}
-              onContinue={() => setStep('confirm')}
+              onContinue={() => {
+                if (!merchant.businessId) {
+                  showToast('Scanne un QR marchand ou choisis-en un dans la liste');
+                  return;
+                }
+                setStep('confirm');
+              }}
               onScan={() => navigation.navigate('QrScan', { mode: 'merchant' })}
             />
           </StepTransition>

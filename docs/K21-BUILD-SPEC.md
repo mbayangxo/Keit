@@ -246,7 +246,8 @@ All of this lives in the **Mboolo** tab — not wallet, not marketplace.
 
 **Gaps (honest):**
 
-- No cron for **trade invoice overdue reminders**, **B2B route planning**, or **delivery SMS ETA** — planned with Trade Portal phase 3
+- Trade invoice overdue reminders run in daily cron (`lib/cron/trade-invoice-reminders.js`)
+- No cron for **B2B route planning** or **delivery SMS ETA** — planned with Trade Portal phase 3
 - Hobby plan = **one daily** + **one hourly** Vercel cron; everything else relies on daily batch or manual ping
 - `api-disabled/cron/*` duplicates are **legacy** — live router is `lib/api-router.js` → `lib/cron/http-handlers.js`
 

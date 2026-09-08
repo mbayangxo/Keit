@@ -2,6 +2,13 @@ import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { readAsStringAsync, writeAsStringAsync, EncodingType, cacheDirectory } from 'expo-file-system/legacy';
 import { upload } from '@vercel/blob/client';
+import {
+  createMboloGif,
+  getMboloStorageStatus,
+  mboloMediaComplete,
+  mboloMediaUploadUrl,
+  sendMboloMessage,
+} from './api-client';
 
 /** Keep under server zod limit (800k) with JSON overhead. */
 export const MAX_MEDIA_CHARS = 720_000;
@@ -248,6 +255,77 @@ export async function pickMboloVideo() {
   return pickVideoFromLibrary();
 }
 
+/** Pick a short video for Supabase upload (uri + metadata, no base64). */
+export async function pickMboloVideoAsset() {
+  if (Platform.OS === 'web') {
+    const file = await new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'video/*';
+      input.onchange = () => resolve(input.files?.[0] ?? null);
+      input.click();
+    });
+    if (!file) return null;
+    return {
+      uri: URL.createObjectURL(file),
+      mimeType: file.type || 'video/mp4',
+      fileName: file.name || `mbolo-video-${Date.now()}.mp4`,
+      blob: file,
+    };
+  }
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) throw new Error('Accès médias refusé');
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['videos'],
+    videoMaxDuration: 30,
+    quality: 0.5,
+  });
+  if (result.canceled || !result.assets?.[0]?.uri) return null;
+  const picked = result.assets[0];
+  const contentType = picked.mimeType || 'video/mp4';
+  return {
+    uri: picked.uri,
+    mimeType: contentType,
+    fileName: `mbolo-video-${Date.now()}.${contentType.split('/')[1] ?? 'mp4'}`,
+  };
+}
+
+/** Pick a GIF file for the personal library. */
+export async function pickMboloGifFile() {
+  if (Platform.OS === 'web') {
+    const file = await new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/gif';
+      input.onchange = () => resolve(input.files?.[0] ?? null);
+      input.click();
+    });
+    if (!file) return null;
+    return {
+      uri: URL.createObjectURL(file),
+      mimeType: file.type || 'image/gif',
+      fileName: file.name || `mbolo-gif-${Date.now()}.gif`,
+      blob: file,
+    };
+  }
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) throw new Error('Accès médias refusé');
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: false,
+  });
+  if (result.canceled || !result.assets?.[0]?.uri) return null;
+  const picked = result.assets[0];
+  if (!String(picked.mimeType ?? '').includes('gif') && !picked.uri.toLowerCase().includes('.gif')) {
+    throw new Error('Choisis un fichier GIF');
+  }
+  return {
+    uri: picked.uri,
+    mimeType: picked.mimeType || 'image/gif',
+    fileName: `mbolo-gif-${Date.now()}.gif`,
+  };
+}
+
 async function pickVideoAsset() {
   if (Platform.OS === 'web') {
     const file = await new Promise((resolve) => {
@@ -276,9 +354,7 @@ async function pickVideoAsset() {
 }
 
 /**
- * Pick a short video and upload it straight to Vercel Blob (bypassing the
- * ~4.5MB serverless body limit that base64-in-Postgres would hit). Returns
- * the resulting HTTPS URL, or null if the user cancelled the picker.
+ * Pick a short video and upload it straight to Vercel Blob (legacy fallback).
  */
 export async function pickAndUploadMboloVideo({ handleUploadUrl, headers }) {
   const asset = await pickVideoAsset();
@@ -330,4 +406,183 @@ export async function startMboloVoiceRecording() {
         recorder.stop();
       }),
   };
+}
+
+async function uriToBlob(uri, mimeType, presetBlob) {
+  if (presetBlob) return presetBlob;
+  if (typeof uri === 'string' && uri.startsWith('data:')) {
+    const res = await fetch(uri);
+    return res.blob();
+  }
+  const res = await fetch(uri);
+  if (!res.ok) throw new Error('Fichier illisible');
+  const blob = await res.blob();
+  if (mimeType && blob.type !== mimeType) {
+    return new Blob([await blob.arrayBuffer()], { type: mimeType });
+  }
+  return blob;
+}
+
+const MESSAGE_KIND = {
+  image: 'image',
+  photo: 'image',
+  voice: 'voice',
+  video: 'video',
+  gif: 'gif',
+};
+
+/**
+ * Upload media to Supabase via signed URL.
+ * @returns {{ mediaAssetId: string, readUrl: string, mimeType: string, sizeBytes: number }}
+ */
+export async function uploadMbooloMedia({
+  threadId,
+  kind,
+  uri,
+  mimeType,
+  durationMs,
+  waveformJson,
+  retention = 'thread',
+  blob: presetBlob,
+}) {
+  const blob = await uriToBlob(uri, mimeType, presetBlob);
+  const normalizedKind = kind === 'image' ? 'photo' : kind;
+
+  const mint = await mboloMediaUploadUrl({
+    threadId,
+    kind: normalizedKind,
+    mimeType: mimeType ?? blob.type ?? 'application/octet-stream',
+    sizeBytes: blob.size,
+    retention,
+  });
+
+  const uploadRes = await fetch(mint.uploadUrl, {
+    method: 'PUT',
+    headers: mint.headers ?? { 'Content-Type': mimeType ?? blob.type },
+    body: blob,
+  });
+  if (!uploadRes.ok) {
+    throw new Error('Échec envoi du fichier vers le stockage');
+  }
+
+  const completed = await mboloMediaComplete({
+    assetId: mint.assetId,
+    durationMs,
+    waveformJson,
+  });
+
+  return {
+    mediaAssetId: mint.assetId,
+    readUrl: completed.readUrl,
+    mimeType: completed.asset?.mimeType ?? mimeType ?? blob.type,
+    sizeBytes: completed.asset?.sizeBytes ?? blob.size,
+  };
+}
+
+/**
+ * Send photo / voice / video through Supabase when configured; legacy fallback otherwise.
+ */
+export async function sendMbooloMediaMessage({
+  threadId,
+  kind,
+  uri,
+  mimeType,
+  durationMs,
+  waveformJson,
+  retention = 'thread',
+  blob,
+}) {
+  const status = await getMboloStorageStatus().catch(() => ({ storage: 'legacy' }));
+  const storageReady = status.storage === 'supabase';
+  const msgKind = MESSAGE_KIND[kind] ?? kind;
+
+  if (storageReady) {
+    const uploaded = await uploadMbooloMedia({
+      threadId,
+      kind,
+      uri,
+      mimeType,
+      durationMs,
+      waveformJson,
+      retention,
+      blob,
+    });
+    const body =
+      msgKind === 'voice'
+        ? `🎤 ${Math.max(1, Math.round((durationMs ?? 0) / 1000))}s`
+        : msgKind === 'video'
+          ? '🎬 Vidéo'
+          : msgKind === 'gif'
+            ? 'GIF'
+            : '📷 Photo';
+    const msg = await sendMboloMessage(threadId, {
+      kind: msgKind,
+      body,
+      mediaAssetId: uploaded.mediaAssetId,
+      mediaUrl: uploaded.readUrl,
+      retention,
+    });
+    return { ...msg, mediaUrl: uploaded.readUrl };
+  }
+
+  if (msgKind === 'video') {
+    const { getMboloVideoUploadConfig } = await import('./api-client');
+    const { upload: blobUpload } = await import('@vercel/blob/client');
+    const config = await getMboloVideoUploadConfig();
+    const fileBlob = await uriToBlob(uri, mimeType, blob);
+    const filename = `mbolo-video-${Date.now()}.${(mimeType ?? 'video/mp4').split('/')[1] ?? 'mp4'}`;
+    const uploaded = await blobUpload(filename, fileBlob, {
+      access: 'public',
+      handleUploadUrl: config.handleUploadUrl,
+      headers: config.headers,
+      contentType: mimeType ?? fileBlob.type ?? 'video/mp4',
+    });
+    return sendMboloMessage(threadId, {
+      kind: 'video',
+      body: '🎬 Vidéo',
+      mediaUrl: uploaded.url,
+      retention,
+    });
+  }
+
+  const dataUrl = uri.startsWith('data:') ? uri : await readFileAsDataUrl(await uriToBlob(uri, mimeType, blob));
+  const checked = msgKind === 'voice' ? assertVoiceDataUrlSize(dataUrl) : assertDataUrlSize(dataUrl);
+  const body =
+    msgKind === 'voice'
+      ? `🎤 ${Math.max(1, Math.round((durationMs ?? 0) / 1000))}s`
+      : msgKind === 'gif'
+        ? 'GIF'
+        : '📷 Photo';
+  return sendMboloMessage(threadId, {
+    kind: msgKind,
+    body,
+    mediaUrl: checked,
+    retention,
+  });
+}
+
+/** Register a user GIF in the library (upload + POST /api/mbolo/gifs). Requires Supabase Storage. */
+export async function createPersonalMboloGif({ label, uri, mimeType, blob }) {
+  const status = await getMboloStorageStatus().catch(() => ({ storage: 'legacy' }));
+  if (status.storage !== 'supabase') {
+    throw new Error('Création de GIF disponible quand le stockage cloud est activé');
+  }
+
+  const fileBlob = await uriToBlob(uri, mimeType ?? 'image/gif', blob);
+  const mint = await createMboloGif({
+    sizeBytes: fileBlob.size,
+    mimeType: mimeType ?? 'image/gif',
+  });
+
+  const uploadRes = await fetch(mint.uploadUrl, {
+    method: 'PUT',
+    headers: mint.headers ?? { 'Content-Type': mimeType ?? 'image/gif' },
+    body: fileBlob,
+  });
+  if (!uploadRes.ok) throw new Error('Échec envoi du GIF');
+
+  return createMboloGif({
+    assetId: mint.assetId,
+    label: label ?? 'Mon GIF',
+  });
 }

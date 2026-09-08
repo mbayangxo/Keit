@@ -30,7 +30,7 @@ const SECTIONS = [
       { key: 'movement', icon: '🛵', title: 'Mouvement', route: 'Movement', tint: 'rgba(26,240,96,0.14)' },
       { key: 'nulekk', icon: '🍖', title: 'Ñu Lekk', route: 'NuLekk', soon: 'nuLekk', tint: 'rgba(232,92,26,0.14)' },
       { key: 'deals', icon: '⚡', title: 'Offres flash', marketplace: 'Discover', tab: 'Eat', tint: 'rgba(250,216,54,0.18)' },
-      { key: 'events', icon: '🎟️', title: 'Événements', marketplace: 'Discover', tab: 'Events', tint: 'rgba(232,92,26,0.14)' },
+      { key: 'events', icon: '🎟️', title: 'Mes billets', route: 'MyTickets', feature: ['marketplace', 'tickets'], tint: 'rgba(232,92,26,0.14)' },
     ],
   },
   {

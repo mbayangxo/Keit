@@ -69,9 +69,9 @@ export async function routeQrScan({ raw, mode, navigation, route, api, showToast
   }
 
   if (mode === 'ticket' || parsed?.kind === 'ticket_pass') {
-    showToast('Billets dans l’app K21 Events (bientôt) — pas dans K21 principal');
-    navigation.goBack();
-    return { ok: false };
+    const scanCode = parsed?.scanCode ?? text.replace(/^.*ticket\//i, '').trim();
+    navigation.navigate('EventScanner', { prefilledCode: scanCode });
+    return { ok: true };
   }
 
   if (parsed?.kind === 'affiliate_shop' || parsed?.kind === 'affiliate_link') {

@@ -26,6 +26,7 @@ export async function createUserWithWallet({
   tier = 2,
   name = 'Test User',
   isDiaspora = false,
+  handle,
 } = {}) {
   const spendableKori = koriBalance ?? balance;
   const now = new Date();
@@ -34,7 +35,7 @@ export async function createUserWithWallet({
       phone: uniquePhone(),
       name,
       country: 'SN',
-      handle: `test${crypto.randomBytes(4).toString('hex')}`,
+      handle: handle ?? `test${crypto.randomBytes(4).toString('hex')}`,
       otpVerifiedAt: now,
       isDiaspora,
       verificationTier: tier,
@@ -117,6 +118,12 @@ export function mockRes() {
       return this;
     },
     json(payload) {
+      this.body = payload;
+      this.headersSent = true;
+      this.ended = true;
+      return this;
+    },
+    send(payload) {
       this.body = payload;
       this.headersSent = true;
       this.ended = true;

@@ -30,9 +30,7 @@ test('trade invoice reminders: past-due invoices flip to overdue and notify both
   const pastDue = await makeInvoice({ supplier, buyer, dueAt: new Date(Date.now() - 24 * 3600 * 1000) });
   const notYetDue = await makeInvoice({ supplier, buyer, dueAt: new Date(Date.now() + 5 * 24 * 3600 * 1000) });
 
-  const result = await runTradeInvoiceReminders(prisma);
-  assert.equal(result.newlyOverdue, 1);
-  assert.equal(result.remindersSent, 1);
+  await runTradeInvoiceReminders(prisma);
 
   const updated = await prisma.tradeInvoice.findUnique({ where: { id: pastDue.id } });
   assert.equal(updated.status, 'overdue');
@@ -41,11 +39,15 @@ test('trade invoice reminders: past-due invoices flip to overdue and notify both
   const untouched = await prisma.tradeInvoice.findUnique({ where: { id: notYetDue.id } });
   assert.equal(untouched.status, 'open');
 
-  const supplierNotifs = await prisma.notification.findMany({ where: { userId: supplier.id } });
-  assert.ok(supplierNotifs.some((n) => n.body.includes(pastDue.reference)), 'supplier notified of new overdue invoice');
+  const supplierNotifs = await prisma.notification.findMany({
+    where: { userId: supplier.id, refId: pastDue.id },
+  });
+  assert.ok(supplierNotifs.length >= 1, 'supplier notified of new overdue invoice');
 
-  const buyerNotifs = await prisma.notification.findMany({ where: { userId: buyer.id } });
-  assert.ok(buyerNotifs.some((n) => n.body.includes(pastDue.reference)), 'buyer reminded to pay');
+  const buyerNotifs = await prisma.notification.findMany({
+    where: { userId: buyer.id, refId: pastDue.id },
+  });
+  assert.ok(buyerNotifs.length >= 1, 'buyer reminded to pay');
 });
 
 test('trade invoice reminders: no duplicate reminder inside the cooldown, resumes after it', async () => {
@@ -53,18 +55,35 @@ test('trade invoice reminders: no duplicate reminder inside the cooldown, resume
   const buyer = await createUserWithWallet({ name: 'Acheteur' });
   const invoice = await makeInvoice({ supplier, buyer, dueAt: new Date(Date.now() - 24 * 3600 * 1000) });
 
-  const first = await runTradeInvoiceReminders(prisma);
-  assert.equal(first.remindersSent, 1);
+  await runTradeInvoiceReminders(prisma);
+  const afterFirst = await prisma.tradeInvoice.findUnique({ where: { id: invoice.id } });
+  assert.equal(afterFirst.status, 'overdue');
+  assert.ok(afterFirst.reminderSentAt);
+  const firstReminderAt = afterFirst.reminderSentAt.getTime();
+  const firstBuyerNotifs = await prisma.notification.count({
+    where: { userId: buyer.id, refId: invoice.id, kind: 'trade_invoice_reminder' },
+  });
+  assert.equal(firstBuyerNotifs, 1);
 
-  const second = await runTradeInvoiceReminders(prisma);
-  assert.equal(second.remindersSent, 0, 'still inside the cooldown window');
+  await runTradeInvoiceReminders(prisma);
+  const afterSecond = await prisma.tradeInvoice.findUnique({ where: { id: invoice.id } });
+  assert.equal(afterSecond.reminderSentAt.getTime(), firstReminderAt, 'still inside the cooldown window');
+  const secondBuyerNotifs = await prisma.notification.count({
+    where: { userId: buyer.id, refId: invoice.id, kind: 'trade_invoice_reminder' },
+  });
+  assert.equal(secondBuyerNotifs, 1);
 
   await prisma.tradeInvoice.update({
     where: { id: invoice.id },
     data: { reminderSentAt: new Date(Date.now() - 4 * 24 * 3600 * 1000) },
   });
-  const third = await runTradeInvoiceReminders(prisma);
-  assert.equal(third.remindersSent, 1, 'cooldown elapsed, reminder resumes');
+  await runTradeInvoiceReminders(prisma);
+  const afterThird = await prisma.tradeInvoice.findUnique({ where: { id: invoice.id } });
+  assert.ok(afterThird.reminderSentAt.getTime() > firstReminderAt, 'cooldown elapsed, reminder resumes');
+  const thirdBuyerNotifs = await prisma.notification.count({
+    where: { userId: buyer.id, refId: invoice.id, kind: 'trade_invoice_reminder' },
+  });
+  assert.equal(thirdBuyerNotifs, 2);
 });
 
 test('trade invoice reminders: an overdue invoice can still be paid', async () => {

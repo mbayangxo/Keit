@@ -7,6 +7,7 @@ import { readFileSync, existsSync } from 'fs';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { normalizeDatabaseUrl } from '../lib/db-url.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -35,7 +36,8 @@ function fail(msg) {
 
 loadEnvFile();
 
-const url = process.env.DATABASE_URL?.trim();
+const url = normalizeDatabaseUrl(process.env.DATABASE_URL?.trim());
+if (url) process.env.DATABASE_URL = url;
 
 if (!url) {
   fail(
@@ -74,7 +76,7 @@ const PLACEHOLDER =
 if (PLACEHOLDER.test(url)) {
   fail(
     'DATABASE_URL still looks like the .env.example template (USER, PASSWORD, or HOST).\n' +
-      'Edit the file: /Users/mbayangdiallo/keit/.env — save it — then run npm run db:setup again.\n' +
+      `Edit the file: ${join(process.cwd(), '.env')} — save it — then run npm run db:setup again.\n` +
       'Supabase → Settings → Database → Connection string → URI'
   );
 }
@@ -87,17 +89,38 @@ if (/:[^/@]+@[^/@]+@/.test(url)) {
   );
 }
 
-console.log('✓ DATABASE_URL looks valid');
-console.log('→ Pushing schema to Supabase…');
+const isLocalTestDb = /localhost|127\.0\.0\.1|:5121[0-9]/i.test(url);
+if (isLocalTestDb) {
+  console.warn(
+    '⚠ DATABASE_URL points at a local/test Postgres (not Supabase).\n' +
+      '  For integration tests: npm run test:db:start && npm run test:db:setup\n' +
+      '  For production Supabase: paste the direct connection URI (port 5432) into .env\n',
+  );
+}
 
-const prismaBin = join(root, 'node_modules', '.bin', 'prisma');
-const push = spawnSync(prismaBin, ['db', 'push', '--accept-data-loss'], {
+console.log('✓ DATABASE_URL looks valid');
+console.log(isLocalTestDb ? '→ Pushing schema to local test DB…' : '→ Pushing schema to Supabase…');
+
+const prismaCli = join(root, 'scripts', 'prisma-cli.mjs');
+const push = spawnSync(process.execPath, [prismaCli, 'db', 'push', '--accept-data-loss'], {
   cwd: root,
-  stdio: 'inherit',
+  stdio: 'pipe',
   env: process.env,
+  encoding: 'utf8',
 });
 
+if (push.stdout) process.stdout.write(push.stdout);
+if (push.stderr) process.stderr.write(push.stderr);
+
 if (push.status !== 0) {
+  const combined = `${push.stdout ?? ''}\n${push.stderr ?? ''}`;
+  if (/prepared statement.*already exists/i.test(combined)) {
+    fail(
+      'prisma db push failed: prepared statement conflict (PgBouncer transaction pooler).\n' +
+        'Use Supabase → Database → Connection string → URI → Direct connection (port 5432) for db push,\n' +
+        'not the transaction pooler (port 6543). Keep pooler URL for Vercel runtime if you prefer.',
+    );
+  }
   fail('prisma db push failed — check your Supabase URL and network.');
 }
 

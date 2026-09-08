@@ -5,12 +5,14 @@
  * Local test database: `npm run test:db:start` (Prisma dev Postgres on :51214).
  */
 
+import { normalizeDatabaseUrl } from '../../lib/db-url.js';
+
 process.env.NODE_ENV = process.env.NODE_ENV === 'production' ? 'test' : (process.env.NODE_ENV ?? 'test');
 
-// pgbouncer=true disables named prepared statements — required for the Prisma
-// dev proxy, which otherwise errors "prepared statement already exists" under a pool.
-process.env.DATABASE_URL ??=
+const defaultTestUrl =
   'postgres://postgres:postgres@localhost:51214/template1?sslmode=disable&pgbouncer=true&connection_limit=20&pool_timeout=120';
+
+process.env.DATABASE_URL = normalizeDatabaseUrl(process.env.DATABASE_URL?.trim() || defaultTestUrl);
 
 process.env.JWT_ACCESS_SECRET ??= 'test-jwt-access-secret-0123456789';
 process.env.JWT_REFRESH_SECRET ??= 'test-jwt-refresh-secret-0123456789';

@@ -353,10 +353,10 @@ export function getMerchantPublic(idOrKebuId) {
   return apiFetch(`/api/merchants/${encodeURIComponent(idOrKebuId)}/public`, { skipCache: true });
 }
 
-export function merchantPay(businessId, { amount, currency = 'kori', stepUpToken, useVoucher }) {
+export function merchantPay(businessId, { amount, currency = 'kori', stepUpToken, useVoucher, threadId }) {
   return apiFetch(`/api/merchants/${encodeURIComponent(businessId)}/pay`, {
     method: 'POST',
-    body: { amount, currency, stepUpToken, useVoucher: useVoucher === true ? true : undefined },
+    body: { amount, currency, stepUpToken, useVoucher: useVoucher === true ? true : undefined, threadId },
     skipCache: true,
   });
 }
@@ -477,8 +477,48 @@ export function joinMboloGroup(code) {
   });
 }
 
-export function getMboloMessages(threadId) {
-  return apiFetch(`/api/mbolo/threads/${encodeURIComponent(threadId)}/messages`, { skipCache: true });
+export function getMboloMessages(threadId, { q, cursor, limit } = {}) {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (cursor) params.set('cursor', cursor);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString();
+  return apiFetch(
+    `/api/mbolo/threads/${encodeURIComponent(threadId)}/messages${qs ? `?${qs}` : ''}`,
+    { skipCache: true },
+  );
+}
+
+export function getMboloStorageStatus() {
+  return apiFetch('/api/mbolo/storage/status', { skipCache: true });
+}
+
+export function mboloMediaUploadUrl(body) {
+  return apiFetch('/api/mbolo/media/upload-url', { method: 'POST', body, skipCache: true });
+}
+
+export function mboloMediaComplete(body) {
+  return apiFetch('/api/mbolo/media/complete', { method: 'POST', body, skipCache: true });
+}
+
+export function getMboloVault() {
+  return apiFetch('/api/mbolo/vault', { skipCache: true });
+}
+
+export function deleteMboloVaultItem(assetId) {
+  return apiFetch(`/api/mbolo/vault/${encodeURIComponent(assetId)}`, { method: 'DELETE', skipCache: true });
+}
+
+export function getMboloGifs() {
+  return apiFetch('/api/mbolo/gifs', { skipCache: true });
+}
+
+export function createMboloGif(body) {
+  return apiFetch('/api/mbolo/gifs', { method: 'POST', body, skipCache: true });
+}
+
+export function useMboloGif(gifId) {
+  return apiFetch(`/api/mbolo/gifs/${encodeURIComponent(gifId)}/use`, { method: 'POST', body: {}, skipCache: true });
 }
 
 export function sendMboloMessage(threadId, payload) {
@@ -487,6 +527,46 @@ export function sendMboloMessage(threadId, payload) {
     body: payload,
     skipCache: true,
   });
+}
+
+export function saveMboloMessageMedia(messageId, { retention = 'vault' } = {}) {
+  return apiFetch(`/api/mbolo/messages/${encodeURIComponent(messageId)}/save`, {
+    method: 'POST',
+    body: { retention },
+    skipCache: true,
+  });
+}
+
+export function getMboloThreadPresence(threadId) {
+  return apiFetch(`/api/mbolo/threads/${encodeURIComponent(threadId)}/presence`, { skipCache: true });
+}
+
+export function markMboloThreadTyping(threadId) {
+  return apiFetch(`/api/mbolo/threads/${encodeURIComponent(threadId)}/typing`, {
+    method: 'POST',
+    body: {},
+    skipCache: true,
+  });
+}
+
+export function markMboloThreadRead(threadId) {
+  return apiFetch(`/api/mbolo/threads/${encodeURIComponent(threadId)}/read`, {
+    method: 'POST',
+    body: {},
+    skipCache: true,
+  });
+}
+
+export function getMboloStories() {
+  return apiFetch('/api/mbolo/stories', { skipCache: true });
+}
+
+export function postMboloStory(body) {
+  return apiFetch('/api/mbolo/stories', { method: 'POST', body, skipCache: true });
+}
+
+export function registerMboloDeviceKey(body) {
+  return apiFetch('/api/mbolo/device-keys', { method: 'POST', body, skipCache: true });
 }
 
 export function shareToMbolo({ threadId, refType, refId }) {

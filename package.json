@@ -1,12 +1,12 @@
 {
-  "name": "keit",
+  "name": "joko",
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
   "dependencies": {
     "@expo-google-fonts/outfit": "^0.4.3",
     "@expo-google-fonts/unbounded": "^0.4.1",
-    "@prisma/client": "^6.19.3",
+    "@prisma/client": "6.19.3",
     "@react-navigation/bottom-tabs": "^7.18.5",
     "@react-navigation/native": "^7.3.5",
     "@react-navigation/native-stack": "^7.17.7",
@@ -47,7 +47,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
-    "prisma": "^6.19.3",
+    "prisma": "6.19.3",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -63,12 +63,16 @@
     "db:seed-beta": "node scripts/db-seed-beta.mjs",
     "dev:api": "vercel dev",
     "db:generate": "node scripts/prisma-generate.mjs",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "test:db:start": "prisma dev --name keit-test --detach",
+    "db:migrate": "node scripts/prisma-cli.mjs migrate dev",
+    "db:resolve-baseline": "node scripts/db-resolve-baseline.mjs",
+    "db:studio": "node scripts/prisma-cli.mjs studio",
+    "pretest": "node scripts/ensure-test-db.mjs",
+    "pretest:one": "node scripts/ensure-test-db.mjs",
+    "test:db:start": "prisma dev --name joko-test --detach",
     "test:db:setup": "prisma db push --skip-generate && prisma generate",
-    "test:db:stop": "prisma dev stop keit-test",
+    "test:db:stop": "prisma dev stop joko-test",
     "test": "node --test --test-concurrency=1 \"tests/unit/**/*.test.js\" \"tests/integration/**/*.test.js\" \"tests/security/**/*.test.js\"",
+    "test:one": "node --test --test-concurrency=1",
     "test:unit": "node --test --test-concurrency=1 \"tests/unit/**/*.test.js\"",
     "test:integration": "node --test --test-concurrency=1 \"tests/integration/**/*.test.js\"",
     "test:marketplace": "node --test --test-concurrency=1 tests/integration/marketplace-flow.test.js",

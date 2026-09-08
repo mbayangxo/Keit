@@ -133,6 +133,11 @@ model User {
   affiliateProfile       AffiliateProfile?
   tradeAccountsAsBuyer   TradeAccount[]           @relation("TradeBuyer")
   tradeInvoicesAsBuyer   TradeInvoice[]           @relation("TradeInvoiceBuyer")
+  mediaVault             UserMediaVault?
+  mboloMediaAssets       MbooloMediaAsset[]
+  mboloGifsCreated       MbooloGif[]              @relation("MbooloGifCreator")
+  mboloStories           UserStory[]
+  deviceKeys             UserDeviceKey[]
 
   @@index([phone])
   @@index([afriId])
@@ -860,28 +865,34 @@ model SolidarityContribution {
 }
 
 model MboloThread {
-  id         String   @id @default(cuid())
-  creatorId  String
-  name       String?
-  type       String   @default("direct")
-  inviteCode String?  @unique
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            String   @id @default(cuid())
+  creatorId     String
+  name          String?
+  type          String   @default("direct")
+  commerceType  String?
+  commerceRefId String?
+  inviteCode    String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  creator  User           @relation("ThreadCreator", fields: [creatorId], references: [id])
-  members  MboloMember[]
-  messages MboloMessage[]
+  creator     User              @relation("ThreadCreator", fields: [creatorId], references: [id])
+  members     MboloMember[]
+  messages    MboloMessage[]
+  mediaAssets MbooloMediaAsset[]
 
   @@index([creatorId])
   @@index([type])
+  @@index([commerceRefId])
 }
 
 model MboloMember {
-  id        String   @id @default(cuid())
-  threadId  String
-  userId    String
-  role      String   @default("member")
-  createdAt DateTime @default(now())
+  id           String    @id @default(cuid())
+  threadId     String
+  userId       String
+  role         String    @default("member")
+  lastReadAt   DateTime?
+  lastTypingAt DateTime?
+  createdAt    DateTime  @default(now())
 
   thread MboloThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -891,19 +902,106 @@ model MboloMember {
 }
 
 model MboloMessage {
-  id        String   @id @default(cuid())
-  threadId  String
-  senderId  String
-  body      String   @default("")
-  kind      String   @default("text")
-  mediaUrl  String?  @db.Text
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  threadId     String
+  senderId     String
+  body         String   @default("")
+  kind         String   @default("text")
+  mediaUrl     String?  @db.Text
+  mediaAssetId String?  @unique
+  retention    String   @default("thread")
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
 
-  thread MboloThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  sender User        @relation(fields: [senderId], references: [id])
+  thread     MboloThread      @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender     User             @relation(fields: [senderId], references: [id])
+  mediaAsset MbooloMediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
 
   @@index([threadId, createdAt])
   @@index([senderId])
+}
+
+model UserMediaVault {
+  userId     String   @id
+  quotaBytes Int      @default(524288000)
+  usedBytes  Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MbooloMediaAsset {
+  id             String    @id @default(cuid())
+  ownerId        String
+  threadId       String?
+  bucket         String
+  storagePath    String
+  sourceUrl      String?   @db.Text
+  mimeType       String
+  kind           String
+  sizeBytes      Int       @default(0)
+  status         String    @default("pending")
+  retention      String    @default("thread")
+  profileVisible Boolean   @default(false)
+  waveformJson   Json?
+  durationMs     Int?
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  owner   User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  thread  MboloThread?  @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  message MboloMessage?
+
+  @@index([ownerId, createdAt])
+  @@index([threadId])
+  @@index([status])
+}
+
+model UserStory {
+  id           String   @id @default(cuid())
+  userId       String
+  body         String   @default("")
+  mediaUrl     String?  @db.Text
+  mediaAssetId String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model UserDeviceKey {
+  id          String   @id @default(cuid())
+  userId      String
+  publicKey   String   @db.Text
+  deviceLabel String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, active])
+}
+
+model MbooloGif {
+  id          String   @id @default(cuid())
+  creatorId   String?
+  label       String
+  storagePath String
+  mimeType    String   @default("image/gif")
+  sizeBytes   Int      @default(0)
+  scope       String   @default("k21")
+  active      Boolean  @default(true)
+  useCount    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creator User? @relation("MbooloGifCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+
+  @@index([scope, active])
+  @@index([creatorId])
 }
 
 model TontineGroup {
@@ -1017,6 +1115,23 @@ model TrendingArticle {
   updatedAt       DateTime @updatedAt
 
   @@index([country, category, publishedAt])
+}
+
+model CultureFeedItem {
+  id          String   @id @default(cuid())
+  country     String   @default("SN")
+  regionKey   String?
+  tag         String
+  icon        String
+  title       String
+  meta        String
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([country, active, sortOrder])
 }
 
 model MoneyRequest {
@@ -1141,6 +1256,71 @@ model RailTransaction {
   @@index([userId, createdAt])
   @@index([provider, externalId])
   @@index([status])
+}
+
+/** External shop / partner collect sessions (Kebu, Rect, …). */
+model PartnerPayment {
+  id                 String    @id @default(cuid())
+  partnerId          String
+  reference          String
+  amountXof          Int
+  currency           String    @default("XOF")
+  status             String    @default("pending")
+  phone              String?
+  method             String    @default("auto")
+  description        String?
+  metadataJson       String?   @db.Text
+  webhookUrl         String?
+  returnUrl          String?
+  cancelUrl          String?
+  checkoutToken      String    @unique
+  railReference      String?
+  settlementUserId   String?
+  failureReason      String?
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  webhookDeliveries PartnerWebhookDelivery[]
+
+  @@unique([partnerId, reference])
+  @@index([status, createdAt])
+  @@index([phone])
+}
+
+model PartnerWebhookDelivery {
+  id           String    @id @default(cuid())
+  paymentId    String
+  url          String
+  attempt      Int       @default(1)
+  statusCode   Int?
+  responseBody String?   @db.Text
+  ok           Boolean   @default(false)
+  nextRetryAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  payment PartnerPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, createdAt])
+  @@index([ok, nextRetryAt])
+}
+
+/** Partner outbound messages (OTP / fulfill notify). */
+model PartnerMessage {
+  id           String   @id @default(cuid())
+  partnerId    String
+  toPhone      String
+  text         String   @db.Text
+  status       String   @default("queued")
+  channelUsed  String   @default("none")
+  error        String?
+  metadataJson String?  @db.Text
+  idempotencyKey String? @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([partnerId, createdAt])
+  @@index([toPhone, createdAt])
 }
 
 model ApiIdempotency {

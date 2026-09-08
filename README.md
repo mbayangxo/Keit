@@ -1,6 +1,8 @@
-# KEIT / K21
+# Joko — wallet
 
-West African youth payment + community app. **Senegal first (Phase 1).**
+West African youth wallet + Mboolo + marketplace. **Senegal first (Phase 1).**
+
+**KEBU** (B2B commerce website) is a **separate project** — not this repo. Joko is the wallet; shops plug in via the **[Partner API](docs/JOKO-PARTNER-API.md)** (`/api/v1/checkout/sessions`, webhooks, `/api/v1/messages/send`).
 
 ## Repo layout
 
@@ -83,4 +85,4 @@ Deploy: connect repo to Vercel, set `DATABASE_URL` (Supabase Postgres URL works)
 - Match design prototypes — `#050805` background, `#1af060` green, Unbounded + Outfit.
 - Kori (₭) is closed-loop stored value — not crypto.
 
-Branch: `claude/k21-phase-1-scope-wnk8gf` · Remote: `mbayangxo/keit`
+Branch: `claude/k21-phase-1-scope-wnk8gf` · Remote: [`mbayangxo/joko`](https://github.com/mbayangxo/joko)
