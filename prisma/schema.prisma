@@ -98,6 +98,7 @@ model User {
   supportTickets        SupportTicket[]
   supportTicketMessages SupportTicketMessage[]
   supportCallLogs       SupportCallLog[]
+  partnerSupportAgents  PartnerSupportAgent[]
   adminRefundsReceived  AdminRefund[]          @relation("RefundRecipient")
   transferUndosSent     TransferUndo[]         @relation("UndoSender")
   transferUndosReceived TransferUndo[]         @relation("UndoRecipient")
@@ -1321,6 +1322,95 @@ model PartnerMessage {
 
   @@index([partnerId, createdAt])
   @@index([toPhone, createdAt])
+}
+
+/** Partner payouts — send XOF to a phone (supplier / refund / wage). */
+model PartnerPayout {
+  id               String    @id @default(cuid())
+  partnerId        String
+  reference        String
+  amountXof        Int
+  currency         String    @default("XOF")
+  status           String    @default("pending")
+  phone            String
+  method           String    @default("auto")
+  description      String?
+  metadataJson     String?   @db.Text
+  webhookUrl       String?
+  railReference    String?
+  settlementUserId String?
+  failureReason    String?
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  deliveries PartnerPayoutDelivery[]
+
+  @@unique([partnerId, reference])
+  @@index([status, createdAt])
+  @@index([phone])
+}
+
+model PartnerPayoutDelivery {
+  id           String    @id @default(cuid())
+  payoutId     String
+  url          String
+  attempt      Int       @default(1)
+  statusCode   Int?
+  responseBody String?   @db.Text
+  ok           Boolean   @default(false)
+  nextRetryAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  payout PartnerPayout @relation(fields: [payoutId], references: [id], onDelete: Cascade)
+
+  @@index([payoutId, createdAt])
+  @@index([ok, nextRetryAt])
+}
+
+/**
+ * Mbolo Business CS — partner shops hire agents who help customers in Mbolo.
+ * Not personal Mbolo; scoped to partnerId + shopExternalId.
+ */
+model PartnerSupportAgent {
+  id             String   @id @default(cuid())
+  partnerId      String
+  shopExternalId String?
+  jokoUserId     String
+  name           String?
+  role           String   @default("agent")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user    User                   @relation(fields: [jokoUserId], references: [id], onDelete: Cascade)
+  threads PartnerSupportThread[]
+
+  @@unique([partnerId, jokoUserId])
+  @@index([partnerId, shopExternalId])
+}
+
+model PartnerSupportThread {
+  id              String    @id @default(cuid())
+  partnerId       String
+  shopExternalId  String?
+  orderId         String?
+  customerPhone   String
+  customerUserId  String?
+  mboloThreadId   String?
+  status          String    @default("open")
+  assignedAgentId String?
+  subject         String?
+  metadataJson    String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  assignedAgent PartnerSupportAgent? @relation(fields: [assignedAgentId], references: [id], onDelete: SetNull)
+
+  @@index([partnerId, status, updatedAt])
+  @@index([customerPhone])
+  @@index([orderId])
+  @@index([mboloThreadId])
 }
 
 model ApiIdempotency {

@@ -146,22 +146,88 @@ Rules:
 - Else → SMS via configured provider (`channel_used: sms`)
 - Else → `status: failed` with honest `error` (never fake sent)
 
+## Mode 2 — Accept in store (POS / QR terminal)
+
+### `POST /v1/pos/sessions`
+
+Merchant enters amount on tablet/phone; customer pays via QR.
+
+```json
+{
+  "amount_xof": 2500,
+  "description": "Counter sale",
+  "webhook_url": "https://kebu…/api/webhooks/joko",
+  "metadata": { "shop_id": "…", "cashier": "awa" }
+}
+```
+
+Response includes `payment_url`, `qr_payload` (same URL), `channel: "pos"`, and `terminal` helper copy. Customer opens URL → enters MM phone → sandbox-complete or live push.
+
+### `GET /v1/pos/:reference`
+
+Same as payment GET (poll until `completed`).
+
+## Mode 3 — Send payment (payouts)
+
+### `POST /v1/payouts`
+
+```json
+{
+  "reference": "payout_supplier_1",
+  "amount_xof": 100000,
+  "phone": "+22177…",
+  "method": "wave",
+  "description": "Supplier settle",
+  "webhook_url": "https://…",
+  "execute": true,
+  "metadata": { "kind": "payout" }
+}
+```
+
+Live mode debits `PARTNER_SETTLEMENT_USER_ID` wallet then Julaya cash-out. Sandbox: create then `POST /v1/payouts/:reference/sandbox-complete`.
+
+### `GET /v1/payouts/:reference`
+
+### Webhook for payouts
+
+Same HMAC. Body includes `"type": "payout"`, `payout_id`, `status: "paid"`.
+
+## Mode 4 — Mbolo Business CS (shop agents)
+
+Hire agents who already have Joko accounts; open order threads; reply in Mbolo.
+
+| Method | Path |
+|---|---|
+| POST | `/v1/support/agents` — `{ phone, name, shop_external_id, role }` |
+| GET | `/v1/support/agents` |
+| POST | `/v1/support/threads` — `{ customer_phone, order_id, subject, initial_message? }` |
+| GET | `/v1/support/threads` |
+| POST | `/v1/support/threads/:id/assign` — `{ agent_id }` |
+| POST | `/v1/support/threads/:id/messages` — `{ text, agent_id? }` |
+
+If customer has no Joko account, thread opens without Mbolo — use `/v1/messages/send` (SMS) until they install Joko. Agent registration fails honestly (`user_not_found`) if phone is not a Joko user.
+
+Requires `PARTNER_MESSAGING_USER_ID` (system sender) for auto messages / thread creation.
+
 ## Sandbox checklist
 
 1. Set `JOKO_API_KEY`, `JOKO_WEBHOOK_SECRET`, `PUBLIC_APP_URL` on Joko  
-2. `POST /v1/checkout/sessions` with `amount_xof` + `webhook_url` pointing at Kebu or a request bin  
-3. `POST /v1/payments/:reference/sandbox-complete`  
-4. Confirm Kebu marks `shop_order` paid (or your bin shows HMAC body)  
-5. `GET /v1/payments/:reference` → `completed`  
-6. `POST /v1/messages/send` to a test phone  
+2. Online: checkout → sandbox-complete → webhook paid  
+3. POS: `/v1/pos/sessions` → open `qr_payload` → sandbox-complete  
+4. Payout: `/v1/payouts` → sandbox-complete → webhook `type=payout`  
+5. CS: register agent (Joko user phone) → open thread → assign → message  
+6. Messaging: `/v1/messages/send` to a test phone  
 
-## Roadmap (later slices)
+## Status
 
-| Slice | Capability |
-|---|---|
-| 2 | In-store POS collect / QR terminal |
-| 3 | Partner payout / send payment API |
-| 4 | Mbolo Business CS agents (hire agents, shop inbox) |
+| Slice | Capability | Status |
+|---|---|---|
+| 1 | Online accept + webhook + messages | Done |
+| 2 | In-store POS / QR | Done |
+| 3 | Partner payouts | Done |
+| 4 | Mbolo Business CS agents | Done (API) |
+
+In-app CS agent UI in the Joko Business hub is a follow-up; the Partner API is the E2E contract for Kebu/shops.
 
 ## Do not claim
 
